@@ -1,13 +1,184 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>admin</ion-title>
-  </ion-toolbar>
-</ion-header>
+<div class="admin-wrapper">
+  <!-- Dashboard Page -->
+  <div class="dashboard-layout" *ngIf="isLoggedIn">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <ion-icon name="shield"></ion-icon>
+          <span>Admin</span>
+        </div>
+      </div>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">admin</ion-title>
-    </ion-toolbar>
-  </ion-header>
-</ion-content>
+      <nav class="sidebar-nav">
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'approval'"
+          (click)="selectTab('approval')"
+        >
+          <ion-icon name="checkmark-circle"></ion-icon>
+          <span>Account Approval</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'departments'"
+          (click)="selectTab('departments')"
+        >
+          <ion-icon name="grid"></ion-icon>
+          <span>Departments & Courses</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" (click)="logout()">
+          <ion-icon name="log-out"></ion-icon>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <h2 class="page-title">{{ activeTab === 'approval' ? 'Account Approval' : 'Departments & Courses' }}</h2>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Account Approval Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'approval'">
+          <div class="section-header">
+            <h3>Pending User Approvals</h3>
+            <span class="badge">{{ pendingUsers.length }}</span>
+          </div>
+
+          <div class="users-grid" *ngIf="pendingUsers.length > 0">
+            <div class="user-card" *ngFor="let user of pendingUsers">
+              <div class="user-card-header">
+                <div class="user-avatar">{{ user.name.charAt(0) }}</div>
+                <div class="user-info">
+                  <h4 class="user-name">{{ user.name }}</h4>
+                  <p class="user-email">{{ user.email }}</p>
+                </div>
+                <span class="user-type" [class.student]="user.type === 'Student'" [class.alumni]="user.type === 'Alumni'">
+                  {{ user.type }}
+                </span>
+              </div>
+
+              <div class="user-card-body">
+                <div class="info-row">
+                  <span class="label">Department:</span>
+                  <span class="value">{{ user.department }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Join Date:</span>
+                  <span class="value">{{ user.joinDate }}</span>
+                </div>
+              </div>
+
+              <div class="user-card-actions">
+                <button class="btn btn-approve" (click)="approveUser(user.id)">
+                  <ion-icon name="checkmark"></ion-icon>
+                  Approve
+                </button>
+                <button class="btn btn-reject" (click)="rejectUser(user.id)">
+                  <ion-icon name="close"></ion-icon>
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="pendingUsers.length === 0">
+            <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
+            <h4>All Approvals Complete</h4>
+            <p>There are no pending user approvals at the moment.</p>
+          </div>
+        </section>
+
+        <!-- Departments Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'departments'">
+          <div class="section-header">
+            <h3>Manage Departments & Courses</h3>
+            <button class="btn btn-primary" (click)="toggleDepartmentForm()">
+              <ion-icon name="add-circle"></ion-icon>
+              {{ showDepartmentForm ? 'Cancel' : 'Add Department' }}
+            </button>
+          </div>
+
+          <!-- Add Department Form -->
+          <div class="form-card" *ngIf="showDepartmentForm">
+            <h4>New Department</h4>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newDepartmentName"
+                placeholder="Enter department name"
+                class="form-input"
+              />
+            </div>
+            <button class="btn btn-primary" (click)="addDepartment()">
+              <ion-icon name="checkmark"></ion-icon>
+              Add Department
+            </button>
+          </div>
+
+          <!-- Departments List -->
+          <div class="departments-grid">
+            <div class="department-card" *ngFor="let dept of departments">
+              <div class="dept-header">
+                <h4 class="dept-name">{{ dept.name }}</h4>
+                <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
+                  <ion-icon name="trash"></ion-icon>
+                </button>
+              </div>
+
+              <!-- Courses List -->
+              <div class="courses-section">
+                <div class="courses-header">
+                  <span class="courses-label">Courses ({{ dept.courses.length }})</span>
+                  <button
+                    class="btn-icon btn-add"
+                    (click)="toggleCourseForm(dept.id)"
+                    title="Add course"
+                    [class.active]="selectedDepartmentId === dept.id"
+                  >
+                    <ion-icon name="add"></ion-icon>
+                  </button>
+                </div>
+
+                <!-- Add Course Form -->
+                <div class="add-course-form" *ngIf="selectedDepartmentId === dept.id && showCourseForm">
+                  <input
+                    type="text"
+                    [(ngModel)]="newCourseName"
+                    placeholder="Enter course name"
+                    class="form-input"
+                  />
+                  <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)">
+                    <ion-icon name="checkmark"></ion-icon>
+                    Add
+                  </button>
+                </div>
+
+                <!-- Courses List -->
+                <div class="courses-list">
+                  <div class="course-item" *ngFor="let course of dept.courses; let i = index">
+                    <span class="course-name">{{ course }}</span>
+                    <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
+                      <ion-icon name="close"></ion-icon>
+                    </button>
+                  </div>
+                  <div class="no-courses" *ngIf="dept.courses.length === 0">
+                    <p>No courses yet</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>

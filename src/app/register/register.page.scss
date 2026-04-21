@@ -1,64 +1,54 @@
-.login-content {
+.register-content {
   --background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
-.login-container {
+.register-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  padding: 20px;
+  padding: 16px;
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
-// Logo Section
-.logo-section {
-  text-align: center;
-  margin-bottom: 40px;
-  animation: slideInDown 0.6s ease-out;
-}
-
-.app-logo {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 50%;
+// Header
+.register-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 20px;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
-  font-size: 40px;
-  color: #ffffff;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  margin-top: 8px;
 }
 
-.app-name {
-  font-size: 32px;
+.back-button {
+  --color: #10b981;
+  font-size: 24px;
+  padding: 0;
+}
+
+.register-title {
+  font-size: 24px;
   font-weight: 700;
   color: #10b981;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
-}
-
-.app-tagline {
-  font-size: 14px;
-  color: #059669;
   margin: 0;
-  font-weight: 500;
+  flex: 1;
+  text-align: center;
 }
 
-// Login Card
-.login-card {
+.header-spacer {
+  width: 40px; // Match back button space
+}
+
+// Register Card
+.register-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
+  margin: 0 auto;
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-  margin: 0;
   animation: slideInUp 0.6s ease-out;
 
   ion-card-content {
-    padding: 32px 24px;
+    padding: 24px;
   }
 }
 
@@ -68,7 +58,7 @@
   border: 1px solid rgba(220, 38, 38, 0.3);
   border-radius: 8px;
   padding: 12px 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -80,9 +70,47 @@
   }
 }
 
+// User Type Section
+.user-type-section {
+  margin-bottom: 24px;
+}
+
+.user-type-segment {
+  --background: transparent;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  display: flex;
+  gap: 0;
+
+  ion-segment-button {
+    --color: #6b7280;
+    --color-checked: #ffffff;
+    --background-checked: #10b981;
+    --border-radius: 8px;
+    border-radius: 8px;
+    flex: 1;
+
+    &:first-child {
+      margin-right: 4px;
+    }
+  }
+}
+
 // Form Group
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-label {
@@ -133,6 +161,26 @@
   }
 }
 
+// Form Select
+.form-select {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  background: #f8f9fa;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+
+  &:focus,
+  &:focus-visible {
+    border-color: #10b981;
+    background: #f0fdf4;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+}
+
 .toggle-password {
   --padding-start: 4px;
   --padding-end: 0;
@@ -141,34 +189,15 @@
   font-size: 18px;
 }
 
-// Forgot Password
-.forgot-password {
-  text-align: right;
-  margin: 12px 0 24px 0;
-}
-
-.link-button {
-  --color: #10b981;
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: none;
-  padding: 0;
-  height: auto;
-
-  &:hover {
-    opacity: 0.8;
-  }
-}
-
-// Login Button
-.login-button {
+// Register Button
+.register-button {
   --background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   --color: #ffffff;
   --border-radius: 10px;
   height: 48px;
   font-size: 16px;
   font-weight: 600;
-  margin: 0 0 16px 0;
+  margin: 24px 0 16px 0;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -194,42 +223,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 24px 0;
+  margin: 20px 0;
   font-size: 12px;
   color: #9ca3af;
   font-weight: 500;
 }
 
-// Register Button
-.register-button {
+// Login Link Button
+.login-link-button {
   --color: #10b981;
-  --border-color: #10b981;
-  --border-radius: 10px;
-  --border-width: 2px;
-  height: 48px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
 
   &:hover {
-    --background: rgba(16, 185, 129, 0.1);
+    opacity: 0.8;
   }
 }
 
 // Animations
-@keyframes slideInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -243,27 +257,25 @@
 
 // Responsive
 @media (max-width: 480px) {
-  .login-container {
-    padding: 16px;
+  .register-container {
+    padding: 12px;
   }
 
-  .logo-section {
-    margin-bottom: 32px;
-  }
-
-  .app-logo {
-    width: 70px;
-    height: 70px;
-    font-size: 32px;
-  }
-
-  .app-name {
-    font-size: 28px;
-  }
-
-  .login-card {
+  .register-card {
     ion-card-content {
-      padding: 24px 16px;
+      padding: 16px;
     }
+  }
+
+  .register-title {
+    font-size: 20px;
+  }
+
+  .form-label {
+    font-size: 12px;
+  }
+
+  .form-input {
+    font-size: 14px;
   }
 }
