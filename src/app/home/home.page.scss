@@ -1,27 +1,306 @@
-#container {
-  text-align: center;
-
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+// Header Styling
+.header-sticky {
+  --background: #10b981;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
 }
 
-#container p {
+// Profile Section (Left)
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.profile-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ffffff;
   font-size: 16px;
-  line-height: 22px;
+  flex-shrink: 0;
+}
 
-  color: #8c8c8c;
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
 
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.profile-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #ffffff;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Icons Section (Right)
+.icons-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  position: relative;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+  --color: #ffffff;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  --background: #ff4757;
+  font-size: 10px;
+  padding: 0 4px;
+  height: 18px;
+  line-height: 18px;
+}
+
+// Page Container
+.page-container {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Welcome Card
+.welcome-card {
+  margin: 16px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+
+  ion-card-header {
+    padding: 20px 16px 12px 16px;
+  }
+
+  ion-card-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  ion-card-content {
+    padding: 0 16px 16px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+// Section Title
+.section-title {
+  margin: 24px 0 16px 0;
+  padding: 0 8px;
+
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+  }
+}
+
+// Dashboard Grid
+.dashboard-grid {
+  padding: 0;
   margin: 0;
 }
 
-#container a {
-  text-decoration: none;
+.dashboard-row {
+  margin-bottom: 8px;
+}
+
+// Dashboard Card Styling
+.dashboard-card {
+  margin: 8px 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+  }
+
+  ion-card-header {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  ion-card-content {
+    padding: 12px 16px 16px 16px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+.card-icon {
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 8px 0;
+}
+
+.card-description {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin: 0;
+}
+
+// Card Color Variants
+.card-primary {
+  ion-card-header {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+
+    ion-icon {
+      color: #10b981;
+    }
+  }
+
+  .card-icon ion-icon {
+    color: #10b981;
+  }
+}
+
+.card-secondary {
+  ion-card-header {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+
+    ion-icon {
+      color: #22c55e;
+    }
+  }
+
+  .card-icon ion-icon {
+    color: #22c55e;
+  }
+}
+
+.card-tertiary {
+  ion-card-header {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0ea5e9;
+
+    ion-icon {
+      color: #0ea5e9;
+    }
+  }
+
+  .card-icon ion-icon {
+    color: #0ea5e9;
+  }
+}
+
+.card-success {
+  ion-card-header {
+    background: rgba(45, 194, 107, 0.1);
+    color: #2dc26b;
+
+    ion-icon {
+      color: #2dc26b;
+    }
+  }
+
+  .card-icon ion-icon {
+    color: #2dc26b;
+  }
+}
+
+.card-warning {
+  ion-card-header {
+    background: rgba(250, 164, 43, 0.1);
+    color: #faa42b;
+
+    ion-icon {
+      color: #faa42b;
+    }
+  }
+
+  .card-icon ion-icon {
+    color: #faa42b;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .header-content {
+    padding: 8px 8px;
+  }
+
+  .profile-name {
+    max-width: 80px;
+    font-size: 13px;
+  }
+
+  .page-container {
+    padding: 12px;
+  }
+
+  .card-value {
+    font-size: 24px;
+  }
+
+  .section-title h2 {
+    font-size: 16px;
+  }
 }

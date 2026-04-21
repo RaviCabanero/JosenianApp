@@ -1,20 +1,67 @@
-<ion-header [translucent]="true">
+<!-- Header with Profile and Notification Icons -->
+<ion-header [translucent]="true" class="header-sticky">
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <div class="header-content">
+      <!-- Left: Profile Section -->
+      <div class="profile-section">
+        <ion-avatar class="profile-avatar">
+          <div class="avatar-placeholder">{{ user.initials }}</div>
+        </ion-avatar>
+        <div class="profile-info">
+          <p class="profile-name">{{ user.name }}</p>
+        </div>
+      </div>
+
+      <!-- Right: Icons Section -->
+      <div class="icons-section">
+        <ion-button fill="clear" class="icon-button">
+          <ion-icon slot="icon-only" name="notifications" color="primary"></ion-icon>
+          <ion-badge class="notification-badge" *ngIf="notifications > 0">{{ notifications }}</ion-badge>
+        </ion-button>
+        <ion-button fill="clear" class="icon-button">
+          <ion-icon slot="icon-only" name="chatbubbles" color="primary"></ion-icon>
+          <ion-badge class="notification-badge" *ngIf="unreadChats > 0">{{ unreadChats }}</ion-badge>
+        </ion-button>
+      </div>
+    </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="page-container">
+    <!-- Welcome Card -->
+    <ion-card class="welcome-card">
+      <ion-card-header>
+        <ion-card-title>Welcome, {{ user.name.split(' ')[0] }}!</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Here's what's happening in your network today. Stay connected and up to date with your department and colleagues.</p>
+      </ion-card-content>
+    </ion-card>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+    <!-- Dashboard Section Title -->
+    <div class="section-title">
+      <h2>Dashboard</h2>
+    </div>
+
+    <!-- Dashboard Cards Grid -->
+    <ion-grid class="dashboard-grid">
+      <ion-row class="dashboard-row">
+        <ion-col size="6" sizeMd="6" sizeLg="4" *ngFor="let card of dashboardCards">
+          <ion-card class="dashboard-card" [class]="'card-' + card.color">
+            <ion-card-header>
+              <div class="card-icon">
+                <ion-icon [name]="card.icon"></ion-icon>
+              </div>
+              <ion-card-title class="card-title">{{ card.title }}</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="card-value">{{ card.value }}</div>
+              <p class="card-description">{{ card.description }}</p>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
   </div>
 </ion-content>
