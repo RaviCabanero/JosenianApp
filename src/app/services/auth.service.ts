@@ -363,6 +363,31 @@ export class AuthService {
     return this.currentUserSubject.value !== null;
   }
 
+  // Get user profile from Firestore
+  async getUserProfile(uid: string): Promise<any> {
+    try {
+      const userDoc = await getDoc(doc(this.firestore, 'users', uid));
+      if (userDoc.exists()) {
+        return userDoc.data();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  }
+
+  // Update user profile
+  async updateUserProfile(uid: string, data: any): Promise<void> {
+    try {
+      await updateDoc(doc(this.firestore, 'users', uid), data);
+      console.log('User profile updated successfully');
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  }
+
   // ==================== ERROR HANDLING ====================
 
   // Handle Firebase auth errors

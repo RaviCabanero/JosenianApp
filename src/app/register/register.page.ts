@@ -173,8 +173,8 @@ export class RegisterPage implements OnInit {
 
       console.log('Registration successful');
       this.isLoading = false;
-      // Navigate to home page
-      this.router.navigate(['/home']);
+      // Navigate to login page
+      this.router.navigate(['/login']);
     } catch (error: any) {
       this.isLoading = false;
       this.registerError = error.message || 'Registration failed';

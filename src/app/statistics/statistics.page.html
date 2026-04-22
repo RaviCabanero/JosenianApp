@@ -1,0 +1,115 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Statistics</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-container">
+    <!-- Main Stats Grid -->
+    <div class="main-stats-grid">
+      <ion-card class="stat-card primary">
+        <div class="stat-icon">
+          <ion-icon name="trending-up"></ion-icon>
+        </div>
+        <div class="stat-details">
+          <p class="stat-label">Engagement</p>
+          <p class="stat-value">{{ stats.engagement }}%</p>
+        </div>
+      </ion-card>
+
+      <ion-card class="stat-card secondary">
+        <div class="stat-icon">
+          <ion-icon name="people"></ion-icon>
+        </div>
+        <div class="stat-details">
+          <p class="stat-label">Active Users</p>
+          <p class="stat-value">{{ stats.activeUsers }}</p>
+        </div>
+      </ion-card>
+
+      <ion-card class="stat-card tertiary">
+        <div class="stat-icon">
+          <ion-icon name="swap-horizontal"></ion-icon>
+        </div>
+        <div class="stat-details">
+          <p class="stat-label">Interactions</p>
+          <p class="stat-value">{{ stats.totalInteractions }}</p>
+        </div>
+      </ion-card>
+
+      <ion-card class="stat-card success">
+        <div class="stat-icon">
+          <ion-icon name="checkmark-circle"></ion-icon>
+        </div>
+        <div class="stat-details">
+          <p class="stat-label">Retention</p>
+          <p class="stat-value">{{ stats.retention }}%</p>
+        </div>
+      </ion-card>
+    </div>
+
+    <!-- Chart Section -->
+    <ion-card class="chart-card">
+      <ion-card-header>
+        <ion-card-title>6-Month Engagement Trend</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="chart-container">
+          <div class="chart-bars">
+            <div *ngFor="let month of monthlyData" class="bar-container">
+              <div class="bar" [style.height]="getChartHeight(month.value)"></div>
+              <span class="bar-label">{{ month.month }}</span>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <p>Engagement rate over the last 6 months</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Category Stats -->
+    <div class="section-title">
+      <h2>Activity Breakdown</h2>
+    </div>
+
+    <div class="categories-grid">
+      <ion-card class="category-card" *ngFor="let cat of categories" [class]="'cat-' + cat.color">
+        <ion-card-content>
+          <div class="category-icon">
+            <ion-icon name="bar-chart"></ion-icon>
+          </div>
+          <p class="category-name">{{ cat.name }}</p>
+          <p class="category-value">{{ cat.value }}</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Summary Section -->
+    <ion-card class="summary-card">
+      <ion-card-header>
+        <ion-card-title>Performance Summary</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="summary-item">
+          <span>Growth Rate</span>
+          <span class="value positive">+{{ stats.growthRate }}%</span>
+        </div>
+        <div class="summary-item">
+          <span>User Satisfaction</span>
+          <span class="value">⭐ {{ stats.satisfaction }}/5</span>
+        </div>
+        <div class="summary-item">
+          <span>This Month</span>
+          <span class="value">On Track</span>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

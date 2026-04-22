@@ -1,0 +1,304 @@
+// SCSS Variables
+$primary-color: #10b981;
+$primary-dark: #059669;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-light: #4b5563;
+$border-color: #e5e7eb;
+$bg-light: #f8fafc;
+$bg-light-alt: #f3f4f6;
+$red-danger: #ef4444;
+
+.profile-content {
+  --background: $bg-light;
+}
+
+.profile-container {
+  padding-bottom: 40px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  gap: 20px;
+  ion-spinner { color: $primary-color; }
+  p { color: $text-secondary; font-size: 14px; }
+}
+
+// Profile Header
+.profile-header-gradient {
+  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  padding: 40px 20px 30px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2);
+  margin-bottom: 20px;
+}
+
+.profile-avatar-section { text-align: center; }
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto 24px;
+}
+
+.avatar-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-primary;
+  font-size: 56px;
+  font-weight: 700;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  border: 4px solid white;
+  margin: 0 auto;
+}
+
+.avatar-initials {
+  font-size: 56px;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.camera-icon-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  --color: white;
+  --background: $primary-color;
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  --padding-start: 0;
+  --padding-end: 0;
+  ion-icon { font-size: 24px; }
+  &:active { --background: $primary-dark; }
+}
+
+// User Info
+.user-info {
+  color: white;
+  .full-name { font-size: 32px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; }
+  .user-type-badge { font-size: 14px; font-weight: 600; margin: 0 0 4px 0; opacity: 0.95; }
+  .user-email { font-size: 13px; margin: 0; opacity: 0.85; letter-spacing: 0.3px; }
+}
+
+// Quick Stats
+.quick-stats {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-left: 3px solid $primary-color;
+  ion-icon { color: $primary-color; font-size: 18px; }
+  span { font-size: 13px; font-weight: 600; color: $text-primary; }
+}
+
+// Edit Button
+.edit-profile-button-container {
+  padding: 0 20px 24px;
+  .edit-profile-btn {
+    --background: $primary-color;
+    --color: white;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    &:active { --background: $primary-dark; }
+  }
+}
+
+// Cards
+.info-card {
+  margin: 0 20px 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: none;
+  ion-card-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border-color;
+  }
+  ion-card-title { font-size: 18px; font-weight: 700; color: $text-primary; }
+}
+
+// Info Items
+.info-item {
+  margin-bottom: 24px;
+  &:last-child { margin-bottom: 0; }
+  .info-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    ion-icon { color: $primary-color; font-size: 22px; }
+    span { font-size: 12px; font-weight: 700; color: $text-secondary; text-transform: uppercase; letter-spacing: 0.8px; }
+  }
+  .info-value {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: $text-primary;
+    padding-left: 32px;
+    &.bio-text { line-height: 1.6; color: $text-light; font-weight: 400; }
+  }
+}
+
+// Photo Modal
+.photo-modal {
+  --width: 100%;
+  --height: auto;
+  --border-radius: 24px 24px 0 0;
+  ion-header ion-toolbar {
+    --background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+    --color: white;
+    ion-title { font-weight: 700; letter-spacing: 0.3px; }
+  }
+}
+
+.photo-modal-content {
+  --background: $bg-light;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-preview-section {
+  padding: 24px 20px 0;
+  h3 { font-size: 14px; font-weight: 700; color: $text-primary; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+}
+
+.current-photo-preview {
+  text-align: center;
+  margin-bottom: 24px;
+  .preview-avatar { width: 120px; height: 120px; border-radius: 12px; background-size: cover; background-position: center; margin: 0 auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); border: 2px solid white; }
+}
+
+.photo-options-container {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.photo-option-card {
+  margin-bottom: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: none;
+  ion-card-content { padding: 24px; text-align: center; }
+  .option-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    ion-icon { font-size: 32px; color: $primary-color; }
+    &.danger { background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%); ion-icon { color: $red-danger; } }
+  }
+  h3 { font-size: 18px; font-weight: 700; color: $text-primary; margin: 0 0 6px 0; }
+  p { font-size: 14px; color: $text-secondary; margin: 0 0 16px 0; }
+  ion-button { font-weight: 600; --border-radius: 8px; }
+}
+
+.photo-info-box {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: $bg-light-alt;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border-left: 3px solid $primary-color;
+  ion-icon { color: $primary-color; font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .info-text {
+    flex: 1;
+    p { margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #374151; }
+    p:last-child { margin-bottom: 0; }
+    ul { margin: 8px 0 0 0; padding-left: 20px; list-style: disc; }
+    li { font-size: 13px; color: $text-light; margin-bottom: 4px; }
+    li:last-child { margin-bottom: 0; }
+  }
+}
+
+.photo-modal-footer {
+  padding: 20px;
+  border-top: 1px solid $border-color;
+  background: white;
+}
+
+// Edit Modal
+.edit-modal {
+  --width: 90%;
+  --height: auto;
+  --border-radius: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  label { display: block; font-size: 13px; font-weight: 700; color: $text-secondary; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-select { --padding-start: 12px; border: 2px solid $border-color; border-radius: 8px; --highlight-color-invalid: $red-danger; }
+}
+
+// Responsive - Tablet
+@media (max-width: 768px) {
+  .profile-header-gradient { padding: 32px 16px 24px; border-radius: 0 0 20px 20px; }
+  .avatar-circle { width: 120px; height: 120px; font-size: 48px; border: 3px solid white; }
+  .avatar-initials { font-size: 48px; }
+  .user-info .full-name { font-size: 28px; }
+  .quick-stats { padding: 0 16px 16px; }
+  .info-card { margin: 0 16px 16px; }
+  .photo-options-container { padding: 16px; }
+}
+
+// Responsive - Mobile
+@media (max-width: 480px) {
+  .profile-container { padding-bottom: 30px; }
+  .profile-header-gradient { padding: 28px 12px 20px; border-radius: 0 0 16px 16px; }
+  .avatar-circle { width: 100px; height: 100px; font-size: 40px; border: 3px solid white; }
+  .avatar-initials { font-size: 40px; }
+  .camera-icon-btn { width: 44px; height: 44px; ion-icon { font-size: 20px; } }
+  .user-info {
+    .full-name { font-size: 24px; margin-bottom: 6px; }
+    .user-type-badge { font-size: 13px; }
+    .user-email { font-size: 12px; }
+  }
+  .quick-stats { padding: 0 12px 16px; gap: 10px; }
+  .stat-card { padding: 10px 12px; font-size: 12px; ion-icon { font-size: 16px; } }
+  .edit-profile-button-container { padding: 0 12px 20px; }
+  .info-card { margin: 0 12px 16px; }
+  .info-item { margin-bottom: 18px; }
+  .info-value { font-size: 15px; padding-left: 28px; }
+  .photo-option-card {
+    ion-card-content { padding: 18px; }
+    h3 { font-size: 16px; }
+    p { font-size: 13px; }
+  }
+  .photo-info-box {
+    padding: 12px;
+    ion-icon { font-size: 20px; }
+    .info-text p,
+    .info-text ul li { font-size: 12px; }
+  }
+}

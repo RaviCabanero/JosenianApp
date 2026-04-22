@@ -1,0 +1,56 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>My Department</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-container">
+    <!-- Department Info Card -->
+    <ion-card class="info-card">
+      <ion-card-header>
+        <ion-card-title>{{ departmentInfo.name }}</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="info-grid">
+          <div class="info-item">
+            <p class="label">Members</p>
+            <p class="value">{{ departmentInfo.memberCount }}</p>
+          </div>
+          <div class="info-item">
+            <p class="label">Established</p>
+            <p class="value">{{ departmentInfo.established }}</p>
+          </div>
+        </div>
+        <p class="description">{{ departmentInfo.description }}</p>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Members Section -->
+    <div class="section-header">
+      <h2>Department Members</h2>
+      <span class="member-count">{{ members.length }} members</span>
+    </div>
+
+    <!-- Members List -->
+    <ion-list class="members-list">
+      <ion-item *ngFor="let member of members" class="member-item" (click)="viewMemberProfile(member.id)">
+        <div class="member-avatar">
+          {{ member.name.charAt(0) }}
+        </div>
+        <div class="member-info">
+          <h3>{{ member.name }}</h3>
+          <p>{{ member.role }}</p>
+        </div>
+        <div class="member-status" [class.active]="member.status === 'Active'" [class.inactive]="member.status === 'Inactive'">
+          {{ member.status }}
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+</ion-content>
