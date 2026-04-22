@@ -1,0 +1,74 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Feeds</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-container">
+    <!-- Feed Stats -->
+    <ion-card class="stats-card">
+      <ion-card-content>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <p class="stat-label">Total Posts</p>
+            <p class="stat-value">{{ feedStats.totalPosts }}</p>
+          </div>
+          <div class="stat-item">
+            <p class="stat-label">New Today</p>
+            <p class="stat-value">{{ feedStats.newToday }}</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Feed Section -->
+    <div class="section-header">
+      <h2>Posts</h2>
+    </div>
+
+    <!-- Posts List -->
+    <div class="posts-list">
+      <ion-card class="post-card" *ngFor="let post of posts" (click)="viewPost(post.id)">
+        <!-- Post Header -->
+        <div class="post-header">
+          <div class="author-info">
+            <div class="author-avatar">
+              {{ post.avatar }}
+            </div>
+            <div>
+              <h4>{{ post.author }}</h4>
+              <p class="timestamp">{{ getTimeAgo(post.timestamp) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Post Content -->
+        <div class="post-content">
+          <p>{{ post.content }}</p>
+        </div>
+
+        <!-- Post Actions -->
+        <div class="post-actions">
+          <button class="action-btn" (click)="toggleLike(post.id)">
+            <ion-icon [name]="post.liked ? 'heart' : 'heart-outline'" [color]="post.liked ? 'danger' : 'medium'"></ion-icon>
+            <span>{{ post.likes }}</span>
+          </button>
+          <button class="action-btn">
+            <ion-icon name="chatbubble-outline" color="medium"></ion-icon>
+            <span>{{ post.comments }}</span>
+          </button>
+          <button class="action-btn">
+            <ion-icon name="share-social-outline" color="medium"></ion-icon>
+            <span>{{ post.shares }}</span>
+          </button>
+        </div>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>

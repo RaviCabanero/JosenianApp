@@ -1,0 +1,95 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Notifications</ion-title>
+    <ion-buttons slot="end" *ngIf="getUnreadCount() > 0">
+      <ion-button (click)="markAllAsRead()" fill="clear" class="mark-all-btn">
+        <span class="mark-all-text">Mark all as read</span>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Filter Tabs -->
+  <ion-toolbar class="filter-toolbar">
+    <ion-segment value="all" (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="all">
+        <span>All</span>
+      </ion-segment-button>
+      <ion-segment-button value="unread">
+        <span>Unread</span>
+        <ion-badge class="segment-badge" *ngIf="getUnreadCount() > 0">
+          {{ getUnreadCount() }}
+        </ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="mentions">
+        <span>Mentions</span>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="notifications-container">
+    <!-- Notifications List -->
+    <div class="notifications-section" *ngIf="filteredNotifications.length > 0">
+      <ion-list class="notifications-list">
+        <ion-item-sliding
+          class="notification-item"
+          *ngFor="let notification of filteredNotifications"
+          [class.unread]="!notification.read"
+        >
+          <ion-item
+            lines="none"
+            class="notification-content"
+            (click)="openNotification(notification.id)"
+          >
+            <!-- Left: Status indicator and avatar -->
+            <div class="notification-left">
+              <div class="unread-indicator" *ngIf="!notification.read"></div>
+              <ion-avatar class="notification-avatar" [ngClass]="'avatar-' + notification.type">
+                <ion-icon [name]="notification.icon"></ion-icon>
+              </ion-avatar>
+            </div>
+
+            <!-- Center: Notification info -->
+            <div class="notification-middle">
+              <h3 class="notification-title">{{ notification.title }}</h3>
+              <p class="notification-message">{{ notification.message }}</p>
+              <span class="notification-time">{{ notification.timestamp }}</span>
+            </div>
+
+            <!-- Right: Read badge -->
+            <div class="notification-right" *ngIf="!notification.read">
+              <ion-badge color="primary" class="new-badge">New</ion-badge>
+            </div>
+          </ion-item>
+
+          <!-- Sliding actions -->
+          <ion-item-options side="end">
+            <ion-item-option
+              color="danger"
+              (click)="deleteNotification(notification.id)"
+            >
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredNotifications.length === 0">
+      <ion-icon name="notifications-off-outline"></ion-icon>
+      <h2>No notifications</h2>
+      <p>
+        <span *ngIf="selectedFilter === 'unread'">You're all caught up! No unread notifications.</span>
+        <span *ngIf="selectedFilter === 'mentions'">No mentions yet.</span>
+        <span *ngIf="selectedFilter === 'all'">You don't have any notifications yet.</span>
+      </p>
+    </div>
+  </div>
+</ion-content>
