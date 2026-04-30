@@ -68,6 +68,21 @@ export class AuthService {
         createdAt: new Date(),
         joinDate: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
       });
+
+      // Automatically add user as member to their selected department
+      await this.addMemberToDepartment(
+        profileData.department,
+        result.user.uid,
+        {
+          name: `${profileData.firstName} ${profileData.lastName}`,
+          email: email,
+          userType: profileData.userType,
+          role: profileData.userType === 'student' ? 'student' : 'alumni',
+          studentNumber: profileData.studentNumber || '',
+          course: profileData.course || '',
+          joinedDate: new Date().toISOString().split('T')[0],
+        }
+      );
       
       return result;
     } catch (error) {
@@ -111,6 +126,20 @@ export class AuthService {
           createdAt: new Date(),
           displayName: '',
         });
+      }
+      
+      // Check user status
+      const userData = userDoc.exists() ? userDoc.data() : await getDoc(doc(this.firestore, 'users', result.user.uid)).then(d => d.data());
+      const userStatus = userData?.['status'] || 'pending';
+      
+      if (userStatus === 'pending') {
+        await signOut(this.auth);
+        throw new Error('Your account is pending admin approval. Please check back later.');
+      }
+      
+      if (userStatus === 'rejected') {
+        await signOut(this.auth);
+        throw new Error('Your account registration was not approved. Please contact the administrator.');
       }
       
       return result;
@@ -179,27 +208,26 @@ export class AuthService {
     }
   }
 
-  // Approve user (update status in Firestore)
-  async approveUser(userId: string): Promise<void> {
+  // Get all users (for statistics)
+  async getAllUsers(): Promise<any[]> {
     try {
-      await setDoc(doc(this.firestore, 'users', userId), {
-        status: 'approved'
-      }, { merge: true });
-      console.log('User approved:', userId);
+      const q = query(collection(this.firestore, 'users'));
+      const querySnapshot = await getDocs(q);
+      const users: any[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          id: doc.id,
+          status: data['status'] || 'pending',
+          ...data
+        });
+      });
+      
+      return users;
     } catch (error) {
-      console.error('Error approving user:', error);
-    }
-  }
-
-  // Reject user (update status in Firestore)
-  async rejectUser(userId: string): Promise<void> {
-    try {
-      await setDoc(doc(this.firestore, 'users', userId), {
-        status: 'rejected'
-      }, { merge: true });
-      console.log('User rejected:', userId);
-    } catch (error) {
-      console.error('Error rejecting user:', error);
+      console.error('Error fetching all users:', error);
+      return [];
     }
   }
 
@@ -217,6 +245,7 @@ export class AuthService {
           id: doc.id,
           name: data['name'],
           courses: data['courses'] || [],
+          members: data['members'] || [],
           createdAt: data['createdAt']
         });
       });
@@ -237,6 +266,7 @@ export class AuthService {
       const docRef = await addDoc(collection(this.firestore, 'departments'), {
         name: departmentName,
         courses: [],
+        members: [],
         createdAt: new Date()
       });
       
@@ -244,7 +274,8 @@ export class AuthService {
       return {
         id: docRef.id,
         name: departmentName,
-        courses: []
+        courses: [],
+        members: []
       };
     } catch (error) {
       console.error('Error adding department:', error);
@@ -315,6 +346,216 @@ export class AuthService {
       return [];
     } catch (error) {
       console.error('Error fetching courses:', error);
+      return [];
+    }
+  }
+
+  // Add member to a department
+  async addMemberToDepartment(
+    departmentId: string,
+    userId: string,
+    memberData: {
+      name: string;
+      email: string;
+      userType: 'student' | 'alumni';
+      role: 'student' | 'alumni';
+      studentNumber?: string;
+      course?: string;
+      joinedDate: string;
+    }
+  ): Promise<void> {
+    try {
+      const deptRef = doc(this.firestore, 'departments', departmentId);
+      const deptDoc = await getDoc(deptRef);
+      
+      if (deptDoc.exists()) {
+        const members = deptDoc.data()['members'] || [];
+        
+        // Check if user is already a member
+        const memberExists = members.some((m: any) => m.userId === userId);
+        
+        if (!memberExists) {
+          members.push({
+            userId: userId,
+            name: memberData.name,
+            email: memberData.email,
+            userType: memberData.userType,
+            role: memberData.role,
+            studentNumber: memberData.studentNumber || '',
+            course: memberData.course || '',
+            joinedDate: memberData.joinedDate,
+          });
+          
+          await updateDoc(deptRef, { members: members });
+          console.log('User added as member to department:', departmentId);
+        }
+      } else {
+        console.warn('Department not found:', departmentId);
+      }
+    } catch (error) {
+      console.error('Error adding member to department:', error);
+      throw error;
+    }
+  }
+
+  // Get members of a department
+  async getDepartmentMembers(departmentId: string): Promise<any[]> {
+    try {
+      const deptDoc = await getDoc(doc(this.firestore, 'departments', departmentId));
+      if (deptDoc.exists()) {
+        return deptDoc.data()['members'] || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching department members:', error);
+      return [];
+    }
+  }
+
+  // Remove member from department
+  async removeMemberFromDepartment(departmentId: string, userId: string): Promise<void> {
+    try {
+      const deptRef = doc(this.firestore, 'departments', departmentId);
+      const deptDoc = await getDoc(deptRef);
+      
+      if (deptDoc.exists()) {
+        const members = deptDoc.data()['members'] || [];
+        const filteredMembers = members.filter((m: any) => m.userId !== userId);
+        
+        await updateDoc(deptRef, { members: filteredMembers });
+        console.log('User removed from department:', departmentId);
+      }
+    } catch (error) {
+      console.error('Error removing member from department:', error);
+      throw error;
+    }
+  }
+
+  // ==================== ADMIN CHECKS ====================
+
+  // ==================== ALUMNI MANAGEMENT ====================
+
+  // Get all alumni from Firestore
+  async getAlumni(): Promise<any[]> {
+    try {
+      const querySnapshot = await getDocs(collection(this.firestore, 'alumni'));
+      const alumniList: any[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        alumniList.push({
+          id: doc.id,
+          studentNumber: data['studentNumber'],
+          name: data['name'],
+          email: data['email'],
+          department: data['department'],
+          course: data['course'],
+          batch: data['batch'],
+          createdAt: data['createdAt']
+        });
+      });
+      
+      // Sort by batch (newest first), then by name
+      alumniList.sort((a, b) => {
+        const batchDiff = parseInt(b.batch) - parseInt(a.batch);
+        if (batchDiff !== 0) return batchDiff;
+        return a.name.localeCompare(b.name);
+      });
+      
+      return alumniList;
+    } catch (error) {
+      console.error('Error fetching alumni:', error);
+      return [];
+    }
+  }
+
+  // Add new alumni to Firestore
+  async addAlumni(alumniData: any): Promise<any> {
+    try {
+      const docRef = await addDoc(collection(this.firestore, 'alumni'), {
+        studentNumber: alumniData.studentNumber,
+        name: alumniData.name,
+        email: alumniData.email,
+        department: alumniData.department,
+        course: alumniData.course,
+        batch: alumniData.batch,
+        createdAt: new Date()
+      });
+      
+      console.log('Alumni added with ID:', docRef.id);
+      return {
+        id: docRef.id,
+        ...alumniData
+      };
+    } catch (error) {
+      console.error('Error adding alumni:', error);
+      throw error;
+    }
+  }
+
+  // Update alumni record in Firestore
+  async updateAlumni(alumniId: string, alumniData: any): Promise<void> {
+    try {
+      await updateDoc(doc(this.firestore, 'alumni', alumniId), {
+        studentNumber: alumniData.studentNumber,
+        name: alumniData.name,
+        email: alumniData.email,
+        department: alumniData.department,
+        course: alumniData.course,
+        batch: alumniData.batch,
+        updatedAt: new Date()
+      });
+      console.log('Alumni updated:', alumniId);
+    } catch (error) {
+      console.error('Error updating alumni:', error);
+      throw error;
+    }
+  }
+
+  // Delete alumni record from Firestore
+  async deleteAlumni(alumniId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(this.firestore, 'alumni', alumniId));
+      console.log('Alumni deleted:', alumniId);
+    } catch (error) {
+      console.error('Error deleting alumni:', error);
+      throw error;
+    }
+  }
+
+  // Get alumni by search criteria
+  async searchAlumni(searchTerm: string): Promise<any[]> {
+    try {
+      const allAlumni = await this.getAlumni();
+      return allAlumni.filter(a => 
+        a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    } catch (error) {
+      console.error('Error searching alumni:', error);
+      return [];
+    }
+  }
+
+  // Get alumni by department
+  async getAlumniByDepartment(department: string): Promise<any[]> {
+    try {
+      const allAlumni = await this.getAlumni();
+      return allAlumni.filter(a => a.department === department);
+    } catch (error) {
+      console.error('Error fetching alumni by department:', error);
+      return [];
+    }
+  }
+
+  // Get alumni by batch
+  async getAlumniByBatch(batch: string): Promise<any[]> {
+    try {
+      const allAlumni = await this.getAlumni();
+      return allAlumni.filter(a => a.batch === batch);
+    } catch (error) {
+      console.error('Error fetching alumni by batch:', error);
       return [];
     }
   }
@@ -409,6 +650,266 @@ export class AuthService {
         return new Error('Email already registered. Please login or use a different email.');
       default:
         return new Error(error.message || 'Authentication failed');
+    }
+  }
+
+  // ==================== FILE UPLOAD ====================
+
+  // Upload alumni ID for verification - Store as base64 in Firestore
+  async uploadAlumniId(file: File): Promise<string> {
+    try {
+      const user = this.auth.currentUser;
+      
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+
+      // Convert file to base64
+      let base64Data = await this.fileToBase64(file);
+      
+      // Compress image if it's larger than 500KB
+      if (base64Data.length > 500000) {
+        console.log('Compressing large image...');
+        base64Data = await this.compressImage(file);
+      }
+
+      // Validate file size (max 1MB for Firestore)
+      if (base64Data.length > 1000000) {
+        throw new Error('Alumni ID file too large (max 1MB after compression)');
+      }
+
+      console.log(`Alumni ID converted to base64: ${base64Data.length} bytes`);
+      
+      // Return base64 string (will be stored in Firestore)
+      return base64Data;
+    } catch (error) {
+      console.error('Error processing alumni ID:', error);
+      throw error;
+    }
+  }
+
+  // Convert file to base64 string
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extract base64 part (remove "data:image/...;base64," prefix)
+        const base64 = result.split(',')[1] || result;
+        resolve(base64);
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Compress image using Canvas
+  private compressImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Reduce image size
+          if (width > 1200 || height > 1200) {
+            const ratio = Math.min(1200 / width, 1200 / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.8 quality
+          const compressed = canvas.toDataURL('image/jpeg', 0.8);
+          const base64 = compressed.split(',')[1] || compressed;
+          resolve(base64);
+        };
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+        };
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ==================== ALUMNI ID VERIFICATION ====================
+
+  // Get all alumni awaiting ID verification
+  async getPendingAlumniVerification() {
+    try {
+      const usersRef = collection(this.firestore, 'users');
+      const q = query(
+        usersRef,
+        where('userType', '==', 'alumni'),
+        where('alumniIdVerificationStatus', '==', 'pending')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const alumni: any[] = [];
+      querySnapshot.forEach((doc) => {
+        alumni.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return alumni;
+    } catch (error) {
+      console.error('Error getting pending alumni verification:', error);
+      throw error;
+    }
+  }
+
+  // Verify (approve or reject) alumni ID
+  async verifyAlumniId(userId: string, status: 'approved' | 'rejected', rejectionReason: string = '') {
+    try {
+      const userRef = doc(this.firestore, 'users', userId);
+      const updateData: any = {
+        alumniIdVerificationStatus: status,
+        alumniIdVerificationDate: new Date().toISOString()
+      };
+
+      if (status === 'rejected' && rejectionReason) {
+        updateData.alumniIdRejectionReason = rejectionReason;
+      }
+
+      await updateDoc(userRef, updateData);
+      console.log(`Alumni ID ${status}:`, userId);
+    } catch (error) {
+      console.error('Error verifying alumni ID:', error);
+      throw error;
+    }
+  }
+
+  // ==================== ACCOUNT APPROVAL ====================
+
+  // Approve user account
+  async approveUser(userId: string): Promise<void> {
+    try {
+      const userRef = doc(this.firestore, 'users', userId);
+      await updateDoc(userRef, {
+        status: 'approved',
+        approvalDate: new Date().toISOString(),
+        approvalStatus: 'approved'
+      });
+      
+      // Create notification for user
+      await this.createNotification(userId, 'Account Approved', 'Your account has been approved. You can now access all features of JosenianLink.', 'success');
+      console.log('User approved:', userId);
+    } catch (error) {
+      console.error('Error approving user:', error);
+      throw error;
+    }
+  }
+
+  // Reject user account
+  async rejectUser(userId: string, rejectionReason: string = ''): Promise<void> {
+    try {
+      const userRef = doc(this.firestore, 'users', userId);
+      await updateDoc(userRef, {
+        status: 'rejected',
+        rejectionDate: new Date().toISOString(),
+        rejectionReason: rejectionReason
+      });
+      
+      // Create notification for user
+      await this.createNotification(userId, 'Account Registration Rejected', 'Your account registration was not approved. Please ensure your information is correct or contact the administrator.', 'error');
+      console.log('User rejected:', userId);
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      throw error;
+    }
+  }
+
+  // Create notification for user
+  async createNotification(userId: string, title: string, message: string, type: 'success' | 'error' | 'info' | 'warning'): Promise<void> {
+    try {
+      const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
+      await addDoc(notificationsRef, {
+        title: title,
+        message: message,
+        type: type,
+        createdAt: new Date().toISOString(),
+        read: false
+      });
+      console.log('Notification created for user:', userId);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  }
+
+  // Get notifications for user
+  async getNotifications(userId: string): Promise<any[]> {
+    try {
+      const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
+      const q = query(notificationsRef);
+      const querySnapshot = await getDocs(q);
+      
+      const notifications: any[] = [];
+      querySnapshot.forEach((doc) => {
+        notifications.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      return [];
+    }
+  }
+
+  // Mark notification as read
+  async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
+    try {
+      const notifRef = doc(this.firestore, 'users', userId, 'notifications', notificationId);
+      await updateDoc(notifRef, { read: true });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  }
+
+  // Auto-approve user if email domain is @usj.edu.ph
+  async autoApproveIfEligible(userId: string): Promise<boolean> {
+    try {
+      const userRef = doc(this.firestore, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) return false;
+      
+      const userData = userDoc.data();
+      const email = userData?.['email'] || '';
+      
+      // Auto-approve if email ends with @usj.edu.ph
+      if (email.endsWith('@usj.edu.ph')) {
+        await this.approveUser(userId);
+        console.log('Auto-approved user with @usj.edu.ph email:', userId);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error in auto-approval check:', error);
+      return false;
     }
   }
 }

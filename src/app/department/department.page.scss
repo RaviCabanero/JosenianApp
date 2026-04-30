@@ -2,97 +2,86 @@
   padding: 20px;
 }
 
-.info-card {
-  margin-bottom: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
-
-  .info-item {
-    text-align: center;
-
-    .label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-
-    .value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #10b981;
-      margin: 0;
-    }
-  }
-}
-
-.description {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.section-header {
+// Loading, Error, Empty States
+.loading-state,
+.error-state,
+.empty-state {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin: 28px 0 16px;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  text-align: center;
 
-  h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1f2937;
+  ion-spinner {
+    --color: #10b981;
+  }
+
+  ion-icon {
+    font-size: 64px;
+    color: #d1d5db;
+  }
+
+  p {
+    font-size: 16px;
+    color: #6b7280;
     margin: 0;
   }
 
-  .member-count {
-    font-size: 13px;
-    font-weight: 600;
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    padding: 4px 12px;
-    border-radius: 20px;
+  ion-button {
+    margin-top: 16px;
   }
 }
 
-.members-list {
-  padding: 0;
-  margin: 0;
+// Departments List Styles
+.departments-section {
+  animation: fadeIn 0.3s ease-in;
+
+  .departments-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+  }
+
+  .departments-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0 0 24px 0;
+  }
 }
 
-.member-item {
-  --padding-start: 0;
-  --padding-end: 0;
-  --inner-padding-end: 0;
-  --inner-padding-start: 0;
-  margin-bottom: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
+.departments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+  margin-bottom: 20px;
+}
+
+.department-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
 
   &:hover {
-    background: #f0fdf4;
-    transform: translateX(4px);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    border-color: #10b981;
   }
 
-  .member-avatar {
-    width: 48px;
-    height: 48px;
+  .dept-icon {
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     display: flex;
@@ -100,90 +89,1390 @@
     justify-content: center;
     color: white;
     font-weight: 700;
-    font-size: 20px;
-    flex-shrink: 0;
+    font-size: 24px;
   }
 
-  .member-info {
-    flex: 1;
+  .dept-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+  }
 
-    h3 {
-      font-size: 16px;
+  .dept-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    .dept-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 24px;
+    }
+
+    .dept-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
       font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 12px;
+
+      ion-icon {
+        font-size: 14px;
+      }
+
+      &.primary-badge {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+      }
+
+      &.following-badge {
+        background: rgba(251, 146, 60, 0.15);
+        color: #f97316;
+      }
+    }
+  }
+
+  .dept-courses {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0;
+
+    ion-icon {
+      font-size: 16px;
+      color: #10b981;
+    }
+  }
+
+  .dept-courses-list {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 8px 0;
+    line-height: 1.4;
+  }
+
+  .register-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: auto;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+// Modal Styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+// Department Cover Header
+.modal-cover-header {
+  position: relative;
+  background: white;
+
+  .cover-photo {
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    position: relative;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .dept-logo-section {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    margin-top: -40px;
+    position: relative;
+    z-index: 10;
+
+    .dept-logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 4px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 32px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .close-btn {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      height: 36px;
+      width: 36px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+    }
+  }
+
+  .dept-info-header {
+    padding: 16px 20px 12px;
+    background: white;
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0 0 8px 0;
+    }
+
+    .member-count {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
+
+      ion-icon {
+        font-size: 16px;
+        color: #10b981;
+      }
+    }
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: white;
+
+  .header-content {
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
       color: #1f2937;
       margin: 0 0 4px 0;
     }
 
-    p {
-      font-size: 13px;
+    .header-subtitle {
+      font-size: 12px;
       color: #6b7280;
       margin: 0;
     }
   }
 
-  .member-status {
+  .close-btn {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    height: 32px;
+    width: 32px;
+  }
+}
+
+// Tab Navigation
+.tabs-navigation {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+  }
+
+  .tab-button {
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 20px;
-    background: #e5e7eb;
     color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 
-    &.active {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
+    ion-icon {
+      font-size: 16px;
     }
 
-    &.inactive {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
+    &:hover {
+      color: #1f2937;
+      background: #f9fafb;
+    }
+
+    &.active {
+      color: #10b981;
+      border-bottom-color: #10b981;
+      background: rgba(16, 185, 129, 0.05);
     }
   }
 }
 
-// Responsive
-@media (max-width: 480px) {
-  .page-container {
-    padding: 16px;
+// Tab Content
+.tabs-content {
+  flex: 1;
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 100px;
+
+  .tab-pane {
+    animation: fadeIn 0.3s ease-in;
   }
 
-  .section-header {
-    margin: 24px 0 12px;
+  .tab-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 16px 0;
+  }
 
-    h2 {
-      font-size: 18px;
+  .empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    gap: 12px;
+    text-align: center;
+
+    ion-icon {
+      font-size: 48px;
+      color: #d1d5db;
     }
 
-    .member-count {
-      font-size: 12px;
-      padding: 4px 10px;
+    p {
+      font-size: 14px;
+      color: #9ca3af;
+      margin: 0;
     }
   }
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  position: sticky;
+  bottom: 0;
+  flex-wrap: wrap;
+
+  ion-button {
+    flex: 1;
+    min-width: 100px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+  }
+
+  .btn-cancel {
+    background: #e5e7eb;
+    color: #1f2937;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    flex: 1;
+    min-width: 100px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #d1d5db;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .btn-register,
+  .btn-follow,
+  .btn-registered {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    flex: 1;
+    min-width: 100px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+
+  .btn-register {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .btn-follow {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .btn-registered {
+    background: #e0f2fe;
+    color: #0284c7;
+    cursor: default;
+
+    &:disabled {
+      opacity: 0.7;
+    }
+  }
+}
+
+.info-card {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dept-info {
+  margin-bottom: 0;
+
+  .info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .info-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+  }
+}
+
+// Status section
+.status-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+
+  .info-label {
+    margin-bottom: 8px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+
+    &.primary {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+
+    &.following {
+      background: rgba(251, 146, 60, 0.15);
+      color: #f97316;
+    }
+  }
+}
+
+// Description section
+.description-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+
+  .info-label {
+    margin-bottom: 8px;
+  }
+
+  .description-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+  }
+}
+
+// Members grid
+.members-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
   .member-item {
-    margin-bottom: 10px;
-    padding: 10px;
+    display: flex;
+    align-items: center;
     gap: 12px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
 
     .member-avatar {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
       font-size: 18px;
+      flex-shrink: 0;
     }
 
-    .member-info {
-      h3 {
+    .member-details {
+      flex: 1;
+
+      .member-name {
         font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0 0 2px 0;
+      }
+
+      .member-role {
+        font-size: 12px;
+        color: #6b7280;
+        margin: 0;
+      }
+    }
+  }
+}
+
+.courses-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+
+  .courses-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+  }
+
+  .courses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .course-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #374151;
+
+      ion-icon {
+        font-size: 18px;
+        color: #10b981;
+        flex-shrink: 0;
+      }
+
+      span {
+        flex: 1;
+      }
+    }
+  }
+}
+
+
+
+// Responsive styles for desktop
+@media (min-width: 769px) {
+  .modal-overlay {
+    padding: 20px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 40px);
+  }
+
+  .modal-cover-header {
+    .cover-photo {
+      height: 200px;
+    }
+
+    .dept-logo-section {
+      padding: 0 24px;
+      margin-top: -50px;
+
+      .dept-logo {
+        width: 100px;
+        height: 100px;
+        font-size: 40px;
+        border-width: 4px;
+      }
+
+      .close-btn {
+        height: 38px;
+        width: 38px;
+      }
+    }
+
+    .dept-info-header {
+      padding: 20px 24px 16px;
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .member-count {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .tabs-navigation {
+    .tab-button {
+      min-width: 100px;
+      font-size: 13px;
+      padding: 14px 16px;
+
+      ion-icon {
+        font-size: 18px;
+      }
+    }
+  }
+
+  .tabs-content {
+    padding: 20px 24px 24px;
+
+    .tab-label {
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+
+    .empty-content {
+      min-height: 250px;
+
+      ion-icon {
+        font-size: 56px;
       }
 
       p {
-        font-size: 12px;
+        font-size: 15px;
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 18px 24px;
+    gap: 14px;
+    flex-wrap: wrap;
+
+    .btn-cancel,
+    .btn-register,
+    .btn-follow,
+    .btn-registered {
+      padding: 11px 18px;
+      font-size: 14px;
+      min-width: 120px;
+
+      ion-icon {
+        font-size: 17px;
+      }
+    }
+  }
+
+  .info-card {
+    margin-bottom: 28px;
+  }
+
+  .dept-info {
+    .info-label {
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .info-value {
+      font-size: 22px;
+    }
+  }
+
+  .status-section {
+    margin-top: 18px;
+    padding-top: 18px;
+
+    .status-badge {
+      padding: 8px 14px;
+      font-size: 14px;
+    }
+  }
+
+  .description-section {
+    margin-top: 18px;
+    padding-top: 18px;
+
+    .description-text {
+      font-size: 15px;
+      line-height: 1.7;
+    }
+  }
+
+  .courses-section {
+    .courses-label {
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+
+    .courses-list {
+      gap: 12px;
+
+      .course-item {
+        font-size: 14px;
+        gap: 12px;
+
+        ion-icon {
+          font-size: 18px;
+        }
+      }
+    }
+  }
+
+  .members-grid {
+    gap: 14px;
+
+    .member-item {
+      padding: 14px 16px;
+      gap: 14px;
+
+      .member-avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .member-details {
+        .member-name {
+          font-size: 15px;
+          margin-bottom: 3px;
+        }
+
+        .member-role {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}
+
+// ========== ANIMATIONS ==========
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpFull {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive styles for tablet
+@media (max-width: 768px) {
+  .departments-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-content {
+    border-radius: 16px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .modal-cover-header {
+    .cover-photo {
+      height: 160px;
+    }
+
+    .dept-logo-section {
+      padding: 0 16px;
+      margin-top: -36px;
+
+      .dept-logo {
+        width: 72px;
+        height: 72px;
+        font-size: 30px;
+        border-width: 3px;
+      }
+
+      .close-btn {
+        height: 34px;
+        width: 34px;
       }
     }
 
-    .member-status {
+    .dept-info-header {
+      padding: 14px 16px 10px;
+
+      h1 {
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+
+      .member-count {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .tabs-navigation {
+    .tab-button {
+      min-width: 75px;
+      font-size: 12px;
+      padding: 11px 8px;
+      gap: 6px;
+
+      ion-icon {
+        font-size: 16px;
+      }
+
+      span {
+        display: inline;
+      }
+    }
+  }
+
+  .tabs-content {
+    padding: 14px 18px 16px;
+
+    .tab-label {
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .empty-content {
+      min-height: 180px;
+
+      ion-icon {
+        font-size: 44px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 14px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    .btn-cancel,
+    .btn-register,
+    .btn-follow,
+    .btn-registered {
+      padding: 9px 14px;
+      font-size: 13px;
+      min-width: 80px;
+
+      ion-icon {
+        font-size: 15px;
+      }
+    }
+  }
+
+  .info-card {
+    margin-bottom: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  }
+
+  .dept-info {
+    .info-label {
       font-size: 11px;
-      padding: 4px 8px;
+    }
+
+    .info-value {
+      font-size: 19px;
+    }
+  }
+
+  .status-section {
+    margin-top: 14px;
+    padding-top: 14px;
+
+    .info-label {
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      padding: 7px 11px;
+      font-size: 12px;
+    }
+  }
+
+  .description-section {
+    margin-top: 14px;
+    padding-top: 14px;
+
+    .info-label {
+      margin-bottom: 8px;
+    }
+
+    .description-text {
+      font-size: 13px;
+    }
+  }
+
+  .courses-section {
+    .courses-label {
+      font-size: 13px;
+      margin-bottom: 11px;
+    }
+
+    .courses-list {
+      gap: 9px;
+
+      .course-item {
+        font-size: 13px;
+        gap: 10px;
+
+        ion-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  .members-grid {
+    gap: 11px;
+
+    .member-item {
+      padding: 11px 10px;
+      gap: 11px;
+
+      .member-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 17px;
+        flex-shrink: 0;
+      }
+
+      .member-details {
+        .member-name {
+          font-size: 13px;
+          margin-bottom: 2px;
+        }
+
+        .member-role {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+
+  .department-card {
+    padding: 16px;
+
+    .dept-card-header {
+      margin-bottom: 12px;
+
+      .dept-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 21px;
+      }
+
+      .dept-status {
+        font-size: 10px;
+        padding: 4px 8px;
+
+        ion-icon {
+          font-size: 12px;
+        }
+      }
+    }
+
+    .dept-name {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .dept-courses {
+      font-size: 12px;
+
+      ion-icon {
+        font-size: 15px;
+      }
+    }
+
+    .register-btn {
+      padding: 9px 13px;
+      font-size: 13px;
+    }
+  }
+}
+
+// Responsive styles for mobile - FULLSCREEN MODAL
+@media (max-width: 480px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  // Make modal fullscreen on mobile
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-content {
+    border-radius: 20px 20px 0 0;
+    height: 100vh;
+    max-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    animation: slideUpFull 0.3s ease-out;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .modal-cover-header {
+    flex-shrink: 0;
+    background: white;
+    padding-bottom: 8px;
+
+    .cover-photo {
+      height: 120px;
+    }
+
+    .dept-logo-section {
+      padding: 0 12px;
+      margin-top: -30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      .dept-logo {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+        border-width: 3px;
+        flex-shrink: 0;
+      }
+
+      .close-btn {
+        height: 32px;
+        width: 32px;
+        margin-top: 4px;
+      }
+    }
+
+    .dept-info-header {
+      padding: 8px 12px;
+
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px 0;
+        line-height: 1.3;
+      }
+
+      .member-count {
+        font-size: 12px;
+        margin: 0;
+      }
+    }
+  }
+
+  .tabs-navigation {
+    flex-shrink: 0;
+    padding: 0;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+
+    &::-webkit-scrollbar {
+      height: 2px;
+    }
+
+    .tab-button {
+      min-width: 50px;
+      font-size: 10px;
+      padding: 10px 8px;
+      gap: 4px;
+
+      ion-icon {
+        font-size: 16px;
+      }
+
+      span {
+        display: none;
+      }
+
+      &.active span {
+        display: inline;
+      }
+    }
+  }
+
+  .tabs-content {
+    flex: 1;
+    padding: 12px 12px 8px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: white;
+    min-height: auto;
+
+    .tab-pane {
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    .tab-label {
+      font-size: 13px;
+      margin: 0 0 12px 0;
+    }
+
+    .empty-content {
+      min-height: 150px;
+
+      ion-icon {
+        font-size: 40px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .modal-footer {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    gap: 8px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+    position: sticky;
+    bottom: 0;
+    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    max-height: auto;
+
+    ion-button {
+      min-width: auto;
+      flex: auto;
+    }
+
+    .btn-cancel,
+    .btn-register,
+    .btn-follow,
+    .btn-registered {
+      padding: 8px 10px;
+      font-size: 11px;
+      min-width: auto;
+      grid-column: auto;
+
+      ion-icon {
+        font-size: 14px;
+      }
+    }
+
+    .btn-registered {
+      grid-column: span 2;
+      width: 100%;
+    }
+  }
+
+  .info-card {
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .dept-info {
+    .info-label {
+      font-size: 10px;
+    }
+
+    .info-value {
+      font-size: 16px;
+      margin: 0;
+    }
+  }
+
+  .status-section {
+    margin-top: 10px;
+    padding-top: 10px;
+
+    .info-label {
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+
+    .status-badge {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+  }
+
+  .description-section {
+    margin-top: 10px;
+    padding-top: 10px;
+
+    .info-label {
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+
+    .description-text {
+      font-size: 13px;
+    }
+  }
+
+  .courses-section {
+    .courses-label {
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .courses-list {
+      gap: 6px;
+
+      .course-item {
+        font-size: 12px;
+        gap: 8px;
+
+        ion-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  .members-grid {
+    gap: 8px;
+
+    .member-item {
+      padding: 10px 8px;
+      gap: 10px;
+
+      .member-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .member-details {
+        flex: 1;
+        min-width: 0;
+
+        .member-name {
+          font-size: 12px;
+          margin: 0 0 2px 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .member-role {
+          font-size: 10px;
+          margin: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+
+  .departments-section {
+    .departments-title {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+    }
+
+    .departments-subtitle {
+      font-size: 11px;
+    }
+  }
+
+  .departments-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .department-card {
+    padding: 14px;
+
+    .dept-card-header {
+      margin-bottom: 10px;
+      gap: 8px;
+
+      .dept-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      .dept-status {
+        font-size: 9px;
+        padding: 3px 6px;
+
+        ion-icon {
+          font-size: 11px;
+        }
+      }
+    }
+
+    .dept-name {
+      font-size: 15px;
+      margin: 0 0 6px 0;
+    }
+
+    .dept-courses {
+      font-size: 12px;
+      margin: 4px 0;
+
+      ion-icon {
+        font-size: 14px;
+      }
+    }
+
+    .dept-courses-list {
+      font-size: 11px;
+      margin: 6px 0;
+    }
+
+    .register-btn {
+      padding: 8px 10px;
+      font-size: 12px;
+      margin-top: auto;
     }
   }
 }

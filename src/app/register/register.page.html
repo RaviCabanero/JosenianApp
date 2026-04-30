@@ -134,6 +134,51 @@
           </div>
         </div>
 
+        <!-- Alumni ID Upload Field (Alumni Only) -->
+        <div class="form-group" *ngIf="userType === 'alumni'" [@slideIn]>
+          <label class="form-label">Alumni ID / Student ID for Verification</label>
+          <div class="file-upload-wrapper">
+            <input
+              #alumniIdInput
+              id="alumniIdInput"
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.pdf"
+              (change)="onAlumniIdFileSelected($event)"
+              class="file-input-hidden"
+            />
+            <ion-button
+              expand="block"
+              fill="outline"
+              class="file-upload-button"
+              (click)="alumniIdInput.click()"
+            >
+              <ion-icon name="cloud-upload-outline" slot="start"></ion-icon>
+              <span *ngIf="!alumniIdFile">Choose File</span>
+              <span *ngIf="alumniIdFile">Change File</span>
+            </ion-button>
+          </div>
+          
+          <!-- File Preview -->
+          <div class="file-preview" *ngIf="alumniIdFile">
+            <div class="file-info">
+              <ion-icon name="document" class="file-icon"></ion-icon>
+              <div class="file-details">
+                <p class="file-name">{{ alumniIdFileName }}</p>
+                <p class="file-size">{{ alumniIdFileSize }}</p>
+              </div>
+              <ion-button
+                fill="clear"
+                class="remove-file-button"
+                (click)="removeAlumniIdFile()"
+              >
+                <ion-icon name="close" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+          
+          <p class="file-hint">Accepted formats: JPG, PNG, GIF, PDF (Max 5MB). Your ID will be verified by the admin.</p>
+        </div>
+
         <!-- Password Field -->
         <div class="form-group">
           <label class="form-label">Password</label>

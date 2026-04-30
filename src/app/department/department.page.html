@@ -5,52 +5,225 @@
         <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>My Department</ion-title>
+    <ion-title>Departments</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshDepartments()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Department Info Card -->
-    <ion-card class="info-card">
-      <ion-card-header>
-        <ion-card-title>{{ departmentInfo.name }}</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="info-grid">
-          <div class="info-item">
-            <p class="label">Members</p>
-            <p class="value">{{ departmentInfo.memberCount }}</p>
-          </div>
-          <div class="info-item">
-            <p class="label">Established</p>
-            <p class="value">{{ departmentInfo.established }}</p>
-          </div>
-        </div>
-        <p class="description">{{ departmentInfo.description }}</p>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Members Section -->
-    <div class="section-header">
-      <h2>Department Members</h2>
-      <span class="member-count">{{ members.length }} members</span>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading departments...</p>
     </div>
 
-    <!-- Members List -->
-    <ion-list class="members-list">
-      <ion-item *ngFor="let member of members" class="member-item" (click)="viewMemberProfile(member.id)">
-        <div class="member-avatar">
-          {{ member.name.charAt(0) }}
+    <!-- Error State -->
+    <div *ngIf="errorMessage && !isLoading" class="error-state">
+      <ion-icon name="alert-circle"></ion-icon>
+      <p>{{ errorMessage }}</p>
+      <ion-button (click)="refreshDepartments()">Try Again</ion-button>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && !errorMessage && allDepartments.length === 0" class="empty-state">
+      <ion-icon name="folder-open"></ion-icon>
+      <p>No departments available</p>
+    </div>
+
+    <!-- Departments List Section -->
+    <div class="departments-section" *ngIf="!selectedDepartment && !isLoading && allDepartments.length > 0">
+      <h1 class="departments-title">Available Departments</h1>
+      <p class="departments-subtitle">Select a department to view details</p>
+
+      <div class="departments-grid">
+        <div *ngFor="let dept of allDepartments" class="department-card" (click)="openDepartmentDetail(dept)">
+          <div class="dept-card-header">
+            <div class="dept-icon">{{ dept.name.charAt(0) }}</div>
+            <div class="dept-status" *ngIf="isPrimaryDepartment(dept.id)" class="primary-badge">
+              <ion-icon name="checkmark-circle"></ion-icon>
+              <span>Primary</span>
+            </div>
+            <div class="dept-status" *ngIf="isUserInDepartment(dept.id) && !isPrimaryDepartment(dept.id)" class="following-badge">
+              <ion-icon name="star"></ion-icon>
+              <span>Following</span>
+            </div>
+          </div>
+          <h2 class="dept-name">{{ dept.name }}</h2>
+          <div class="dept-courses" *ngIf="dept.courses && dept.courses.length > 0">
+            <ion-icon name="book"></ion-icon>
+            <span>{{ dept.courses.length }} Courses</span>
+          </div>
+          <p class="dept-courses-list" *ngIf="dept.courses && dept.courses.length > 0">
+            {{ dept.courses.slice(0, 2).join(', ') }}<span *ngIf="dept.courses.length > 2">...</span>
+          </p>
+          <button class="register-btn">View Details</button>
         </div>
-        <div class="member-info">
-          <h3>{{ member.name }}</h3>
-          <p>{{ member.role }}</p>
+      </div>
+    </div>
+
+    <!-- Department Detail Modal with Tabs -->
+    <div *ngIf="showDetailModal && selectedDepartment" class="modal-overlay" (click)="closeDetailModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <!-- Department Cover Header -->
+        <div class="modal-cover-header">
+          <div class="cover-photo">
+            <img src="https://via.placeholder.com/1200x300?text={{ selectedDepartment.name }}" alt="Cover">
+          </div>
+          <div class="dept-logo-section">
+            <div class="dept-logo">
+              {{ selectedDepartment.name.charAt(0) }}
+            </div>
+            <ion-button (click)="closeDetailModal()" class="close-btn">
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="dept-info-header">
+            <h1>{{ selectedDepartment.name }}</h1>
+            <p class="member-count" *ngIf="selectedDepartment.members">
+              <ion-icon name="people"></ion-icon>
+              {{ selectedDepartment.members.length }} Members
+            </p>
+          </div>
         </div>
-        <div class="member-status" [class.active]="member.status === 'Active'" [class.inactive]="member.status === 'Inactive'">
-          {{ member.status }}
+
+        <!-- Tab Navigation -->
+        <div class="tabs-navigation">
+          <button 
+            *ngFor="let tab of departments_tabs" 
+            class="tab-button"
+            [class.active]="activeTab === tab"
+            (click)="switchTab(tab)">
+            <ion-icon [name]="getTabIcon(tab)"></ion-icon>
+            <span>{{ tab | titlecase }}</span>
+          </button>
         </div>
-      </ion-item>
-    </ion-list>
+
+        <!-- Tab Content -->
+        <div class="tabs-content">
+          <!-- Overview Tab -->
+          <div *ngIf="activeTab === 'overview'" class="tab-pane">
+            <ion-card class="info-card">
+              <ion-card-content>
+                <div class="dept-info">
+                  <p class="info-label">Department Name</p>
+                  <p class="info-value">{{ selectedDepartment.name }}</p>
+                </div>
+
+                <div class="status-section" *ngIf="isUserInDepartment(selectedDepartment.id)">
+                  <p class="info-label">Your Status</p>
+                  <div class="status-badge" [class.primary]="isPrimaryDepartment(selectedDepartment.id)" 
+                       [class.following]="!isPrimaryDepartment(selectedDepartment.id)">
+                    {{ isPrimaryDepartment(selectedDepartment.id) ? '✓ Primary Department' : '★ Following' }}
+                  </div>
+                </div>
+
+                <div class="courses-section" *ngIf="selectedDepartment.courses && selectedDepartment.courses.length > 0">
+                  <p class="courses-label">Courses ({{ selectedDepartment.courses.length }})</p>
+                  <div class="courses-list">
+                    <div class="course-item" *ngFor="let course of selectedDepartment.courses">
+                      <ion-icon name="checkmark-circle"></ion-icon>
+                      <span>{{ course }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="description-section" *ngIf="selectedDepartment.description">
+                  <p class="info-label">About</p>
+                  <p class="description-text">{{ selectedDepartment.description }}</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <!-- Members Tab -->
+          <div *ngIf="activeTab === 'members'" class="tab-pane">
+            <ion-card class="members-card">
+              <ion-card-content>
+                <p class="tab-label">Members in this department</p>
+                <div class="members-grid">
+                  <div class="member-item" *ngFor="let member of selectedDepartment.members || []">
+                    <div class="member-avatar">{{ member.name.charAt(0) }}</div>
+                    <div class="member-details">
+                      <p class="member-name">{{ member.name }}</p>
+                      <p class="member-role">{{ member.role }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="!selectedDepartment.members || selectedDepartment.members.length === 0" class="empty-content">
+                  <p>No members yet</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <!-- Events Tab -->
+          <div *ngIf="activeTab === 'events'" class="tab-pane">
+            <ion-card class="events-card">
+              <ion-card-content>
+                <p class="tab-label">Upcoming Events</p>
+                <div class="empty-content">
+                  <ion-icon name="calendar"></ion-icon>
+                  <p>No events scheduled</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <!-- Discussion Tab -->
+          <div *ngIf="activeTab === 'discussion'" class="tab-pane">
+            <ion-card class="discussion-card">
+              <ion-card-content>
+                <p class="tab-label">Discussion Forum</p>
+                <div class="empty-content">
+                  <ion-icon name="chatbubble"></ion-icon>
+                  <p>No discussions yet</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <!-- Resources Tab -->
+          <div *ngIf="activeTab === 'resources'" class="tab-pane">
+            <ion-card class="resources-card">
+              <ion-card-content>
+                <p class="tab-label">Available Resources</p>
+                <div class="empty-content">
+                  <ion-icon name="document"></ion-icon>
+                  <p>No resources available</p>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="modal-footer">
+          <ion-button 
+            *ngIf="!isUserInDepartment(selectedDepartment.id)"
+            (click)="followDepartment()" 
+            class="btn-follow">
+            <ion-icon name="star"></ion-icon> Follow
+          </ion-button>
+          <ion-button 
+            *ngIf="!isPrimaryDepartment(selectedDepartment.id) && !isUserInDepartment(selectedDepartment.id)"
+            (click)="registerDepartment()" 
+            class="btn-register">
+            <ion-icon name="checkmark"></ion-icon> Register
+          </ion-button>
+          <ion-button 
+            *ngIf="isPrimaryDepartment(selectedDepartment.id)"
+            disabled
+            class="btn-registered">
+            <ion-icon name="checkmark-circle"></ion-icon> Registered
+          </ion-button>
+          <ion-button (click)="closeDetailModal()" class="btn-cancel">Close</ion-button>
+        </div>
+      </div>
+    </div>
   </div>
 </ion-content>

@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload their own alumni IDs
+    match /alumni-ids/{userId}-{timestamp}-{allPaths=**} {
+      allow read: if request.auth.uid == userId || 
+                     get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth.uid == userId && 
+                       request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                       request.resource.contentType.matches('image/.*|application/pdf');
+      allow delete: if request.auth.uid == userId || 
+                       get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

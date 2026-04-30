@@ -27,6 +27,25 @@
           <ion-icon name="grid"></ion-icon>
           <span>Departments & Courses</span>
         </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'alumni'"
+          (click)="selectTab('alumni')"
+        >
+          <ion-icon name="people"></ion-icon>
+          <span>Alumni Management</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'alumni-verification'"
+          (click)="selectTab('alumni-verification')"
+        >
+          <ion-icon name="id-card"></ion-icon>
+          <span>Alumni ID Verification</span>
+          <span class="badge-count" *ngIf="pendingAlumniVerification.length > 0">
+            {{ pendingAlumniVerification.length }}
+          </span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -41,59 +60,259 @@
     <main class="main-content">
       <!-- Top Bar -->
       <header class="top-bar">
-        <h2 class="page-title">{{ activeTab === 'approval' ? 'Account Approval' : 'Departments & Courses' }}</h2>
+        <h2 class="page-title">{{ activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : 'Alumni ID Verification' }}</h2>
       </header>
 
       <!-- Content Area -->
       <div class="content-area">
         <!-- Account Approval Tab -->
-        <section class="tab-content" *ngIf="activeTab === 'approval'">
-          <div class="section-header">
-            <h3>Pending User Approvals</h3>
-            <span class="badge">{{ pendingUsers.length }}</span>
-          </div>
-
-          <div class="users-grid" *ngIf="pendingUsers.length > 0">
-            <div class="user-card" *ngFor="let user of pendingUsers">
-              <div class="user-card-header">
-                <div class="user-avatar">{{ user.name.charAt(0) }}</div>
-                <div class="user-info">
-                  <h4 class="user-name">{{ user.name }}</h4>
-                  <p class="user-email">{{ user.email }}</p>
-                </div>
-                <span class="user-type" [class.student]="user.type === 'Student'" [class.alumni]="user.type === 'Alumni'">
-                  {{ user.type }}
-                </span>
+        <section class="tab-content approval-tab" *ngIf="activeTab === 'approval'">
+          <!-- Summary Cards -->
+          <div class="summary-cards">
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <ion-icon name="hourglass"></ion-icon>
               </div>
-
-              <div class="user-card-body">
-                <div class="info-row">
-                  <span class="label">Department:</span>
-                  <span class="value">{{ user.department }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Join Date:</span>
-                  <span class="value">{{ user.joinDate }}</span>
-                </div>
+              <div class="stat-content">
+                <p class="stat-label">Pending</p>
+                <h3 class="stat-value">{{ totalPendingCount }}</h3>
               </div>
-
-              <div class="user-card-actions">
-                <button class="btn btn-approve" (click)="approveUser(user.id)">
-                  <ion-icon name="checkmark"></ion-icon>
-                  Approve
-                </button>
-                <button class="btn btn-reject" (click)="rejectUser(user.id)">
-                  <ion-icon name="close"></ion-icon>
-                  Reject
-                </button>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon approved">
+                <ion-icon name="checkmark-circle"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Approved</p>
+                <h3 class="stat-value">{{ totalApprovedCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon rejected">
+                <ion-icon name="close-circle"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Rejected</p>
+                <h3 class="stat-value">{{ totalRejectedCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon total">
+                <ion-icon name="people"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Total Users</p>
+                <h3 class="stat-value">{{ totalUsersCount }}</h3>
               </div>
             </div>
           </div>
 
-          <div class="empty-state" *ngIf="pendingUsers.length === 0">
-            <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
-            <h4>All Approvals Complete</h4>
-            <p>There are no pending user approvals at the moment.</p>
+          <!-- Main Approval Layout (Two Columns) -->
+          <div class="approval-layout">
+            <!-- Left Panel: Request Table -->
+            <div class="requests-panel">
+              <div class="panel-header">
+                <h3>Pending Requests</h3>
+                <button class="btn btn-primary btn-sm" (click)="autoApproveEligibleUsers()" *ngIf="pendingUsers.length > 0">
+                  <ion-icon name="checkmark-done"></ion-icon>
+                  Auto-Approve
+                </button>
+              </div>
+
+              <!-- Search and Filter Bar -->
+              <div class="search-filter-bar" *ngIf="pendingUsers.length > 0">
+                <input 
+                  type="text" 
+                  [(ngModel)]="searchTerm" 
+                  (input)="filterAndPaginateUsers()"
+                  placeholder="Search by name or email..."
+                  class="search-input"
+                />
+                <select [(ngModel)]="filterByRole" (change)="filterAndPaginateUsers()" class="filter-select">
+                  <option value="">All Roles</option>
+                  <option value="student">Student</option>
+                  <option value="alumni">Alumni</option>
+                </select>
+              </div>
+
+              <div class="requests-table-wrapper" *ngIf="paginatedUsers.length > 0">
+                <div class="requests-list">
+                  <!-- Table Header -->
+                  <div class="request-header">
+                    <div class="header-cell">Name</div>
+                    <div class="header-cell">Role</div>
+                    <div class="header-cell">Department</div>
+                    <div class="header-cell">Submitted</div>
+                    <div class="header-cell">Status</div>
+                  </div>
+                  
+                  <!-- Table Rows -->
+                  <div class="request-row" *ngFor="let user of paginatedUsers" 
+                       [class.active]="selectedUser?.id === user.id"
+                       (click)="selectUserForDetail(user)">
+                    <div class="row-name">
+                      {{ user.firstName }} {{ user.lastName }}
+                    </div>
+                    <div class="row-role">
+                      <span class="role-badge" [ngClass]="user.userType?.toLowerCase()">
+                        {{ user.userType === 'student' ? 'Student' : 'Alumni' }}
+                      </span>
+                    </div>
+                    <div class="row-department">
+                      {{ user.department || 'N/A' }}
+                    </div>
+                    <div class="row-submitted">
+                      {{ user.joinDate || user.createdAt | date: 'MMM dd, yyyy' }}
+                    </div>
+                    <div class="row-status">
+                      <span class="status-badge" [ngClass]="user.status?.toLowerCase() || 'pending'">
+                        {{ user.status || 'Pending' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-controls" *ngIf="filteredUsers.length > itemsPerPage">
+                <button 
+                  class="btn btn-sm btn-pagination" 
+                  (click)="previousPage()"
+                  [disabled]="currentPage === 1">
+                  <ion-icon name="chevron-back"></ion-icon>
+                  Previous
+                </button>
+                <span class="page-info">
+                  Page {{ currentPage }} of {{ totalPages }}
+                </span>
+                <button 
+                  class="btn btn-sm btn-pagination" 
+                  (click)="nextPage()"
+                  [disabled]="currentPage === totalPages">
+                  <ion-icon name="chevron-forward"></ion-icon>
+                  Next
+                </button>
+              </div>
+
+              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && filteredUsers.length === 0">
+                <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
+                <h4>All Approvals Complete</h4>
+                <p>No pending user approvals at the moment.</p>
+              </div>
+
+              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && filteredUsers.length > 0">
+                <ion-icon name="search" class="empty-icon"></ion-icon>
+                <h4>No Results Found</h4>
+                <p>No users match your search criteria.</p>
+              </div>
+            </div>
+
+            <!-- Right Panel: User Detail -->
+            <div class="detail-panel" *ngIf="selectedUser">
+              <div class="detail-header">
+                <h3>User Details</h3>
+              </div>
+
+              <div class="detail-content">
+                <!-- Profile Section -->
+                <div class="profile-section">
+                  <div class="profile-avatar-lg">
+                    {{ (selectedUser.firstName?.charAt(0) || 'U').toUpperCase() }}
+                  </div>
+                  <div class="profile-info">
+                    <h2>{{ selectedUser.firstName }} {{ selectedUser.lastName }}</h2>
+                    <p class="profile-email">{{ selectedUser.email }}</p>
+                    <p class="profile-role">
+                      <span class="badge" [ngClass]="selectedUser.userType?.toLowerCase()">
+                        {{ selectedUser.userType === 'student' ? 'Student' : 'Alumni' }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="info-grid">
+                  <div class="info-item">
+                    <label>Department</label>
+                    <p>{{ selectedUser.department || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Student/Alumni ID</label>
+                    <p>{{ selectedUser.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'student'">
+                    <label>Course</label>
+                    <p>{{ selectedUser.course || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'alumni'">
+                    <label>Graduation Year</label>
+                    <p>{{ selectedUser.graduationYear || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Submission Date</label>
+                    <p>{{ selectedUser.joinDate || selectedUser.createdAt | date: 'MMM dd, yyyy' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'alumni'">
+                    <label>ID Verification</label>
+                    <p>
+                      <span class="badge-status" [ngClass]="selectedUser.alumniIdVerificationStatus">
+                        {{ selectedUser.alumniIdVerificationStatus || 'pending' }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Alumni ID Preview -->
+                <div class="alumni-id-preview" *ngIf="selectedUser.userType === 'alumni' && selectedUser.alumniIdBase64">
+                  <label>Uploaded Alumni ID</label>
+                  <img 
+                    [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" 
+                    alt="Alumni ID"
+                    class="id-image"
+                    (click)="expandedAlumniId = expandedAlumniId === selectedUser.id ? null : selectedUser.id"
+                  />
+                  <p class="file-info" *ngIf="selectedUser.alumniIdFileName">
+                    {{ selectedUser.alumniIdFileName }}
+                  </p>
+                </div>
+
+                <!-- Admin Notes -->
+                <div class="notes-section">
+                  <label>Admin Notes</label>
+                  <textarea 
+                    [(ngModel)]="adminNotes" 
+                    placeholder="Add notes about this request..."
+                    class="notes-input">
+                  </textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                  <button class="btn btn-approve" (click)="approveUser(selectedUser.id)">
+                    <ion-icon name="checkmark-circle"></ion-icon>
+                    Approve User
+                  </button>
+                  <button class="btn btn-reject" (click)="rejectUser(selectedUser.id)">
+                    <ion-icon name="close-circle"></ion-icon>
+                    Reject
+                  </button>
+                  <button class="btn btn-download" (click)="downloadAlumniId(selectedUser)" *ngIf="selectedUser.alumniIdBase64">
+                    <ion-icon name="download"></ion-icon>
+                    Download ID
+                  </button>
+                </div>
+              </div>
+
+              <!-- Expanded Image View -->
+              <div class="expanded-view" *ngIf="expandedAlumniId === selectedUser.id" (click)="expandedAlumniId = null">
+                <div class="expanded-container" (click)="$event.stopPropagation()">
+                  <button class="close-btn" (click)="expandedAlumniId = null">
+                    <ion-icon name="close"></ion-icon>
+                  </button>
+                  <img [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" alt="Alumni ID - Full" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -176,6 +395,231 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- Alumni Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'alumni'">
+          <div class="section-header">
+            <h3>Alumni Management</h3>
+            <button class="btn btn-primary" (click)="toggleAlumniForm()">
+              <ion-icon name="add-circle"></ion-icon>
+              {{ showAlumniForm ? 'Cancel' : 'Add Alumni' }}
+            </button>
+          </div>
+
+          <!-- Add/Edit Alumni Form -->
+          <div class="form-card" *ngIf="showAlumniForm">
+            <h4>{{ editingAlumniId ? 'Edit Alumni' : 'New Alumni' }}</h4>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.studentNumber"
+                placeholder="Student Number"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.name"
+                placeholder="Full Name"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="email"
+                [(ngModel)]="newAlumni.email"
+                placeholder="Email Address"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.department"
+                placeholder="Department"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.course"
+                placeholder="Course"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.batch"
+                placeholder="Batch (e.g., 2023)"
+                class="form-input"
+              />
+            </div>
+            <button class="btn btn-primary" (click)="saveAlumni()">
+              <ion-icon name="checkmark"></ion-icon>
+              {{ editingAlumniId ? 'Update Alumni' : 'Add Alumni' }}
+            </button>
+          </div>
+
+          <!-- Alumni Search & Filter -->
+          <div class="filter-section">
+            <div class="filter-group">
+              <input
+                type="text"
+                [(ngModel)]="alumniSearchFilters.name"
+                (input)="filterAlumni()"
+                placeholder="Search by name..."
+                class="form-input filter-input"
+              />
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.userType" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Types</option>
+                <option value="student">Student</option>
+                <option value="alumni">Alumni</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.department" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Departments</option>
+                <option *ngFor="let dept of getUniqueDepartmentsForAlumni()" [value]="dept">
+                  {{ dept }}
+                </option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.batch" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Batches/Years</option>
+                <option *ngFor="let batch of getUniqueBatches()" [value]="batch">
+                  {{ batch }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Alumni Table -->
+          <div class="table-wrapper" *ngIf="filteredAlumni.length > 0">
+            <table class="alumni-table">
+              <thead>
+                <tr>
+                  <th>Student Number</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Type</th>
+                  <th>Department</th>
+                  <th>Course</th>
+                  <th>{{ hasAlumniType() ? 'Graduation Year' : 'Batch/Year' }}</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let alumnus of filteredAlumni" class="table-row">
+                  <td>{{ alumnus.studentNumber }}</td>
+                  <td>{{ alumnus.name }}</td>
+                  <td>{{ alumnus.email }}</td>
+                  <td>
+                    <span class="type-badge" [ngClass]="alumnus.userType?.toLowerCase() || 'student'">
+                      {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                    </span>
+                  </td>
+                  <td>{{ alumnus.department }}</td>
+                  <td>{{ alumnus.course }}</td>
+                  <td>{{ alumnus.batch }}</td>
+                  <td class="actions-cell">
+                    <button class="btn-icon btn-edit" (click)="editAlumni(alumnus.id)" title="Edit alumni">
+                      <ion-icon name="pencil"></ion-icon>
+                    </button>
+                    <button class="btn-icon btn-delete" (click)="deleteAlumni(alumnus.id)" title="Delete alumni">
+                      <ion-icon name="trash"></ion-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="filteredAlumni.length === 0">
+            <ion-icon name="people" class="empty-icon"></ion-icon>
+            <h4>No Alumni Records</h4>
+            <p>{{ alumni.length === 0 ? 'No alumni added yet.' : 'No results matching your search criteria.' }}</p>
+          </div>
+        </section>
+
+        <!-- Alumni ID Verification Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
+          <div class="section-header">
+            <h3>Alumni ID Verification</h3>
+            <span class="badge">{{ pendingAlumniVerification.length }} Pending</span>
+          </div>
+
+          <div class="verification-grid" *ngIf="pendingAlumniVerification.length > 0">
+            <div class="verification-card" *ngFor="let alumnus of pendingAlumniVerification">
+              <div class="verification-header">
+                <div class="user-info">
+                  <h4 class="user-name">{{ alumnus.firstName }} {{ alumnus.lastName }}</h4>
+                  <p class="user-email">{{ alumnus.email }}</p>
+                  <p class="user-details">{{ alumnus.department }} | Batch {{ alumnus.graduationYear }}</p>
+                </div>
+                <span class="status-badge pending">Pending Review</span>
+              </div>
+
+              <div class="verification-body">
+                <!-- Alumni ID Image -->
+                <div class="alumni-id-container" *ngIf="alumnus.alumniIdBase64">
+                  <img
+                    [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
+                    alt="Alumni ID"
+                    class="alumni-id-image"
+                    (click)="expandedAlumniId = expandedAlumniId === alumnus.id ? null : alumnus.id"
+                  />
+                  <p class="file-name" *ngIf="alumnus.alumniIdFileName">
+                    <ion-icon name="document"></ion-icon>
+                    {{ alumnus.alumniIdFileName }}
+                  </p>
+                </div>
+
+                <!-- Expanded View -->
+                <div class="expanded-view" *ngIf="expandedAlumniId === alumnus.id" (click)="expandedAlumniId = null">
+                  <div class="expanded-image-container" (click)="$event.stopPropagation()">
+                    <button class="close-btn" (click)="expandedAlumniId = null">
+                      <ion-icon name="close"></ion-icon>
+                    </button>
+                    <img
+                      [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
+                      alt="Alumni ID - Expanded"
+                      class="expanded-image"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="verification-actions">
+                <button class="btn btn-approve" (click)="approveAlumniId(alumnus.id)">
+                  <ion-icon name="checkmark-circle"></ion-icon>
+                  Approve
+                </button>
+                <button class="btn btn-download" (click)="downloadAlumniId(alumnus)">
+                  <ion-icon name="download"></ion-icon>
+                  Download
+                </button>
+                <button class="btn btn-reject" (click)="rejectAlumniId(alumnus.id)">
+                  <ion-icon name="close-circle"></ion-icon>
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="pendingAlumniVerification.length === 0">
+            <ion-icon name="checkmark-done" class="empty-icon"></ion-icon>
+            <h4>All Verified!</h4>
+            <p>No pending alumni ID verifications. All alumni IDs have been reviewed.</p>
           </div>
         </section>
       </div>

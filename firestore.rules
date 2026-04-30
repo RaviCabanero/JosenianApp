@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userType') == 'admin';
+    }
+    
+    function isAuthenticatedUser() {
+      return request.auth != null;
+    }
+
+    // Users collection - users can read/write their own, admins can read all for approval
+    match /users/{userId} {
+      allow create: if isAuthenticatedUser() && request.auth.uid == userId;
+      allow read: if isAuthenticatedUser() && (
+        request.auth.uid == userId || 
+        (try isAdmin() catch(e) false)
+      );
+      allow update: if isAuthenticatedUser() && (
+        // User can update their own document
+        (request.auth.uid == userId) ||
+        // Admin can update for approval workflow (status, approvalDate, rejectionDate, etc.)
+        (try isAdmin() catch(e) false)
+      );
+      allow delete: if false;
+      
+      // Notifications subcollection - users can read/write their own
+      match /notifications/{notificationId} {
+        allow create: if isAuthenticatedUser() && request.auth.uid == userId;
+        allow read: if isAuthenticatedUser() && request.auth.uid == userId;
+        allow update: if isAuthenticatedUser() && request.auth.uid == userId;
+        allow delete: if isAuthenticatedUser() && request.auth.uid == userId;
+      }
+    }
+    
+    // Departments collection - everyone can read
+    match /departments/{departmentId} {
+      allow read: if isAuthenticatedUser();
+      
+      // Only admins can create/delete departments
+      allow create: if isAuthenticatedUser() && (try isAdmin() catch(e) false);
+      allow delete: if isAuthenticatedUser() && (try isAdmin() catch(e) false);
+      
+      // Admins can update all fields
+      allow update: if isAuthenticatedUser() && (
+        // Admin can update anything
+        (try isAdmin() catch(e) false) ||
+        // Any authenticated user can update their own membership in members array
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+      );
+    }
+    
+    // Alumni collection - admins can manage, users can read
+    match /alumni/{alumniId} {
+      allow read: if isAuthenticatedUser();
+      allow create: if isAuthenticatedUser() && (try isAdmin() catch(e) false);
+      allow update: if isAuthenticatedUser() && (try isAdmin() catch(e) false);
+      allow delete: if isAuthenticatedUser() && (try isAdmin() catch(e) false);
+    }
+  }
+}

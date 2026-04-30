@@ -1,12 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
   standalone: false,
+  animations: [
+    trigger('slideIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateX(30px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in', style({ opacity: 0, transform: 'translateX(-30px)' }))
+      ])
+    ])
+  ]
 })
 export class RegisterPage implements OnInit {
   // Form state
@@ -31,6 +43,11 @@ export class RegisterPage implements OnInit {
   departments: any[] = [];
   courses: string[] = [];
   isLoadingDepts: boolean = false;
+
+  // Alumni ID upload
+  alumniIdFile: File | null = null;
+  alumniIdFileName: string = '';
+  alumniIdFileSize: string = '';
 
   constructor(private router: Router, private authService: AuthService) {}
 
@@ -151,28 +168,47 @@ export class RegisterPage implements OnInit {
         this.registerError = 'Please select your graduation year';
         return;
       }
+      if (!this.alumniIdFile) {
+        this.registerError = 'Please upload your alumni ID for verification';
+        return;
+      }
     }
 
     this.isLoading = true;
 
     try {
       // Call Firebase registration and store user data in Firestore
+      const profileData: any = {
+        firstName: this.firstName,
+        lastName: this.lastName,
+        userType: this.userType,
+        studentNumber: this.userType === 'student' ? this.studentNumber : '',
+        department: this.department,
+        course: this.userType === 'student' ? this.course : '',
+        graduationYear: this.userType === 'alumni' ? this.graduationYear : '',
+        status: 'pending', // Account pending admin approval
+      };
+
+      // Upload alumni ID if user is alumni
+      if (this.userType === 'alumni' && this.alumniIdFile) {
+        const alumniIdBase64 = await this.authService.uploadAlumniId(this.alumniIdFile);
+        profileData.alumniIdBase64 = alumniIdBase64;
+        profileData.alumniIdFileName = this.alumniIdFileName;
+        profileData.alumniIdVerificationStatus = 'pending';
+      }
+
       await this.authService.registerWithProfile(
         this.email,
         this.password,
-        {
-          firstName: this.firstName,
-          lastName: this.lastName,
-          userType: this.userType,
-          studentNumber: this.userType === 'student' ? this.studentNumber : '',
-          department: this.department,
-          course: this.userType === 'student' ? this.course : '',
-          graduationYear: this.userType === 'alumni' ? this.graduationYear : '',
-        }
+        profileData
       );
 
       console.log('Registration successful');
       this.isLoading = false;
+      
+      // Show success message about pending approval
+      alert('Registration successful! Your account is under review by the admin. Please check back later to login.');
+      
       // Navigate to login page
       this.router.navigate(['/login']);
     } catch (error: any) {
@@ -191,6 +227,47 @@ export class RegisterPage implements OnInit {
   handleKeyPress(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       this.register();
+    }
+  }
+
+  // Handle alumni ID file selection
+  onAlumniIdFileSelected(event: any) {
+    const file: File = event.target.files[0];
+    if (file) {
+      // Validate file type (only images and PDF)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        this.registerError = 'Please upload a valid file (JPG, PNG, GIF, or PDF)';
+        this.alumniIdFile = null;
+        this.alumniIdFileName = '';
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        this.registerError = 'File size must be less than 5MB';
+        this.alumniIdFile = null;
+        this.alumniIdFileName = '';
+        return;
+      }
+
+      this.alumniIdFile = file;
+      this.alumniIdFileName = file.name;
+      this.alumniIdFileSize = (file.size / 1024).toFixed(2) + ' KB';
+      this.registerError = ''; // Clear any previous errors
+    }
+  }
+
+  // Remove alumni ID file
+  removeAlumniIdFile() {
+    this.alumniIdFile = null;
+    this.alumniIdFileName = '';
+    this.alumniIdFileSize = '';
+    // Clear the file input
+    const fileInput = document.getElementById('alumniIdInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
     }
   }
 }
