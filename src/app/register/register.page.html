@@ -1,0 +1,215 @@
+<ion-content [fullscreen]="true" class="register-content">
+  <div class="register-container">
+    <!-- Header Section -->
+    <div class="register-header">
+      <ion-button fill="clear" class="back-button" (click)="navigateToLogin()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+      <h1 class="register-title">Create Account</h1>
+      <div class="header-spacer"></div>
+    </div>
+
+    <!-- Register Form Card -->
+    <ion-card class="register-card">
+      <ion-card-content>
+        <!-- Error Message -->
+        <div class="error-message" *ngIf="registerError">
+          <ion-icon name="alert-circle"></ion-icon>
+          <span>{{ registerError }}</span>
+        </div>
+
+        <!-- User Type Selector -->
+        <div class="user-type-section">
+          <label class="form-label">I am a</label>
+          <ion-segment
+            [(ngModel)]="userType"
+            (ionChange)="onUserTypeChange($event)"
+            class="user-type-segment"
+          >
+            <ion-segment-button value="student" checked>
+              <ion-label>Student</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="alumni">
+              <ion-label>Alumni</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <!-- First Name Field -->
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <div class="input-wrapper">
+            <ion-icon name="person" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="firstName"
+              placeholder="Enter your first name"
+              type="text"
+              class="form-input"
+            ></ion-input>
+          </div>
+        </div>
+
+        <!-- Last Name Field -->
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <div class="input-wrapper">
+            <ion-icon name="person" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="lastName"
+              placeholder="Enter your last name"
+              type="text"
+              class="form-input"
+            ></ion-input>
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div class="input-wrapper">
+            <ion-icon name="mail" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="email"
+              placeholder="Enter your email"
+              type="email"
+              class="form-input"
+            ></ion-input>
+          </div>
+        </div>
+
+        <!-- Department Field -->
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <ion-select
+            [(ngModel)]="department"
+            (ionChange)="onDepartmentChange($event)"
+            placeholder="Select your department"
+            class="form-select"
+          >
+            <ion-select-option *ngFor="let dept of departments" [value]="dept.id">
+              {{ dept.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <!-- Student Number Field (Student Only) -->
+        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
+          <label class="form-label">Student Number</label>
+          <div class="input-wrapper">
+            <ion-icon name="card" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="studentNumber"
+              placeholder="Enter your student number"
+              type="text"
+              class="form-input"
+            ></ion-input>
+          </div>
+        </div>
+
+        <!-- Course Field (Student Only) - Dynamic from Department -->
+        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
+          <label class="form-label">Course</label>
+          <ion-select
+            [(ngModel)]="course"
+            placeholder="Select your course"
+            class="form-select"
+          >
+            <ion-select-option *ngFor="let c of courses" [value]="c">
+              {{ c }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <!-- Graduation Year Field (Alumni Only) -->
+        <div class="form-group" *ngIf="userType === 'alumni'" [@slideIn]>
+          <label class="form-label">Year Graduated</label>
+          <div class="input-wrapper">
+            <ion-icon name="calendar" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="graduationYear"
+              placeholder="e.g., 2020"
+              type="number"
+              class="form-input"
+            ></ion-input>
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrapper">
+            <ion-icon name="lock-closed" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="password"
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="Create a password"
+              class="form-input"
+              (keypress)="handleKeyPress($event)"
+            ></ion-input>
+            <ion-button
+              fill="clear"
+              class="toggle-password"
+              (click)="togglePasswordVisibility()"
+            >
+              <ion-icon
+                slot="icon-only"
+                [name]="showPassword ? 'eye-off' : 'eye'"
+              ></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <div class="input-wrapper">
+            <ion-icon name="lock-closed" class="input-icon"></ion-icon>
+            <ion-input
+              [(ngModel)]="confirmPassword"
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              placeholder="Confirm your password"
+              class="form-input"
+              (keypress)="handleKeyPress($event)"
+            ></ion-input>
+            <ion-button
+              fill="clear"
+              class="toggle-password"
+              (click)="toggleConfirmPasswordVisibility()"
+            >
+              <ion-icon
+                slot="icon-only"
+                [name]="showConfirmPassword ? 'eye-off' : 'eye'"
+              ></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Register Button -->
+        <ion-button
+          expand="block"
+          class="register-button"
+          (click)="register()"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="!isLoading">Register</span>
+          <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+        </ion-button>
+
+        <!-- Divider -->
+        <div class="divider">
+          <span>Already have an account?</span>
+        </div>
+
+        <!-- Login Link -->
+        <ion-button
+          expand="block"
+          fill="clear"
+          class="login-link-button"
+          (click)="navigateToLogin()"
+        >
+          Sign In
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

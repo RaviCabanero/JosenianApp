@@ -1,0 +1,191 @@
+.page-container {
+  padding: 20px;
+}
+
+.stats-card {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  .stat-item {
+    text-align: center;
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #10b981;
+      margin: 0;
+    }
+  }
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 28px 0 16px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .connection-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+}
+
+.connections-list {
+  padding: 0;
+  margin: 0;
+}
+
+.connection-item {
+  --padding-start: 0;
+  --padding-end: 0;
+  --inner-padding-end: 0;
+  --inner-padding-start: 0;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f0fdf4;
+    transform: translateX(4px);
+  }
+
+  .connection-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .connection-info {
+    flex: 1;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0 0 4px 0;
+    }
+
+    p {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .mutual-connections {
+      font-size: 12px;
+      color: #10b981;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+  }
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .page-container {
+    padding: 16px;
+  }
+
+  .stats-grid {
+    gap: 12px;
+
+    .stat-item {
+      .stat-label {
+        font-size: 10px;
+      }
+
+      .stat-value {
+        font-size: 20px;
+      }
+    }
+  }
+
+  .section-header {
+    margin: 24px 0 12px;
+
+    h2 {
+      font-size: 18px;
+    }
+
+    .connection-count {
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+  }
+
+  .connection-item {
+    margin-bottom: 10px;
+    padding: 10px;
+    gap: 12px;
+
+    .connection-avatar {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+    }
+
+    .connection-info {
+      h3 {
+        font-size: 14px;
+      }
+
+      p {
+        font-size: 12px;
+      }
+
+      .mutual-connections {
+        font-size: 11px;
+      }
+    }
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}

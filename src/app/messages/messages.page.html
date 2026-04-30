@@ -1,0 +1,70 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Messages</ion-title>
+    <div slot="end" class="unread-badge" *ngIf="getTotalUnread() > 0">
+      {{ getTotalUnread() }}
+    </div>
+  </ion-toolbar>
+
+  <!-- Search Bar -->
+  <ion-toolbar class="search-toolbar">
+    <ion-searchbar
+      (ionChange)="onSearchChange($event)"
+      placeholder="Search conversations..."
+      class="search-bar"
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="messages-container">
+    <!-- Conversations List -->
+    <div class="conversations-section" *ngIf="filteredConversations.length > 0">
+      <ion-list class="conversations-list">
+        <ion-item
+          class="conversation-item"
+          *ngFor="let conversation of filteredConversations"
+          (click)="openChat(conversation.id)"
+          lines="none"
+        >
+          <div class="conversation-content">
+            <!-- Avatar and Status -->
+            <div class="avatar-container">
+              <ion-avatar class="conversation-avatar">
+                <div class="avatar-placeholder">{{ conversation.avatar }}</div>
+              </ion-avatar>
+              <div class="online-indicator" *ngIf="conversation.online" [class.online]="conversation.online"></div>
+            </div>
+
+            <!-- Conversation Info -->
+            <div class="conversation-info">
+              <div class="conversation-header">
+                <h3 class="conversation-name">{{ conversation.name }}</h3>
+                <span class="conversation-time">{{ conversation.timestamp }}</span>
+              </div>
+              <div class="conversation-preview">
+                <p class="last-message">{{ conversation.lastMessage }}</p>
+                <ion-badge class="unread-badge" *ngIf="conversation.unread > 0">
+                  {{ conversation.unread }}
+                </ion-badge>
+              </div>
+              <p class="conversation-role">{{ conversation.role }}</p>
+            </div>
+          </div>
+        </ion-item>
+      </ion-list>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredConversations.length === 0">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <h2>No conversations found</h2>
+      <p>Start a new conversation to connect with your colleagues</p>
+    </div>
+  </div>
+</ion-content>

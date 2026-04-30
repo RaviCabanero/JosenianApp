@@ -1,0 +1,51 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-container">
+    <!-- Section Title -->
+    <div class="section-header">
+      <h2>Recent Events</h2>
+      <span class="event-count">{{ events.length }} events</span>
+    </div>
+
+    <!-- Events Timeline -->
+    <div class="events-timeline">
+      <div *ngFor="let event of events; let last = last" class="event-item" [class.last]="last" (click)="viewEventDetails(event.id)">
+        <!-- Timeline Dot and Line -->
+        <div class="timeline-marker">
+          <div class="timeline-dot">
+            <ion-icon [name]="getEventIcon(event.type)"></ion-icon>
+          </div>
+          <div class="timeline-line" *ngIf="!last"></div>
+        </div>
+
+        <!-- Event Card -->
+        <div class="event-card">
+          <div class="event-header">
+            <h3>{{ event.title }}</h3>
+            <ion-badge [color]="eventTypeColors[event.type]">
+              {{ event.type | titlecase }}
+            </ion-badge>
+          </div>
+          <p class="event-date">
+            <ion-icon name="calendar-clear" size="small"></ion-icon>
+            {{ event.date | date:'MMM dd, yyyy' }}
+          </p>
+          <p class="event-attendees">
+            <ion-icon name="people" size="small"></ion-icon>
+            {{ event.attendees }} attendees
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -6,12 +8,15 @@ import { Component } from '@angular/core';
   styleUrls: ['home.page.scss'],
   standalone: false,
 })
-export class HomePage {
-  // Mock user data
+export class HomePage implements OnInit {
+  // User data
   user = {
-    name: 'Juan Dela Cruz',
-    initials: 'JDC',
+    name: 'User',
+    initials: 'U',
     avatar: 'assets/images/avatar.jpg',
+    firstName: '',
+    lastName: '',
+    bio: '',
   };
 
   // Mock notification data
@@ -62,5 +67,58 @@ export class HomePage {
     },
   ];
 
-  constructor() {}
+  constructor(private authService: AuthService, private router: Router) {}
+
+  async ngOnInit() {
+    await this.loadUserProfile();
+  }
+
+  async loadUserProfile() {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        const profile = await this.authService.getUserProfile(currentUser.uid);
+        if (profile) {
+          this.user.firstName = profile.firstName || '';
+          this.user.lastName = profile.lastName || '';
+          this.user.name = `${this.user.firstName} ${this.user.lastName}`;
+          this.user.bio = profile.bio || '';
+          
+          // Generate initials
+          const firstInitial = this.user.firstName.charAt(0).toUpperCase();
+          const lastInitial = this.user.lastName.charAt(0).toUpperCase();
+          this.user.initials = (firstInitial + lastInitial) || 'U';
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  }
+
+  goToProfile() {
+    this.router.navigate(['/profile']);
+  }
+
+  goToCard(cardId: number) {
+    const routes: {[key: number]: string} = {
+      1: '/department',
+      2: '/network',
+      3: '/history',
+      4: '/feeds',
+      5: '/statistics'
+    };
+    
+    const route = routes[cardId];
+    if (route) {
+      this.router.navigate([route]);
+    }
+  }
+
+  goToMessages() {
+    this.router.navigate(['/messages']);
+  }
+
+  goToNotifications() {
+    this.router.navigate(['/notifications']);
+  }
 }

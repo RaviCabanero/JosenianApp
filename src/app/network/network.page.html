@@ -1,0 +1,55 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>My Network</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-container">
+    <!-- Network Stats Card -->
+    <ion-card class="stats-card">
+      <ion-card-content>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <p class="stat-label">Total Connections</p>
+            <p class="stat-value">{{ networkStats.totalConnections }}</p>
+          </div>
+          <div class="stat-item">
+            <p class="stat-label">Common Connections</p>
+            <p class="stat-value">{{ networkStats.commonConnections }}</p>
+          </div>
+          <div class="stat-item">
+            <p class="stat-label">Recent Added</p>
+            <p class="stat-value">{{ networkStats.recentAdded }}</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Connections Section -->
+    <div class="section-header">
+      <h2>Your Connections</h2>
+      <span class="connection-count">{{ connections.length }} connections</span>
+    </div>
+
+    <!-- Connections List -->
+    <ion-list class="connections-list">
+      <ion-item *ngFor="let connection of connections" class="connection-item" (click)="viewConnection(connection.id)">
+        <div class="connection-avatar">
+          {{ connection.name.charAt(0) }}
+        </div>
+        <div class="connection-info">
+          <h3>{{ connection.name }}</h3>
+          <p>{{ connection.role }}</p>
+          <p class="mutual-connections">{{ connection.mutualConnections }} mutual connections</p>
+        </div>
+        <ion-icon name="chevron-forward" color="medium"></ion-icon>
+      </ion-item>
+    </ion-list>
+  </div>
+</ion-content>

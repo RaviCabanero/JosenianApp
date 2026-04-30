@@ -1,0 +1,356 @@
+// SCSS Variables
+$primary-color: #10b981;
+$primary-dark: #059669;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$border-color: #e5e7eb;
+$bg-light: #f9fafb;
+$success-color: #10b981;
+$online-green: #10b981;
+
+ion-header {
+  --background: white;
+  --border-color: $border-color;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  ion-toolbar {
+    --background: white;
+    --border-color: $border-color;
+  }
+
+  ion-title {
+    font-weight: 600;
+    font-size: 18px;
+    color: $text-primary;
+  }
+
+  .unread-badge {
+    background: $primary-color;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 12px;
+  }
+}
+
+.search-toolbar {
+  --background: $bg-light;
+  --border-color: transparent;
+  padding: 8px 0;
+  min-height: auto;
+
+  .search-bar {
+    --background: white;
+    --border-radius: 24px;
+    --placeholder-color: $text-secondary;
+    --color: $text-primary;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin: 8px 12px;
+
+    &::part(container) {
+      border-radius: 24px;
+    }
+  }
+}
+
+ion-content {
+  --background: $bg-light;
+
+  .messages-container {
+    padding: 8px 0;
+
+    .conversations-section {
+      .conversations-list {
+        --background: transparent;
+        padding: 0;
+
+        .conversation-item {
+          --padding-start: 0;
+          --padding-end: 0;
+          --inner-padding-end: 0;
+          --inner-padding-start: 0;
+          --background: white;
+          margin: 4px 8px;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          &:active,
+          &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+          }
+
+          .conversation-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            width: 100%;
+
+            .avatar-container {
+              position: relative;
+              flex-shrink: 0;
+
+              .conversation-avatar {
+                width: 48px;
+                height: 48px;
+                background: linear-gradient(135deg, $primary-color, $primary-dark);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                box-shadow: 0 2px 8px rgba($primary-color, 0.2);
+
+                .avatar-placeholder {
+                  color: white;
+                  font-weight: 600;
+                  font-size: 16px;
+                }
+              }
+
+              .online-indicator {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                width: 12px;
+                height: 12px;
+                background: #d1d5db;
+                border: 2px solid white;
+                border-radius: 50%;
+                transition: background 0.3s ease;
+
+                &.online {
+                  background: $online-green;
+                }
+              }
+            }
+
+            .conversation-info {
+              flex-grow: 1;
+              min-width: 0;
+
+              .conversation-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+
+                .conversation-name {
+                  margin: 0;
+                  font-weight: 600;
+                  font-size: 15px;
+                  color: $text-primary;
+                }
+
+                .conversation-time {
+                  font-size: 12px;
+                  color: $text-secondary;
+                  white-space: nowrap;
+                  margin-left: 8px;
+                }
+              }
+
+              .conversation-preview {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-bottom: 4px;
+
+                .last-message {
+                  margin: 0;
+                  font-size: 13px;
+                  color: $text-secondary;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  flex-grow: 1;
+                }
+
+                .unread-badge {
+                  background: $primary-color;
+                  color: white;
+                  border-radius: 50%;
+                  width: 20px;
+                  height: 20px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 11px;
+                  font-weight: 600;
+                  flex-shrink: 0;
+                }
+              }
+
+              .conversation-role {
+                margin: 0;
+                font-size: 12px;
+                color: $text-secondary;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+      color: $text-secondary;
+
+      ion-icon {
+        font-size: 64px;
+        color: #d1d5db;
+        margin-bottom: 16px;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: $text-primary;
+        margin: 0 0 8px 0;
+      }
+
+      p {
+        font-size: 14px;
+        color: $text-secondary;
+        margin: 0;
+        text-align: center;
+        max-width: 80%;
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  ion-header {
+    ion-title {
+      font-size: 16px;
+    }
+  }
+
+  ion-content {
+    .messages-container {
+      .conversations-section {
+        .conversations-list {
+          .conversation-item {
+            margin: 4px 0;
+            border-radius: 0;
+
+            .conversation-content {
+              .avatar-container {
+                .conversation-avatar {
+                  width: 44px;
+                  height: 44px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  ion-header {
+    .unread-badge {
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      margin-right: 8px;
+    }
+  }
+
+  .search-toolbar {
+    .search-bar {
+      margin: 4px 8px;
+    }
+  }
+
+  ion-content {
+    .messages-container {
+      padding: 0;
+
+      .conversations-section {
+        .conversations-list {
+          .conversation-item {
+            margin: 0;
+            border-radius: 0;
+
+            .conversation-content {
+              padding: 12px 12px;
+              gap: 10px;
+
+              .avatar-container {
+                .conversation-avatar {
+                  width: 40px;
+                  height: 40px;
+
+                  .avatar-placeholder {
+                    font-size: 14px;
+                  }
+                }
+              }
+
+              .conversation-info {
+                .conversation-header {
+                  .conversation-name {
+                    font-size: 14px;
+                  }
+
+                  .conversation-time {
+                    font-size: 11px;
+                  }
+                }
+
+                .conversation-preview {
+                  .last-message {
+                    font-size: 12px;
+                  }
+
+                  .unread-badge {
+                    width: 18px;
+                    height: 18px;
+                    font-size: 10px;
+                  }
+                }
+
+                .conversation-role {
+                  font-size: 11px;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .empty-state {
+        height: 300px;
+
+        ion-icon {
+          font-size: 48px;
+        }
+
+        h2 {
+          font-size: 16px;
+        }
+
+        p {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}
