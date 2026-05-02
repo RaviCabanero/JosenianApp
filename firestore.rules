@@ -24,8 +24,18 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read, write;
       }
+
+      // Wall (freedom wall) subcollection
+      match /wall/{postId} {
+        allow read, write;
+      }
     }
     
+    // Events collection (top-level)
+    match /events/{eventId} {
+      allow read, write;
+    }
+
     // Alumni collection
     match /alumni/{alumniId} {
       allow read, write;

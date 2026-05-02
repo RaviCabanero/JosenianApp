@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, getDocs } from '@angular/fire/firestore';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -32,7 +31,6 @@ export class HomePage implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private firestore: Firestore,
     private router: Router
   ) {}
 
@@ -91,8 +89,8 @@ export class HomePage implements OnInit {
 
       // Card 4 — Feeds: current user's post count
       if (currentUser) {
-        const postsSnap = await getDocs(collection(this.firestore, `users/${currentUser.uid}/posts`));
-        this.updateCard(4, String(postsSnap.size));
+        const postCount = await this.authService.getUserPostCount(currentUser.uid);
+        this.updateCard(4, String(postCount));
       }
 
       // Card 5 — Statistics: % of users approved

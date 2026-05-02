@@ -1,9 +1,19 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, IonModal } from '@ionic/angular';
+import { IonicModule, IonModal, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+
+interface WorkExperience {
+  id: string;
+  company: string;
+  position: string;
+  startYear: string;
+  endYear: string;
+  isCurrent: boolean;
+  description: string;
+}
 
 @Component({
   selector: 'app-profile',
@@ -14,13 +24,15 @@ import { AuthService } from '../services/auth.service';
 })
 export class ProfilePage implements OnInit {
   @ViewChild('editModal') editModal!: IonModal;
-  @ViewChild('photoFileInput') photoFileInput!: ElementRef;
-  
+  @ViewChild('workModal') workModal!: IonModal;
+  @ViewChild('photoModal') photoModal!: IonModal;
+
   userProfile = {
     firstName: '',
     lastName: '',
     email: '',
     userType: '',
+    role: '',
     department: '',
     course: '',
     studentNumber: '',
@@ -28,34 +40,78 @@ export class ProfilePage implements OnInit {
     bio: '',
     initials: '',
     gender: '',
-    ageGroup: '',
+    address: '',
+    contactNumber: '',
     photoUrl: '',
   };
 
+  workExperiences: WorkExperience[] = [];
+
   editFormData = {
+    bio: '',
     gender: '',
-    ageGroup: '',
+    address: '',
+    contactNumber: '',
   };
 
-  genders = ['Male', 'Female', 'Other'];
-  ageGroups = ['Junior', 'Adult', 'Senior'];
+  workFormData: WorkExperience = {
+    id: '',
+    company: '',
+    position: '',
+    startYear: '',
+    endYear: '',
+    isCurrent: false,
+    description: '',
+  };
 
+  isEditingWork = false;
+  editingWorkId = '';
+  isSaving = false;
+
+  genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  yearOptions: string[] = [];
   isLoading = true;
-  presentingElement: any;
-  isPhotoModalOpen = false;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  private sortWork = (a: WorkExperience, b: WorkExperience): number => {
+    if (a.isCurrent && !b.isCurrent) return -1;
+    if (!a.isCurrent && b.isCurrent) return 1;
+    const aYear = a.isCurrent ? 9999 : (parseInt(a.endYear) || 0);
+    const bYear = b.isCurrent ? 9999 : (parseInt(b.endYear) || 0);
+    return bYear - aYear;
+  };
+
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private alertController: AlertController
+  ) {
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 1970; y--) {
+      this.yearOptions.push(y.toString());
+    }
+  }
 
   async ngOnInit() {
-    this.presentingElement = document.querySelector('ion-content');
     await this.loadUserProfile();
+  }
+
+  get displayUserType(): string {
+    const role = (this.userProfile.role || '').toLowerCase();
+    if (role === 'hod') return 'HOD';
+    if (role === 'admin') return 'Admin';
+    return this.userProfile.userType === 'alumni' ? 'Alumni' : 'Student';
+  }
+
+  get userTypeIcon(): string {
+    const role = (this.userProfile.role || '').toLowerCase();
+    if (role === 'hod' || role === 'admin') return 'shield-checkmark';
+    return this.userProfile.userType === 'alumni' ? 'briefcase' : 'school';
   }
 
   async loadUserProfile() {
     try {
       this.isLoading = true;
       const currentUser = this.authService.getCurrentUser();
-      
       if (currentUser) {
         const profile = await this.authService.getUserProfile(currentUser.uid);
         if (profile) {
@@ -64,20 +120,36 @@ export class ProfilePage implements OnInit {
             lastName: profile.lastName || '',
             email: profile.email || '',
             userType: profile.userType || '',
+            role: profile.role || '',
             department: profile.department || '',
             course: profile.course || '',
             studentNumber: profile.studentNumber || '',
             graduationYear: profile.graduationYear || '',
             bio: profile.bio || '',
             gender: profile.gender || '',
-            ageGroup: profile.ageGroup || '',
+            address: profile.address || '',
+            contactNumber: profile.contactNumber || '',
             photoUrl: profile.photoUrl || '',
-            initials: (profile.firstName?.charAt(0) + profile.lastName?.charAt(0)).toUpperCase() || 'U',
+            initials: ((profile.firstName?.charAt(0) || '') + (profile.lastName?.charAt(0) || '')).toUpperCase() || 'U',
           };
-          console.log('Profile loaded:', this.userProfile);
+          // Resolve department ID → department name
+          if (this.userProfile.department) {
+            try {
+              const depts = await this.authService.getDepartments();
+              const match = depts.find(
+                (d: any) => d.id === this.userProfile.department || d.name === this.userProfile.department
+              );
+              if (match) this.userProfile.department = match.name;
+            } catch {
+              // keep raw value if resolution fails
+            }
+          }
+
+          if (profile.userType === 'alumni') {
+            this.workExperiences = ((profile.workExperiences as WorkExperience[]) || []).slice().sort(this.sortWork);
+          }
         }
       } else {
-        // No user logged in, redirect to login
         this.router.navigate(['/login']);
       }
     } catch (error) {
@@ -87,95 +159,76 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  onPhotoSelected(event: any) {
-    const file = event.target.files[0];
-    console.log('Photo selected:', file);
-    
-    if (file) {
-      // Validate file size (max 5MB)
-      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSizeInBytes) {
-        console.error('File is too large. Maximum size is 5MB');
-        return;
-      }
-
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async (e: any) => {
-        try {
-          const base64String = e.target.result;
-          this.userProfile.photoUrl = base64String;
-          console.log('Photo converted to base64');
-          
-          // Save to Firestore
-          const currentUser = this.authService.getCurrentUser();
-          if (currentUser) {
-            await this.authService.updateUserProfile(currentUser.uid, {
-              photoUrl: base64String,
-            });
-            console.log('Photo uploaded and saved successfully');
-            
-            // Reset file input
-            if (this.photoFileInput && this.photoFileInput.nativeElement) {
-              this.photoFileInput.nativeElement.value = '';
-            }
-            
-            // Close modal
-            this.isPhotoModalOpen = false;
-          }
-        } catch (error) {
-          console.error('Error saving photo:', error);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  }
+  // ── Photo ──────────────────────────────────────────
 
   async openPhotoModal() {
-    this.isPhotoModalOpen = true;
+    await this.photoModal.present();
   }
 
   async closePhotoModal() {
-    this.isPhotoModalOpen = false;
+    await this.photoModal.dismiss();
   }
 
+  // Creates a fresh input outside the modal DOM so aria-hidden doesn't block it
   selectAddPhoto() {
-    console.log('selectAddPhoto called');
-    try {
-      if (this.photoFileInput && this.photoFileInput.nativeElement) {
-        console.log('Clicking file input');
-        this.photoFileInput.nativeElement.click();
-      } else {
-        console.error('Photo file input not found:', this.photoFileInput);
-      }
-    } catch (error) {
-      console.error('Error selecting photo:', error);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.onchange = (e: Event) => {
+      this.handlePhotoFile(e);
+      document.body.removeChild(input);
+    };
+    input.click();
+  }
+
+  private handlePhotoFile(e: Event) {
+    const file = (e.target as HTMLInputElement)?.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      console.error('File exceeds 5 MB');
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = async (ev: any) => {
+      try {
+        const base64 = ev.target.result as string;
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser) {
+          await this.authService.updateUserProfile(currentUser.uid, { photoUrl: base64 });
+          this.userProfile.photoUrl = base64;
+          await this.photoModal.dismiss();
+        }
+      } catch (err) {
+        console.error('Error saving photo:', err);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   async removeProfilePicture() {
     try {
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
-        // Remove photo from Firestore
-        await this.authService.updateUserProfile(currentUser.uid, {
-          photoUrl: '',
-        });
-        
-        // Update local profile
+        await this.authService.updateUserProfile(currentUser.uid, { photoUrl: '' });
         this.userProfile.photoUrl = '';
-        console.log('Profile picture removed successfully');
-        await this.closePhotoModal();
+        await this.photoModal.dismiss();
       }
-    } catch (error) {
-      console.error('Error removing profile picture:', error);
+    } catch (err) {
+      console.error('Error removing photo:', err);
     }
   }
 
+  // ── Edit Profile ───────────────────────────────────
+
   async openEditModal() {
-    // Initialize form with current values
-    this.editFormData.gender = this.userProfile.gender || '';
-    this.editFormData.ageGroup = this.userProfile.ageGroup || '';
+    this.editFormData = {
+      bio: this.userProfile.bio,
+      gender: this.userProfile.gender,
+      address: this.userProfile.address,
+      contactNumber: this.userProfile.contactNumber,
+    };
     await this.editModal.present();
   }
 
@@ -183,26 +236,116 @@ export class ProfilePage implements OnInit {
     await this.editModal.dismiss();
   }
 
+  removeBio() {
+    this.editFormData.bio = '';
+  }
+
   async saveProfileChanges() {
+    if (this.isSaving) return;
     try {
+      this.isSaving = true;
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
-        // Update user profile in Firestore
         await this.authService.updateUserProfile(currentUser.uid, {
+          bio: this.editFormData.bio,
           gender: this.editFormData.gender,
-          ageGroup: this.editFormData.ageGroup,
+          address: this.editFormData.address,
+          contactNumber: this.editFormData.contactNumber,
         });
-        
-        // Update local profile
+        this.userProfile.bio = this.editFormData.bio;
         this.userProfile.gender = this.editFormData.gender;
-        this.userProfile.ageGroup = this.editFormData.ageGroup;
-        
+        this.userProfile.address = this.editFormData.address;
+        this.userProfile.contactNumber = this.editFormData.contactNumber;
         await this.editModal.dismiss();
-        console.log('Profile updated successfully');
       }
-    } catch (error) {
-      console.error('Error updating profile:', error);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+    } finally {
+      this.isSaving = false;
     }
+  }
+
+  // ── Work Experience ────────────────────────────────
+
+  async openAddWorkModal() {
+    this.isEditingWork = false;
+    this.workFormData = {
+      id: Date.now().toString(),
+      company: '',
+      position: '',
+      startYear: '',
+      endYear: '',
+      isCurrent: false,
+      description: '',
+    };
+    await this.workModal.present();
+  }
+
+  async openEditWorkModal(work: WorkExperience) {
+    this.isEditingWork = true;
+    this.editingWorkId = work.id;
+    this.workFormData = { ...work };
+    await this.workModal.present();
+  }
+
+  async closeWorkModal() {
+    await this.workModal.dismiss();
+  }
+
+  async saveWorkExperience() {
+    if (this.isSaving) return;
+    try {
+      this.isSaving = true;
+      const currentUser = this.authService.getCurrentUser();
+      if (!currentUser) return;
+
+      if (this.workFormData.isCurrent) {
+        this.workFormData.endYear = 'Present';
+      }
+
+      let updated: WorkExperience[];
+      if (this.isEditingWork) {
+        updated = this.workExperiences.map(w =>
+          w.id === this.editingWorkId ? { ...this.workFormData } : w
+        );
+      } else {
+        updated = [...this.workExperiences, { ...this.workFormData }];
+      }
+
+      await this.authService.updateUserProfile(currentUser.uid, { workExperiences: updated });
+      this.workExperiences = updated.slice().sort(this.sortWork);
+      await this.workModal.dismiss();
+    } catch (err) {
+      console.error('Error saving work experience:', err);
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
+  async deleteWorkExperience(workId: string) {
+    const alert = await this.alertController.create({
+      header: 'Remove Entry',
+      message: 'Delete this work experience?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              const currentUser = this.authService.getCurrentUser();
+              if (!currentUser) return;
+              const updated = this.workExperiences.filter(w => w.id !== workId);
+              await this.authService.updateUserProfile(currentUser.uid, { workExperiences: updated });
+              this.workExperiences = updated;
+            } catch (err) {
+              console.error('Error deleting work experience:', err);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   goBack() {

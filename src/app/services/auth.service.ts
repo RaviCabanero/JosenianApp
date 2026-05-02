@@ -988,6 +988,16 @@ export class AuthService {
     }
   }
 
+  async getUserPostCount(uid: string): Promise<number> {
+    try {
+      const snapshot = await getDocs(collection(this.firestore, `users/${uid}/posts`));
+      return snapshot.size;
+    } catch (error) {
+      console.error('Error fetching post count:', error);
+      return 0;
+    }
+  }
+
   // Add an event to Firestore
   async addEvent(eventData: { title: string; date: string; type: string; description?: string; attendees?: number }): Promise<any> {
     try {
@@ -1079,6 +1089,62 @@ export class AuthService {
       }
     } catch (error) {
       console.error('Error leaving department event:', error);
+      throw error;
+    }
+  }
+
+  // ==================== DEPARTMENT WALL ====================
+
+  async getDepartmentWallPosts(departmentId: string): Promise<any[]> {
+    try {
+      const snap = await getDocs(collection(this.firestore, `departments/${departmentId}/wall`));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+          const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+          return bTime - aTime;
+        });
+    } catch (error) {
+      console.error('Error fetching wall posts:', error);
+      return [];
+    }
+  }
+
+  async addDepartmentWallPost(departmentId: string, postData: any): Promise<any> {
+    try {
+      const docRef = await addDoc(collection(this.firestore, `departments/${departmentId}/wall`), {
+        ...postData,
+        likes: [],
+        createdAt: new Date()
+      });
+      return { id: docRef.id, ...postData, likes: [] };
+    } catch (error) {
+      console.error('Error adding wall post:', error);
+      throw error;
+    }
+  }
+
+  async deleteDepartmentWallPost(departmentId: string, postId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(this.firestore, `departments/${departmentId}/wall`, postId));
+    } catch (error) {
+      console.error('Error deleting wall post:', error);
+      throw error;
+    }
+  }
+
+  async toggleDepartmentWallLike(departmentId: string, postId: string, userId: string): Promise<void> {
+    try {
+      const postRef = doc(this.firestore, `departments/${departmentId}/wall`, postId);
+      const postDoc = await getDoc(postRef);
+      if (postDoc.exists()) {
+        let likes: string[] = postDoc.data()['likes'] || [];
+        likes = likes.includes(userId) ? likes.filter(id => id !== userId) : [...likes, userId];
+        await updateDoc(postRef, { likes });
+      }
+    } catch (error) {
+      console.error('Error toggling wall like:', error);
       throw error;
     }
   }

@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+<ion-header [translucent]="true" class="dept-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -8,342 +8,483 @@
     <ion-title>Departments</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="refreshDepartments()">
-        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <div class="page-container">
-    <!-- Loading State -->
-    <div *ngIf="isLoading" class="loading-state">
-      <ion-spinner name="crescent"></ion-spinner>
-      <p>Loading departments...</p>
-    </div>
+<ion-content [fullscreen]="true" class="dept-content">
 
-    <!-- Error State -->
-    <div *ngIf="errorMessage && !isLoading" class="error-state">
-      <ion-icon name="alert-circle"></ion-icon>
-      <p>{{ errorMessage }}</p>
-      <ion-button (click)="refreshDepartments()">Try Again</ion-button>
-    </div>
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="state-box">
+    <ion-spinner color="primary"></ion-spinner>
+    <p>Loading departments...</p>
+  </div>
 
-    <!-- Empty State -->
-    <div *ngIf="!isLoading && !errorMessage && allDepartments.length === 0" class="empty-state">
-      <ion-icon name="folder-open"></ion-icon>
-      <p>No departments available</p>
-    </div>
+  <!-- Error -->
+  <div *ngIf="errorMessage && !isLoading" class="state-box error-box">
+    <div class="state-icon"><ion-icon name="alert-circle-outline"></ion-icon></div>
+    <p>{{ errorMessage }}</p>
+    <ion-button fill="outline" size="small" (click)="refreshDepartments()">Try Again</ion-button>
+  </div>
 
-    <!-- Departments List Section -->
-    <div class="departments-section" *ngIf="!selectedDepartment && !isLoading && allDepartments.length > 0">
-      <div class="departments-hero">
-        <div class="departments-hero-copy">
-          <p class="departments-eyebrow">Academic directory</p>
-          <h1 class="departments-title">Departments</h1>
-          <p class="departments-subtitle">Browse departments, view courses, and connect with your academic community.</p>
+  <div *ngIf="!isLoading && !errorMessage" class="page-body">
+
+    <!-- ── Hero Banner ───────────────────────────── -->
+    <div class="hero-banner">
+      <div class="hero-deco"></div>
+      <div class="hero-content">
+        <div class="hero-icon-wrap">
+          <ion-icon name="school"></ion-icon>
         </div>
-
-        <div class="departments-summary">
-          <div class="summary-stat">
-            <span class="summary-value">{{ allDepartments.length }}</span>
-            <span class="summary-label">Departments</span>
-          </div>
-          <div class="summary-stat">
-            <span class="summary-value">{{ userDepartments.length }}</span>
-            <span class="summary-label">Connected</span>
-          </div>
+        <div class="hero-text">
+          <p class="hero-eyebrow">Academic Directory</p>
+          <h1 class="hero-title">Departments</h1>
+          <p class="hero-sub">Browse departments, explore courses, and connect with your academic community.</p>
         </div>
       </div>
+      <div class="hero-stats">
+        <div class="stat-pill">
+          <span class="stat-num">{{ allDepartments.length }}</span>
+          <span class="stat-lbl">Departments</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ totalMembers }}</span>
+          <span class="stat-lbl">Total Members</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ userDepartments.length }}</span>
+          <span class="stat-lbl">Connected</span>
+        </div>
+      </div>
+    </div>
 
-      <div class="departments-grid">
-        <div *ngFor="let dept of allDepartments" class="department-card" (click)="openDepartmentDetail(dept)">
-          <div class="dept-card-header">
-            <div class="dept-icon">{{ dept.name.charAt(0) }}</div>
-            <div class="dept-status primary-badge" *ngIf="isPrimaryDepartment(dept.id)">
-              <ion-icon name="checkmark-circle"></ion-icon>
-              <span>Primary</span>
-            </div>
-            <div class="dept-status following-badge" *ngIf="isUserInDepartment(dept.id) && !isPrimaryDepartment(dept.id)">
-              <ion-icon name="star"></ion-icon>
-              <span>Following</span>
-            </div>
+    <!-- ── Empty State ───────────────────────────── -->
+    <div *ngIf="allDepartments.length === 0" class="state-box">
+      <div class="state-icon"><ion-icon name="folder-open-outline"></ion-icon></div>
+      <p>No departments available yet.</p>
+    </div>
+
+    <!-- ── Department List ───────────────────────── -->
+    <div class="dept-list" *ngIf="allDepartments.length > 0">
+      <p class="list-heading">All Departments</p>
+
+      <div
+        class="dept-row"
+        *ngFor="let dept of allDepartments; let i = index"
+        (click)="openDepartmentDetail(dept)"
+      >
+        <div class="dept-row-left">
+          <div class="dept-abbr-wrap" [ngClass]="getDeptColorClass(i)">
+            {{ getDeptAbbr(dept.name) }}
           </div>
-          <h2 class="dept-name">{{ dept.name }}</h2>
-          <div class="dept-meta-row">
-            <div class="dept-courses" *ngIf="dept.courses && dept.courses.length > 0">
+        </div>
+
+        <div class="dept-row-body">
+          <div class="dept-row-top">
+            <h3 class="dept-row-name">{{ dept.name }}</h3>
+            <span class="badge-primary" *ngIf="isPrimaryDepartment(dept.id)">
+              <ion-icon name="checkmark-circle"></ion-icon> Primary
+            </span>
+            <span class="badge-following" *ngIf="isUserInDepartment(dept.id) && !isPrimaryDepartment(dept.id)">
+              <ion-icon name="star"></ion-icon> Following
+            </span>
+          </div>
+
+          <div class="dept-row-meta">
+            <span *ngIf="dept.courses?.length">
               <ion-icon name="book-outline"></ion-icon>
-              <span>{{ dept.courses.length }} Courses</span>
-            </div>
-            <div class="dept-courses muted" *ngIf="!dept.courses || dept.courses.length === 0">
-              <ion-icon name="book-outline"></ion-icon>
-              <span>No courses listed</span>
-            </div>
-            <div class="dept-courses" *ngIf="dept.members && dept.members.length > 0">
+              {{ dept.courses!.length }} {{ dept.courses!.length === 1 ? 'Course' : 'Courses' }}
+            </span>
+            <span class="meta-dot" *ngIf="dept.courses?.length && dept.members?.length">·</span>
+            <span *ngIf="dept.members?.length">
               <ion-icon name="people-outline"></ion-icon>
-              <span>{{ dept.members.length }} Members</span>
-            </div>
+              {{ dept.members!.length }} {{ dept.members!.length === 1 ? 'Member' : 'Members' }}
+            </span>
           </div>
-          <p class="dept-courses-list" *ngIf="dept.courses && dept.courses.length > 0">
-            {{ dept.courses.slice(0, 2).join(', ') }}<span *ngIf="dept.courses.length > 2">...</span>
+
+          <div class="dept-hod" *ngIf="dept.hodName">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span>HOD: {{ dept.hodName }}</span>
+          </div>
+
+          <p class="dept-row-courses" *ngIf="dept.courses && dept.courses.length > 0">
+            {{ dept.courses.slice(0, 2).join(' · ') }}<span *ngIf="dept.courses.length > 2"> +{{ dept.courses.length - 2 }} more</span>
           </p>
-          <button class="register-btn">
-            <span>View Details</span>
-            <ion-icon name="arrow-forward"></ion-icon>
-          </button>
+        </div>
+
+        <div class="dept-row-right">
+          <ion-icon name="chevron-forward"></ion-icon>
         </div>
       </div>
     </div>
 
-    <!-- Department Detail Modal with Tabs -->
-    <div *ngIf="showDetailModal && selectedDepartment" class="modal-overlay" (click)="closeDetailModal()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <!-- Department Cover Header -->
-        <div class="modal-cover-header">
-          <div class="cover-photo"></div>
-          <div class="dept-logo-section">
-            <div class="dept-logo">
-              {{ selectedDepartment.name.charAt(0) }}
+  </div>
+</ion-content>
+
+<!-- ── Department Detail Modal ───────────────────── -->
+<ion-modal
+  #detailModal
+  [breakpoints]="[0, 0.95, 1]"
+  [initialBreakpoint]="0.95"
+  [handle]="true"
+>
+  <ng-template>
+    <ion-header>
+      <ion-toolbar class="modal-toolbar">
+        <ion-title class="modal-title">{{ selectedDepartment?.name }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeDetailModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="modal-body" *ngIf="selectedDepartment">
+
+      <!-- Dept header inside modal -->
+      <div class="modal-dept-banner" [ngClass]="getDeptColorClass(allDepartments.indexOf(selectedDepartment))">
+        <div class="modal-dept-abbr">{{ getDeptAbbr(selectedDepartment.name) }}</div>
+        <div class="modal-dept-info">
+          <h2 class="modal-dept-name">{{ selectedDepartment.name }}</h2>
+          <div class="modal-dept-chips">
+            <span class="chip" *ngIf="selectedDepartment.members?.length">
+              <ion-icon name="people-outline"></ion-icon>
+              {{ selectedDepartment.members!.length }} Members
+            </span>
+            <span class="chip" *ngIf="selectedDepartment.courses?.length">
+              <ion-icon name="book-outline"></ion-icon>
+              {{ selectedDepartment.courses!.length }} Courses
+            </span>
+            <span class="chip chip-primary" *ngIf="isPrimaryDepartment(selectedDepartment.id)">
+              <ion-icon name="checkmark-circle"></ion-icon> Your Department
+            </span>
+            <span class="chip chip-hod" *ngIf="selectedDepartment.hodName">
+              <ion-icon name="person-circle-outline"></ion-icon> HOD: {{ selectedDepartment.hodName }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button
+          *ngFor="let tab of tabs"
+          class="modal-tab"
+          [class.active]="activeTab === tab"
+          (click)="switchTab(tab)"
+        >
+          <ion-icon [name]="getTabIcon(tab)"></ion-icon>
+          <span>{{ tab | titlecase }}</span>
+        </button>
+      </div>
+
+      <!-- ── Overview Tab ────────────────────────── -->
+      <div *ngIf="activeTab === 'overview'" class="tab-body">
+
+        <div class="info-section" *ngIf="selectedDepartment.description">
+          <p class="info-section-label">About</p>
+          <p class="info-section-text">{{ selectedDepartment.description }}</p>
+        </div>
+
+        <div class="info-section" *ngIf="isUserInDepartment(selectedDepartment.id)">
+          <p class="info-section-label">Your Status</p>
+          <span class="status-chip" [class.status-primary]="isPrimaryDepartment(selectedDepartment.id)">
+            <ion-icon [name]="isPrimaryDepartment(selectedDepartment.id) ? 'checkmark-circle' : 'star'"></ion-icon>
+            {{ isPrimaryDepartment(selectedDepartment.id) ? 'Primary Department' : 'Following' }}
+          </span>
+        </div>
+
+        <div class="info-section" *ngIf="selectedDepartment.courses && selectedDepartment.courses.length > 0">
+          <p class="info-section-label">Courses ({{ selectedDepartment.courses.length }})</p>
+          <div class="course-list">
+            <div class="course-item" *ngFor="let course of selectedDepartment.courses">
+              <div class="course-dot"></div>
+              <span>{{ course }}</span>
             </div>
-            <ion-button (click)="closeDetailModal()" class="close-btn">
-              <ion-icon slot="icon-only" name="close"></ion-icon>
-            </ion-button>
-          </div>
-          <div class="dept-info-header">
-            <h1>{{ selectedDepartment.name }}</h1>
-            <p class="member-count" *ngIf="selectedDepartment.members">
-              <ion-icon name="people"></ion-icon>
-              {{ selectedDepartment.members.length }} Members
-            </p>
           </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tabs-navigation">
-          <button 
-            *ngFor="let tab of departments_tabs" 
-            class="tab-button"
-            [class.active]="activeTab === tab"
-            (click)="switchTab(tab)">
-            <ion-icon [name]="getTabIcon(tab)"></ion-icon>
-            <span>{{ tab | titlecase }}</span>
-          </button>
+        <div class="info-section" *ngIf="!selectedDepartment.description && !selectedDepartment.courses?.length">
+          <div class="empty-tab">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <p>No additional information available.</p>
+          </div>
         </div>
 
-        <!-- Tab Content -->
-        <div class="tabs-content">
-          <!-- Overview Tab -->
-          <div *ngIf="activeTab === 'overview'" class="tab-pane">
-            <ion-card class="info-card">
-              <ion-card-content>
-                <div class="dept-info">
-                  <p class="info-label">Department Name</p>
-                  <p class="info-value">{{ selectedDepartment.name }}</p>
-                </div>
+      </div>
 
-                <div class="status-section" *ngIf="isUserInDepartment(selectedDepartment.id)">
-                  <p class="info-label">Your Status</p>
-                  <div class="status-badge" [class.primary]="isPrimaryDepartment(selectedDepartment.id)" 
-                       [class.following]="!isPrimaryDepartment(selectedDepartment.id)">
-                    {{ isPrimaryDepartment(selectedDepartment.id) ? 'Primary Department' : 'Following' }}
-                  </div>
-                </div>
+      <!-- ── Members Tab ─────────────────────────── -->
+      <div *ngIf="activeTab === 'members'" class="tab-body">
+        <div class="member-list" *ngIf="selectedDepartment.members && selectedDepartment.members.length > 0">
+          <div class="member-row" *ngFor="let member of selectedDepartment.members">
+            <div class="member-avatar">{{ (member.name || '?').charAt(0).toUpperCase() }}</div>
+            <div class="member-info">
+              <p class="member-name">{{ member.name }}</p>
+              <p class="member-sub">{{ member.course || member.role || member.userType }}</p>
+            </div>
+            <span class="member-badge" [class.badge-alumni]="member.userType === 'alumni'">
+              {{ member.userType === 'alumni' ? 'Alumni' : 'Student' }}
+            </span>
+          </div>
+        </div>
 
-                <div class="courses-section" *ngIf="selectedDepartment.courses && selectedDepartment.courses.length > 0">
-                  <p class="courses-label">Courses ({{ selectedDepartment.courses.length }})</p>
-                  <div class="courses-list">
-                    <div class="course-item" *ngFor="let course of selectedDepartment.courses">
-                      <ion-icon name="checkmark-circle"></ion-icon>
-                      <span>{{ course }}</span>
-                    </div>
-                  </div>
-                </div>
+        <div class="empty-tab" *ngIf="!selectedDepartment.members || selectedDepartment.members.length === 0">
+          <ion-icon name="people-outline"></ion-icon>
+          <p>No members yet.</p>
+        </div>
+      </div>
 
-                <div class="description-section" *ngIf="selectedDepartment.description">
-                  <p class="info-label">About</p>
-                  <p class="description-text">{{ selectedDepartment.description }}</p>
+      <!-- ── Events Tab ──────────────────────────── -->
+      <div *ngIf="activeTab === 'events'" class="tab-body">
+
+        <div class="events-tab-head">
+          <div class="event-filter-row">
+            <button
+              class="filter-btn"
+              [class.active]="eventFilter === 'upcoming'"
+              (click)="eventFilter = 'upcoming'"
+            >
+              <ion-icon name="time-outline"></ion-icon> Upcoming
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="eventFilter === 'past'"
+              (click)="eventFilter = 'past'"
+            >
+              <ion-icon name="checkmark-done-outline"></ion-icon> Past
+            </button>
+          </div>
+          <ion-button *ngIf="isHOD && !showEventForm" fill="solid" size="small" class="create-event-btn" (click)="openEventForm()">
+            <ion-icon slot="start" name="add"></ion-icon>
+            Create Event
+          </ion-button>
+        </div>
+
+        <!-- Event Form (HOD) -->
+        <div *ngIf="showEventForm && isHOD" class="event-form-card">
+          <div class="event-form-header">
+            <h3>{{ isEditingEvent ? 'Edit Event' : 'New Event' }}</h3>
+            <button class="form-close-btn" (click)="cancelEventForm()">
+              <ion-icon name="close"></ion-icon>
+            </button>
+          </div>
+          <div class="event-form-fields">
+            <div class="ef-group">
+              <label>Title *</label>
+              <input [(ngModel)]="eventForm.title" placeholder="Event title" class="ef-input" />
+            </div>
+            <div class="ef-group">
+              <label>Description</label>
+              <textarea [(ngModel)]="eventForm.description" placeholder="Details…" class="ef-input ef-textarea" rows="3"></textarea>
+            </div>
+            <div class="ef-row">
+              <div class="ef-group">
+                <label>Date *</label>
+                <input type="date" [(ngModel)]="eventForm.date" class="ef-input" />
+              </div>
+              <div class="ef-group">
+                <label>Time</label>
+                <input type="time" [(ngModel)]="eventForm.time" class="ef-input" />
+              </div>
+            </div>
+            <div class="ef-group">
+              <label>Venue</label>
+              <input [(ngModel)]="eventForm.venue" placeholder="Location" class="ef-input" />
+            </div>
+            <div class="ef-group">
+              <label>Type</label>
+              <select [(ngModel)]="eventForm.type" class="ef-input">
+                <option value="academic">Academic</option>
+                <option value="seminar">Seminar</option>
+                <option value="workshop">Workshop</option>
+                <option value="social">Social</option>
+                <option value="sports">Sports</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="event-form-actions">
+            <button class="ef-cancel" (click)="cancelEventForm()">Cancel</button>
+            <button class="ef-submit" (click)="submitEvent()" [disabled]="!eventForm.title.trim() || !eventForm.date">
+              {{ isEditingEvent ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Events Loading -->
+        <div *ngIf="isLoadingEvents" class="state-box compact-state">
+          <ion-spinner color="primary"></ion-spinner>
+          <p>Loading events...</p>
+        </div>
+
+        <!-- Events List -->
+        <div *ngIf="!isLoadingEvents && !showEventForm">
+          <div class="event-card" *ngFor="let event of filteredEvents">
+            <div class="event-card-top">
+              <span class="event-type-tag" [ngClass]="'et-' + event.type">{{ event.type }}</span>
+              <div class="event-hod-btns" *ngIf="isHOD">
+                <button class="ev-action-btn" (click)="openEventForm(event)">
+                  <ion-icon name="create-outline"></ion-icon>
+                </button>
+                <button class="ev-action-btn danger" (click)="deleteEvent(event)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </div>
+            </div>
+            <h4 class="event-title">{{ event.title }}</h4>
+            <p class="event-desc" *ngIf="event.description">{{ event.description }}</p>
+            <div class="event-meta">
+              <span *ngIf="event.date"><ion-icon name="calendar-outline"></ion-icon> {{ event.date }}</span>
+              <span *ngIf="event.time"><ion-icon name="time-outline"></ion-icon> {{ event.time }}</span>
+              <span *ngIf="event.venue"><ion-icon name="location-outline"></ion-icon> {{ event.venue }}</span>
+            </div>
+            <div class="event-footer">
+              <button class="attendees-toggle" (click)="toggleAttendees(event)">
+                <ion-icon name="people-outline"></ion-icon>
+                {{ (event.attendees || []).length }} attending
+                <ion-icon [name]="expandedEventId === event.id ? 'chevron-up' : 'chevron-down'" class="toggle-chevron"></ion-icon>
+              </button>
+              <div class="join-leave-wrap">
+                <button *ngIf="!isJoinedEvent(event)" class="btn-join" (click)="joinEvent(event)">Join</button>
+                <button *ngIf="isJoinedEvent(event)" class="btn-leave" (click)="leaveEvent(event)">Leave</button>
+              </div>
+            </div>
+
+            <!-- Attendee list (expandable) -->
+            <div class="attendee-section" *ngIf="expandedEventId === event.id">
+              <div *ngIf="(event.attendees || []).length === 0" class="no-attendees">
+                No attendees yet.
+              </div>
+              <div class="attendee-list" *ngIf="(event.attendees || []).length > 0">
+                <div class="attendee-item" *ngFor="let name of (attendeeNames[event.id] || [])">
+                  <div class="attendee-avatar">{{ name.charAt(0).toUpperCase() }}</div>
+                  <span>{{ name }}</span>
                 </div>
-              </ion-card-content>
-            </ion-card>
+              </div>
+            </div>
           </div>
 
-          <!-- Members Tab -->
-          <div *ngIf="activeTab === 'members'" class="tab-pane">
-            <ion-card class="members-card">
-              <ion-card-content>
-                <p class="tab-label">Members in this department</p>
-                <div class="members-grid">
-                  <div class="member-item" *ngFor="let member of selectedDepartment.members || []">
-                    <div class="member-avatar">{{ member.name.charAt(0) }}</div>
-                    <div class="member-details">
-                      <p class="member-name">{{ member.name }}</p>
-                      <p class="member-role">{{ member.role }}</p>
-                    </div>
-                  </div>
-                </div>
-                <div *ngIf="!selectedDepartment.members || selectedDepartment.members.length === 0" class="empty-content">
-                  <p>No members yet</p>
-                </div>
-              </ion-card-content>
-            </ion-card>
+          <div class="empty-tab" *ngIf="filteredEvents.length === 0">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <p>No {{ eventFilter }} events.</p>
+            <small *ngIf="isHOD && eventFilter === 'upcoming'">Tap "Create Event" to add one.</small>
           </div>
+        </div>
 
-          <!-- Events Tab -->
-          <div *ngIf="activeTab === 'events'" class="tab-pane">
-            <!-- Header row: label + HOD create button -->
-            <div class="events-tab-header">
-              <p class="tab-label">{{ isHOD ? 'Manage Events' : 'Upcoming Events' }}</p>
-              <button class="btn-create-event" *ngIf="isHOD && !showEventForm" (click)="openEventForm()">
-                <ion-icon name="add"></ion-icon> Create Event
+      </div>
+
+      <!-- ── Wall Tab ──────────────────────────────── -->
+      <div *ngIf="activeTab === 'wall'" class="tab-body wall-tab">
+
+        <!-- Compose box -->
+        <div class="wall-compose" *ngIf="isUserInDepartment(selectedDepartment.id)">
+          <div class="wall-compose-avatar">{{ currentUserName.charAt(0).toUpperCase() || 'M' }}</div>
+          <div class="wall-compose-input-wrap">
+            <textarea
+              class="wall-compose-input"
+              [(ngModel)]="wallInput"
+              placeholder="Share something with the department…"
+              rows="2"
+            ></textarea>
+            <div class="wall-compose-actions">
+              <span class="wall-char-count" [class.over]="wallInput.length > 280">{{ wallInput.length }}/280</span>
+              <button
+                class="wall-post-btn"
+                (click)="submitWallPost()"
+                [disabled]="!wallInput.trim() || wallInput.length > 280 || isPostingWall"
+              >
+                <ion-icon name="send"></ion-icon>
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="wall-non-member-note" *ngIf="!isUserInDepartment(selectedDepartment.id)">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <p>Join or follow this department to post on the wall.</p>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="isLoadingWall" class="state-box compact-state">
+          <ion-spinner color="primary"></ion-spinner>
+          <p>Loading posts…</p>
+        </div>
+
+        <!-- Posts feed -->
+        <div *ngIf="!isLoadingWall">
+          <div class="wall-post" *ngFor="let post of wallPosts">
+            <div class="wall-post-header">
+              <div class="wall-author-avatar">{{ post.authorInitials }}</div>
+              <div class="wall-author-info">
+                <p class="wall-author-name">{{ post.authorName }}</p>
+                <p class="wall-post-time">{{ formatWallTime(post.createdAt) }}</p>
+              </div>
+              <button
+                *ngIf="isWallPostOwner(post) || isHOD"
+                class="wall-delete-btn"
+                (click)="deleteWallPost(post)"
+              >
+                <ion-icon name="trash-outline"></ion-icon>
               </button>
             </div>
 
-            <!-- Event Form (HOD only) -->
-            <div *ngIf="showEventForm && isHOD" class="event-form-card">
-              <div class="event-form-header">
-                <h3>{{ isEditingEvent ? 'Edit Event' : 'New Event' }}</h3>
-                <button class="btn-icon-sm" (click)="cancelEventForm()">
-                  <ion-icon name="close"></ion-icon>
-                </button>
-              </div>
-              <div class="event-form-body">
-                <div class="form-group">
-                  <label>Title *</label>
-                  <input type="text" [(ngModel)]="eventForm.title" placeholder="Event title" class="form-input">
-                </div>
-                <div class="form-group">
-                  <label>Description</label>
-                  <textarea [(ngModel)]="eventForm.description" placeholder="Event description" class="form-textarea" rows="3"></textarea>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Date *</label>
-                    <input type="date" [(ngModel)]="eventForm.date" class="form-input">
-                  </div>
-                  <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" [(ngModel)]="eventForm.time" class="form-input">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Venue</label>
-                  <input type="text" [(ngModel)]="eventForm.venue" placeholder="Venue or location" class="form-input">
-                </div>
-                <div class="form-group">
-                  <label>Type</label>
-                  <select [(ngModel)]="eventForm.type" class="form-select">
-                    <option value="academic">Academic</option>
-                    <option value="seminar">Seminar</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="social">Social</option>
-                    <option value="sports">Sports</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <div class="event-form-actions">
-                <button class="btn-cancel-form" (click)="cancelEventForm()">Cancel</button>
-                <button class="btn-submit-form" (click)="submitEvent()"
-                  [disabled]="!eventForm.title.trim() || !eventForm.date">
-                  {{ isEditingEvent ? 'Update' : 'Create' }}
-                </button>
-              </div>
-            </div>
+            <p class="wall-post-content">{{ post.content }}</p>
 
-            <!-- Events Loading -->
-            <div *ngIf="isLoadingEvents" class="events-loading">
-              <ion-spinner name="crescent"></ion-spinner>
-              <p>Loading events...</p>
-            </div>
-
-            <!-- Events List -->
-            <div *ngIf="!isLoadingEvents && !showEventForm" class="events-list">
-              <div *ngFor="let event of departmentEvents" class="event-card">
-                <div class="event-card-top">
-                  <span class="event-type-badge event-type-{{ event.type }}">{{ event.type }}</span>
-                  <div class="event-hod-actions" *ngIf="isHOD">
-                    <button class="btn-icon-sm btn-edit-event" (click)="openEventForm(event)">
-                      <ion-icon name="pencil"></ion-icon>
-                    </button>
-                    <button class="btn-icon-sm btn-delete-event" (click)="deleteEvent(event)">
-                      <ion-icon name="trash"></ion-icon>
-                    </button>
-                  </div>
-                </div>
-                <h4 class="event-title">{{ event.title }}</h4>
-                <p class="event-description" *ngIf="event.description">{{ event.description }}</p>
-                <div class="event-meta">
-                  <span *ngIf="event.date"><ion-icon name="calendar-outline"></ion-icon> {{ event.date }}</span>
-                  <span *ngIf="event.time"><ion-icon name="time-outline"></ion-icon> {{ event.time }}</span>
-                  <span *ngIf="event.venue"><ion-icon name="location-outline"></ion-icon> {{ event.venue }}</span>
-                </div>
-                <div class="event-footer">
-                  <span class="event-attendees">
-                    <ion-icon name="people-outline"></ion-icon> {{ (event.attendees || []).length }} attending
-                  </span>
-                  <button *ngIf="!isJoinedEvent(event)" class="btn-join-event" (click)="joinEvent(event)">Join</button>
-                  <button *ngIf="isJoinedEvent(event)" class="btn-leave-event" (click)="leaveEvent(event)">Leave</button>
-                </div>
-              </div>
-
-              <div *ngIf="departmentEvents.length === 0" class="empty-content">
-                <ion-icon name="calendar"></ion-icon>
-                <p>No events scheduled</p>
-                <small *ngIf="isHOD">Click "Create Event" to add the first event.</small>
-              </div>
+            <div class="wall-post-footer">
+              <button class="wall-like-btn" [class.liked]="(post.likes || []).includes(currentUserId)" (click)="toggleWallLike(post)">
+                <ion-icon [name]="(post.likes || []).includes(currentUserId) ? 'heart' : 'heart-outline'"></ion-icon>
+                <span>{{ (post.likes || []).length }}</span>
+              </button>
             </div>
           </div>
 
-          <!-- Discussion Tab -->
-          <div *ngIf="activeTab === 'discussion'" class="tab-pane">
-            <ion-card class="discussion-card">
-              <ion-card-content>
-                <p class="tab-label">Discussion Forum</p>
-                <div class="empty-content">
-                  <ion-icon name="chatbubble"></ion-icon>
-                  <p>No discussions yet</p>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </div>
-
-          <!-- Resources Tab -->
-          <div *ngIf="activeTab === 'resources'" class="tab-pane">
-            <ion-card class="resources-card">
-              <ion-card-content>
-                <p class="tab-label">Available Resources</p>
-                <div class="empty-content">
-                  <ion-icon name="document"></ion-icon>
-                  <p>No resources available</p>
-                </div>
-              </ion-card-content>
-            </ion-card>
+          <div class="empty-tab" *ngIf="wallPosts.length === 0">
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+            <p>No posts yet. Be the first!</p>
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="modal-footer">
-          <ion-button 
-            *ngIf="!isUserInDepartment(selectedDepartment.id)"
-            (click)="followDepartment()" 
-            class="btn-follow">
-            <ion-icon name="star"></ion-icon> Follow
-          </ion-button>
-          <ion-button 
-            *ngIf="!isPrimaryDepartment(selectedDepartment.id) && !isUserInDepartment(selectedDepartment.id)"
-            (click)="registerDepartment()" 
-            class="btn-register">
-            <ion-icon name="checkmark"></ion-icon> Register
-          </ion-button>
-          <ion-button 
-            *ngIf="isPrimaryDepartment(selectedDepartment.id)"
-            disabled
-            class="btn-registered">
-            <ion-icon name="checkmark-circle"></ion-icon> Registered
-          </ion-button>
-          <ion-button (click)="closeDetailModal()" class="btn-cancel">Close</ion-button>
-        </div>
       </div>
-    </div>
-  </div>
-</ion-content>
+
+      <!-- ── Modal Footer Actions ────────────────── -->
+      <div class="modal-footer">
+        <ion-button
+          *ngIf="!isUserInDepartment(selectedDepartment.id)"
+          fill="outline"
+          class="footer-btn follow-btn"
+          (click)="followDepartment()"
+        >
+          <ion-icon slot="start" name="star-outline"></ion-icon>
+          Follow
+        </ion-button>
+
+        <ion-button
+          *ngIf="!isPrimaryDepartment(selectedDepartment.id) && !isUserInDepartment(selectedDepartment.id)"
+          fill="solid"
+          class="footer-btn register-btn"
+          (click)="registerDepartment()"
+        >
+          <ion-icon slot="start" name="checkmark"></ion-icon>
+          Register
+        </ion-button>
+
+        <ion-button
+          *ngIf="isPrimaryDepartment(selectedDepartment.id)"
+          fill="solid"
+          disabled
+          class="footer-btn registered-btn"
+        >
+          <ion-icon slot="start" name="checkmark-circle"></ion-icon>
+          Registered
+        </ion-button>
+      </div>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>

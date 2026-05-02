@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController } from '@ionic/angular';
+import { AlertController, IonModal } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 
 interface Department {
@@ -10,6 +10,7 @@ interface Department {
   createdAt?: any;
   members?: any[];
   description?: string;
+  hodName?: string | null;
 }
 
 interface UserDepartment {
@@ -32,6 +33,16 @@ interface DeptEvent {
   status?: string;
 }
 
+interface DeptWallPost {
+  id?: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorInitials: string;
+  likes: string[];
+  createdAt?: any;
+}
+
 @Component({
   selector: 'app-department',
   templateUrl: './department.page.html',
@@ -39,37 +50,57 @@ interface DeptEvent {
   standalone: false
 })
 export class DepartmentPage implements OnInit {
+  @ViewChild('detailModal') detailModal!: IonModal;
 
-  // Departments
   allDepartments: Department[] = [];
   userDepartments: UserDepartment[] = [];
 
-  // Current user
-  currentUserId: string = '';
-  currentUserType: string = '';
-  currentUserRole: string = '';
-  currentUserName: string = '';
+  currentUserId = '';
+  currentUserType = '';
+  currentUserRole = '';
+  currentUserName = '';
 
-  // UI State
   selectedDepartment: Department | null = null;
-  showDetailModal: boolean = false;
-  isLoading: boolean = false;
-  errorMessage: string = '';
-  activeTab: string = 'overview';
+  isLoading = false;
+  errorMessage = '';
+  activeTab = 'overview';
 
-  // Events
   departmentEvents: DeptEvent[] = [];
-  isLoadingEvents: boolean = false;
-  showEventForm: boolean = false;
-  isEditingEvent: boolean = false;
-  editingEventId: string = '';
+  isLoadingEvents = false;
+  showEventForm = false;
+  isEditingEvent = false;
+  editingEventId = '';
   eventForm: DeptEvent = this.emptyEventForm();
 
-  // Tab content
-  departments_tabs = ['overview', 'members', 'events', 'discussion', 'resources'];
+  eventFilter: 'upcoming' | 'past' = 'upcoming';
+  expandedEventId: string | null = null;
+  attendeeNames: Record<string, string[]> = {};
+
+  wallPosts: DeptWallPost[] = [];
+  isLoadingWall = false;
+  wallInput = '';
+  isPostingWall = false;
+
+  readonly tabs = ['overview', 'members', 'events', 'wall'];
+
+  private readonly colorClasses = [
+    'c-blue', 'c-green', 'c-purple', 'c-orange',
+    'c-red', 'c-cyan', 'c-amber', 'c-pink'
+  ];
 
   get isHOD(): boolean {
-    return this.currentUserType === 'alumni' && this.currentUserRole === 'hod';
+    return this.currentUserRole === 'hod' || this.currentUserRole === 'HOD';
+  }
+
+  get filteredEvents(): DeptEvent[] {
+    const today = new Date().toISOString().split('T')[0];
+    return this.eventFilter === 'upcoming'
+      ? this.departmentEvents.filter(e => !e.date || e.date >= today)
+      : this.departmentEvents.filter(e => !!e.date && e.date < today);
+  }
+
+  get totalMembers(): number {
+    return this.allDepartments.reduce((sum, d) => sum + (d.members?.length || 0), 0);
   }
 
   constructor(
@@ -80,8 +111,7 @@ export class DepartmentPage implements OnInit {
 
   async ngOnInit() {
     await this.loadCurrentUserProfile();
-    this.loadDepartments();
-    this.loadUserDepartments();
+    await Promise.all([this.loadDepartments(), this.loadUserDepartments()]);
   }
 
   private emptyEventForm(): DeptEvent {
@@ -95,7 +125,7 @@ export class DepartmentPage implements OnInit {
     const profile = await this.authService.getUserProfile(user.uid);
     if (profile) {
       this.currentUserType = profile['userType'] || '';
-      this.currentUserRole = profile['role'] || 'user';
+      this.currentUserRole = (profile['role'] || 'user').toLowerCase();
       this.currentUserName = `${profile['firstName'] || ''} ${profile['lastName'] || ''}`.trim();
     }
   }
@@ -104,9 +134,25 @@ export class DepartmentPage implements OnInit {
     try {
       this.isLoading = true;
       this.errorMessage = '';
-      this.allDepartments = await this.authService.getDepartments();
-    } catch (error) {
-      console.error('Error loading departments:', error);
+      const [depts, allUsers] = await Promise.all([
+        this.authService.getDepartments(),
+        this.authService.getAllUsers()
+      ]);
+      // Map HOD per department: find users with role 'hod'/'HOD' whose department matches
+      const hodMap: Record<string, string> = {};
+      allUsers
+        .filter((u: any) => (u.role || '').toLowerCase() === 'hod')
+        .forEach((u: any) => {
+          const deptId = u.department || '';
+          if (deptId) {
+            hodMap[deptId] = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+          }
+        });
+      this.allDepartments = depts.map((d: Department) => ({
+        ...d,
+        hodName: hodMap[d.id] || null
+      }));
+    } catch {
       this.errorMessage = 'Failed to load departments. Please try again.';
     } finally {
       this.isLoading = false;
@@ -117,50 +163,127 @@ export class DepartmentPage implements OnInit {
     try {
       const user = this.authService.getCurrentUser();
       this.userDepartments = [];
-      if (user) {
-        const userProfile = await this.authService.getUserProfile(user.uid);
-        const primaryDepartment = userProfile?.['department'] || '';
-        const followedDepartments: string[] = userProfile?.['followedDepartments'] || [];
-
-        if (primaryDepartment) {
-          this.userDepartments.push({
-            departmentId: primaryDepartment,
-            status: 'primary',
-            joinedDate: userProfile['joinDate'] || new Date().toISOString()
-          });
-        }
-
-        followedDepartments
-          .filter(departmentId => departmentId && departmentId !== primaryDepartment)
-          .forEach(departmentId => {
-            this.userDepartments.push({
-              departmentId,
-              status: 'following',
-              joinedDate: new Date().toISOString()
-            });
-          });
+      if (!user) return;
+      const profile = await this.authService.getUserProfile(user.uid);
+      const primary: string = profile?.['department'] || '';
+      const followed: string[] = profile?.['followedDepartments'] || [];
+      if (primary) {
+        this.userDepartments.push({ departmentId: primary, status: 'primary', joinedDate: profile['joinDate'] || '' });
       }
-    } catch (error) {
-      console.error('Error loading user departments:', error);
+      followed.filter(id => id && id !== primary).forEach(id => {
+        this.userDepartments.push({ departmentId: id, status: 'following', joinedDate: '' });
+      });
+    } catch {
+      // ignore
     }
   }
 
-  // ==================== EVENTS ====================
+  // ── Helpers ────────────────────────────────────────
+
+  getDeptAbbr(name: string): string {
+    const skip = new Set(['of', 'the', 'and', 'for', 'a', 'an', 'in']);
+    return name
+      .split(/\s+/)
+      .filter(w => !skip.has(w.toLowerCase()))
+      .map(w => w.charAt(0).toUpperCase())
+      .slice(0, 3)
+      .join('');
+  }
+
+  getDeptColorClass(index: number): string {
+    return this.colorClasses[index % this.colorClasses.length];
+  }
+
+  getTabIcon(tab: string): string {
+    const map: Record<string, string> = {
+      overview: 'information-circle-outline',
+      members: 'people-outline',
+      events: 'calendar-outline',
+      wall: 'chatbubbles-outline',
+    };
+    return map[tab] || 'ellipse-outline';
+  }
+
+  isUserInDepartment(deptId: string): boolean {
+    const user = this.authService.getCurrentUser();
+    if (!user) return false;
+    const dept = this.allDepartments.find(d => d.id === deptId);
+    if (dept?.members?.some((m: any) => m.userId === user.uid)) return true;
+    return this.userDepartments.some(ud => ud.departmentId === deptId);
+  }
+
+  isPrimaryDepartment(deptId: string): boolean {
+    return this.userDepartments.some(ud => ud.departmentId === deptId && ud.status === 'primary');
+  }
+
+  // ── Modal ──────────────────────────────────────────
+
+  async openDepartmentDetail(department: Department) {
+    this.selectedDepartment = department;
+    this.activeTab = 'overview';
+    this.departmentEvents = [];
+    this.showEventForm = false;
+    this.eventFilter = 'upcoming';
+    this.expandedEventId = null;
+    this.attendeeNames = {};
+    this.wallPosts = [];
+    this.wallInput = '';
+    await this.detailModal.present();
+  }
+
+  async closeDetailModal() {
+    await this.detailModal.dismiss();
+    this.selectedDepartment = null;
+    this.departmentEvents = [];
+    this.showEventForm = false;
+  }
+
+  switchTab(tab: string) {
+    this.activeTab = tab;
+    if (tab === 'events') {
+      this.eventFilter = 'upcoming';
+      this.expandedEventId = null;
+      this.attendeeNames = {};
+      this.loadDepartmentEvents();
+    }
+    if (tab === 'wall') {
+      this.wallInput = '';
+      this.loadWallPosts();
+    }
+  }
+
+  toggleAttendees(event: DeptEvent) {
+    if (!event.id) return;
+    if (this.expandedEventId === event.id) {
+      this.expandedEventId = null;
+      return;
+    }
+    this.expandedEventId = event.id;
+    if (!this.attendeeNames[event.id] && (event.attendees || []).length > 0) {
+      const memberMap: Record<string, string> = {};
+      (this.selectedDepartment?.members || []).forEach((m: any) => {
+        if (m.userId) memberMap[m.userId] = m.name;
+      });
+      this.attendeeNames[event.id] = (event.attendees || []).map(uid => memberMap[uid] || 'Member');
+    }
+  }
+
+  // ── Events ─────────────────────────────────────────
 
   async loadDepartmentEvents() {
     if (!this.selectedDepartment) return;
     this.isLoadingEvents = true;
     try {
       this.departmentEvents = await this.authService.getDepartmentEvents(this.selectedDepartment.id);
-    } catch (error) {
-      console.error('Error loading events:', error);
+    } catch {
+      // ignore
     } finally {
       this.isLoadingEvents = false;
     }
   }
 
   openEventForm(event?: DeptEvent) {
-    if (event && event.id) {
+    if (event?.id) {
       this.isEditingEvent = true;
       this.editingEventId = event.id;
       this.eventForm = { ...event };
@@ -183,11 +306,7 @@ export class DepartmentPage implements OnInit {
     if (!this.selectedDepartment || !this.eventForm.title.trim() || !this.eventForm.date) return;
     try {
       if (this.isEditingEvent && this.editingEventId) {
-        await this.authService.updateDepartmentEvent(
-          this.selectedDepartment.id,
-          this.editingEventId,
-          { ...this.eventForm }
-        );
+        await this.authService.updateDepartmentEvent(this.selectedDepartment.id, this.editingEventId, { ...this.eventForm });
       } else {
         await this.authService.addDepartmentEvent(this.selectedDepartment.id, {
           ...this.eventForm,
@@ -211,8 +330,7 @@ export class DepartmentPage implements OnInit {
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Delete',
-          role: 'destructive',
+          text: 'Delete', role: 'destructive',
           handler: async () => {
             await this.authService.deleteDepartmentEvent(this.selectedDepartment!.id, event.id!);
             await this.loadDepartmentEvents();
@@ -239,60 +357,7 @@ export class DepartmentPage implements OnInit {
     return (event.attendees || []).includes(this.currentUserId);
   }
 
-  // ==================== DEPARTMENT UI ====================
-
-  isUserInDepartment(deptId: string): boolean {
-    const user = this.authService.getCurrentUser();
-    if (!user) return false;
-    const department = this.allDepartments.find(d => d.id === deptId);
-    if (department && department.members) {
-      return department.members.some((m: any) => m.userId === user.uid);
-    }
-    return this.userDepartments.some(ud => ud.departmentId === deptId);
-  }
-
-  isPrimaryDepartment(deptId: string): boolean {
-    const user = this.authService.getCurrentUser();
-    if (!user) return false;
-    return this.userDepartments.some(ud => ud.departmentId === deptId && ud.status === 'primary');
-  }
-
-  goBack() {
-    this.router.navigate(['/home']);
-  }
-
-  openDepartmentDetail(department: Department) {
-    this.selectedDepartment = department;
-    this.showDetailModal = true;
-    this.activeTab = 'overview';
-    this.departmentEvents = [];
-    this.showEventForm = false;
-  }
-
-  closeDetailModal() {
-    this.showDetailModal = false;
-    this.selectedDepartment = null;
-    this.departmentEvents = [];
-    this.showEventForm = false;
-  }
-
-  switchTab(tab: string) {
-    this.activeTab = tab;
-    if (tab === 'events') {
-      this.loadDepartmentEvents();
-    }
-  }
-
-  getTabIcon(tab: string): string {
-    const icons: { [key: string]: string } = {
-      overview: 'information-circle',
-      members: 'people',
-      events: 'calendar',
-      discussion: 'chatbubble',
-      resources: 'document'
-    };
-    return icons[tab] || 'document';
-  }
+  // ── Department Actions ─────────────────────────────
 
   async registerDepartment() {
     if (!this.selectedDepartment) return;
@@ -300,40 +365,23 @@ export class DepartmentPage implements OnInit {
     if (!user) return;
     try {
       const profile = await this.authService.getUserProfile(user.uid);
-      const firstName = profile?.['firstName'] || '';
-      const lastName = profile?.['lastName'] || '';
       const joinedDate = new Date().toISOString().split('T')[0];
-
-      await this.authService.updateUserProfile(user.uid, {
-        department: this.selectedDepartment.id,
-        joinDate: joinedDate
-      });
-
-      await this.authService.addMemberToDepartment(
-        this.selectedDepartment.id,
-        user.uid,
-        {
-          name: `${firstName} ${lastName}`.trim() || user.email || '',
-          email: user.email || '',
-          userType: profile?.['userType'] || 'student',
-          role: profile?.['userType'] || 'student',
-          studentNumber: profile?.['studentNumber'] || '',
-          course: profile?.['course'] || '',
-          joinedDate
-        }
-      );
-
-      this.userDepartments = this.userDepartments.filter(ud => ud.status !== 'primary');
-      this.userDepartments.push({
-        departmentId: this.selectedDepartment.id,
-        status: 'primary',
+      await this.authService.updateUserProfile(user.uid, { department: this.selectedDepartment.id, joinDate: joinedDate });
+      await this.authService.addMemberToDepartment(this.selectedDepartment.id, user.uid, {
+        name: `${profile?.['firstName'] || ''} ${profile?.['lastName'] || ''}`.trim() || user.email || '',
+        email: user.email || '',
+        userType: profile?.['userType'] || 'student',
+        role: profile?.['userType'] || 'student',
+        studentNumber: profile?.['studentNumber'] || '',
+        course: profile?.['course'] || '',
         joinedDate
       });
-
-      this.closeDetailModal();
+      this.userDepartments = this.userDepartments.filter(ud => ud.status !== 'primary');
+      this.userDepartments.push({ departmentId: this.selectedDepartment.id, status: 'primary', joinedDate });
+      await this.closeDetailModal();
       await this.loadDepartments();
     } catch (error) {
-      console.error('Error registering for department:', error);
+      console.error('Error registering department:', error);
     }
   }
 
@@ -343,25 +391,99 @@ export class DepartmentPage implements OnInit {
     if (!user) return;
     try {
       const profile = await this.authService.getUserProfile(user.uid);
-      const followedDepartments: string[] = profile?.['followedDepartments'] || [];
-
-      if (!followedDepartments.includes(this.selectedDepartment.id)) {
-        followedDepartments.push(this.selectedDepartment.id);
-        await this.authService.updateUserProfile(user.uid, { followedDepartments });
+      const followed: string[] = profile?.['followedDepartments'] || [];
+      if (!followed.includes(this.selectedDepartment.id)) {
+        followed.push(this.selectedDepartment.id);
+        await this.authService.updateUserProfile(user.uid, { followedDepartments: followed });
       }
-
-      const alreadyTracked = this.userDepartments.some(ud => ud.departmentId === this.selectedDepartment!.id);
-      if (!alreadyTracked) {
-        this.userDepartments.push({
-          departmentId: this.selectedDepartment.id,
-          status: 'following',
-          joinedDate: new Date().toISOString()
-        });
+      if (!this.userDepartments.some(ud => ud.departmentId === this.selectedDepartment!.id)) {
+        this.userDepartments.push({ departmentId: this.selectedDepartment.id, status: 'following', joinedDate: new Date().toISOString() });
       }
     } catch (error) {
       console.error('Error following department:', error);
     }
   }
+
+  // ── Wall ───────────────────────────────────────────
+
+  async loadWallPosts() {
+    if (!this.selectedDepartment) return;
+    this.isLoadingWall = true;
+    try {
+      this.wallPosts = await this.authService.getDepartmentWallPosts(this.selectedDepartment.id);
+    } catch {
+      // ignore
+    } finally {
+      this.isLoadingWall = false;
+    }
+  }
+
+  async submitWallPost() {
+    if (!this.selectedDepartment || !this.wallInput.trim() || this.isPostingWall) return;
+    this.isPostingWall = true;
+    try {
+      const initials = this.currentUserName
+        .split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+      const post = await this.authService.addDepartmentWallPost(this.selectedDepartment.id, {
+        content: this.wallInput.trim(),
+        authorId: this.currentUserId,
+        authorName: this.currentUserName || 'Member',
+        authorInitials: initials || 'M',
+      });
+      this.wallPosts = [post, ...this.wallPosts];
+      this.wallInput = '';
+    } catch (error) {
+      console.error('Error posting to wall:', error);
+    } finally {
+      this.isPostingWall = false;
+    }
+  }
+
+  async deleteWallPost(post: DeptWallPost) {
+    if (!this.selectedDepartment || !post.id) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Post',
+      message: 'Remove this post from the wall?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete', role: 'destructive',
+          handler: async () => {
+            await this.authService.deleteDepartmentWallPost(this.selectedDepartment!.id, post.id!);
+            this.wallPosts = this.wallPosts.filter(p => p.id !== post.id);
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async toggleWallLike(post: DeptWallPost) {
+    if (!this.selectedDepartment || !post.id || !this.currentUserId) return;
+    const liked = (post.likes || []).includes(this.currentUserId);
+    post.likes = liked
+      ? (post.likes || []).filter(id => id !== this.currentUserId)
+      : [...(post.likes || []), this.currentUserId];
+    await this.authService.toggleDepartmentWallLike(this.selectedDepartment.id, post.id, this.currentUserId);
+  }
+
+  isWallPostOwner(post: DeptWallPost): boolean {
+    return post.authorId === this.currentUserId;
+  }
+
+  formatWallTime(createdAt: any): string {
+    if (!createdAt) return '';
+    const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  goBack() { this.router.navigate(['/home']); }
 
   refreshDepartments() {
     this.loadDepartments();
