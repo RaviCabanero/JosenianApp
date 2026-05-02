@@ -10,153 +10,150 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="profile-content">
-  
-
-  <!-- Loading Spinner -->
   <div *ngIf="isLoading" class="loading-container">
     <ion-spinner></ion-spinner>
     <p>Loading profile...</p>
   </div>
 
-  <!-- Profile Content -->
   <div *ngIf="!isLoading" class="profile-container">
-    <!-- Profile Header Section with Gradient Background -->
-    <div class="profile-header-gradient">
+    <section class="profile-hero">
       <div class="profile-avatar-section">
         <div class="avatar-wrapper">
           <div class="avatar-circle" [style.backgroundImage]="userProfile.photoUrl ? 'url(' + userProfile.photoUrl + ')' : ''">
             <span class="avatar-initials" *ngIf="!userProfile.photoUrl">{{ userProfile.initials }}</span>
           </div>
-          <!-- Camera Icon for Photo Upload -->
           <input #photoFileInput type="file" accept="image/*" (change)="onPhotoSelected($event)" style="display: none;" />
           <ion-button fill="solid" class="camera-icon-btn" (click)="openPhotoModal()" title="Upload Profile Picture">
             <ion-icon slot="icon-only" name="camera"></ion-icon>
           </ion-button>
         </div>
-        
-        <!-- User Name and Type -->
+
         <div class="user-info">
+          <p class="profile-kicker">Josenian Profile</p>
           <h1 class="full-name">{{ userProfile.firstName }} {{ userProfile.lastName }}</h1>
-          <p class="user-type-badge">{{ userProfile.userType === 'student' ? '🎓 Student' : '👔 Alumni' }}</p>
+          <p class="user-type-badge">
+            <ion-icon [name]="userProfile.userType === 'student' ? 'school' : 'briefcase'"></ion-icon>
+            <span>{{ userProfile.userType === 'student' ? 'Student' : 'Alumni' }}</span>
+          </p>
           <p class="user-email">{{ userProfile.email }}</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Quick Stats Section -->
-    <div class="quick-stats">
-      <div class="stat-card" *ngIf="userProfile.department">
-        <ion-icon name="business"></ion-icon>
-        <span>{{ userProfile.department }}</span>
+    <div class="profile-actions">
+      <div class="quick-stats">
+        <div class="stat-card" *ngIf="userProfile.department">
+          <ion-icon name="business"></ion-icon>
+          <span>{{ userProfile.department }}</span>
+        </div>
+        <div class="stat-card" *ngIf="userProfile.userType === 'student' && userProfile.studentNumber">
+          <ion-icon name="card"></ion-icon>
+          <span>{{ userProfile.studentNumber }}</span>
+        </div>
+        <div class="stat-card" *ngIf="userProfile.userType === 'alumni' && userProfile.graduationYear">
+          <ion-icon name="calendar"></ion-icon>
+          <span>{{ userProfile.graduationYear }}</span>
+        </div>
       </div>
-      <div class="stat-card" *ngIf="userProfile.userType === 'student' && userProfile.studentNumber">
-        <ion-icon name="card"></ion-icon>
-        <span>{{ userProfile.studentNumber }}</span>
-      </div>
-      <div class="stat-card" *ngIf="userProfile.userType === 'alumni' && userProfile.graduationYear">
-        <ion-icon name="calendar"></ion-icon>
-        <span>{{ userProfile.graduationYear }}</span>
-      </div>
-    </div>
 
-    <!-- Edit Profile Button -->
-    <div class="edit-profile-button-container">
-      <ion-button expand="block" fill="solid" class="edit-profile-btn" (click)="openEditModal()">
+      <ion-button fill="solid" class="edit-profile-btn" (click)="openEditModal()">
         <ion-icon slot="start" name="create"></ion-icon>
         Edit Profile
       </ion-button>
     </div>
 
-    <!-- Profile Information Cards -->
-    <ion-card class="info-card">
-      <ion-card-header>
-        <ion-card-title>Personal Information</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <!-- Email -->
-        <div class="info-item">
-          <div class="info-label">
-            <ion-icon name="mail"></ion-icon>
-            <span>Email</span>
+    <div class="profile-details-grid">
+      <ion-card class="info-card primary-info-card">
+        <ion-card-header>
+          <div>
+            <ion-card-title>Personal Information</ion-card-title>
+            <p>Core profile details shown across the Josenian community.</p>
           </div>
-          <p class="info-value">{{ userProfile.email }}</p>
-        </div>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-label">
+                <ion-icon name="mail"></ion-icon>
+                <span>Email</span>
+              </div>
+              <p class="info-value">{{ userProfile.email }}</p>
+            </div>
 
-        <!-- Department -->
-        <div class="info-item">
-          <div class="info-label">
-            <ion-icon name="business"></ion-icon>
-            <span>Department</span>
+            <div class="info-item">
+              <div class="info-label">
+                <ion-icon name="business"></ion-icon>
+                <span>Department</span>
+              </div>
+              <p class="info-value">{{ userProfile.department || 'Not specified' }}</p>
+            </div>
+
+            <div class="info-item" *ngIf="userProfile.userType === 'student'">
+              <div class="info-label">
+                <ion-icon name="card"></ion-icon>
+                <span>Student Number</span>
+              </div>
+              <p class="info-value">{{ userProfile.studentNumber || 'Not specified' }}</p>
+            </div>
+
+            <div class="info-item" *ngIf="userProfile.userType === 'student'">
+              <div class="info-label">
+                <ion-icon name="book"></ion-icon>
+                <span>Course</span>
+              </div>
+              <p class="info-value">{{ userProfile.course || 'Not specified' }}</p>
+            </div>
+
+            <div class="info-item" *ngIf="userProfile.userType === 'alumni'">
+              <div class="info-label">
+                <ion-icon name="calendar"></ion-icon>
+                <span>Graduation Year</span>
+              </div>
+              <p class="info-value">{{ userProfile.graduationYear || 'Not specified' }}</p>
+            </div>
+
+            <div class="info-item info-item-wide">
+              <div class="info-label">
+                <ion-icon name="document-text"></ion-icon>
+                <span>Bio</span>
+              </div>
+              <p class="info-value bio-text">{{ userProfile.bio || 'No bio added yet' }}</p>
+            </div>
           </div>
-          <p class="info-value">{{ userProfile.department || 'Not specified' }}</p>
-        </div>
+        </ion-card-content>
+      </ion-card>
 
-        <!-- Student Number (if student) -->
-        <div class="info-item" *ngIf="userProfile.userType === 'student'">
-          <div class="info-label">
-            <ion-icon name="card"></ion-icon>
-            <span>Student Number</span>
+      <ion-card class="info-card side-info-card" *ngIf="userProfile.gender || userProfile.ageGroup">
+        <ion-card-header>
+          <div>
+            <ion-card-title>Additional Details</ion-card-title>
+            <p>Optional information you have added.</p>
           </div>
-          <p class="info-value">{{ userProfile.studentNumber || 'Not specified' }}</p>
-        </div>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="info-list compact">
+            <div class="info-item" *ngIf="userProfile.gender">
+              <div class="info-label">
+                <ion-icon name="person"></ion-icon>
+                <span>Gender</span>
+              </div>
+              <p class="info-value">{{ userProfile.gender }}</p>
+            </div>
 
-        <!-- Course (if student) -->
-        <div class="info-item" *ngIf="userProfile.userType === 'student'">
-          <div class="info-label">
-            <ion-icon name="book"></ion-icon>
-            <span>Course</span>
+            <div class="info-item" *ngIf="userProfile.ageGroup">
+              <div class="info-label">
+                <ion-icon name="person-circle"></ion-icon>
+                <span>Age Group</span>
+              </div>
+              <p class="info-value">{{ userProfile.ageGroup }}</p>
+            </div>
           </div>
-          <p class="info-value">{{ userProfile.course || 'Not specified' }}</p>
-        </div>
-
-        <!-- Graduation Year (if alumni) -->
-        <div class="info-item" *ngIf="userProfile.userType === 'alumni'">
-          <div class="info-label">
-            <ion-icon name="calendar"></ion-icon>
-            <span>Graduation Year</span>
-          </div>
-          <p class="info-value">{{ userProfile.graduationYear || 'Not specified' }}</p>
-        </div>
-
-        <!-- Bio -->
-        <div class="info-item">
-          <div class="info-label">
-            <ion-icon name="document-text"></ion-icon>
-            <span>Bio</span>
-          </div>
-          <p class="info-value bio-text">{{ userProfile.bio || 'No bio added yet' }}</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Additional Info Card -->
-    <ion-card class="info-card" *ngIf="userProfile.gender || userProfile.ageGroup">
-      <ion-card-header>
-        <ion-card-title>Additional Details</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="info-item" *ngIf="userProfile.gender">
-          <div class="info-label">
-            <ion-icon name="person"></ion-icon>
-            <span>Gender</span>
-          </div>
-          <p class="info-value">{{ userProfile.gender }}</p>
-        </div>
-
-        <div class="info-item" *ngIf="userProfile.ageGroup">
-          <div class="info-label">
-            <ion-icon name="person-circle"></ion-icon>
-            <span>Age Group</span>
-          </div>
-          <p class="info-value">{{ userProfile.ageGroup }}</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
+        </ion-card-content>
+      </ion-card>
+    </div>
   </div>
 </ion-content>
 
-<!-- Edit Profile Modal -->
 <ion-modal #editModal class="edit-modal" [presentingElement]="presentingElement">
   <ng-template>
     <ion-header [translucent]="true">
@@ -170,9 +167,8 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
+
     <ion-content class="ion-padding">
-      <!-- Gender Field -->
       <div class="form-group">
         <label>Gender</label>
         <ion-select [(ngModel)]="editFormData.gender" placeholder="Select your gender" class="form-select">
@@ -181,8 +177,7 @@
           </ion-select-option>
         </ion-select>
       </div>
-      
-      <!-- Age Group Field -->
+
       <div class="form-group">
         <label>Age Group</label>
         <ion-select [(ngModel)]="editFormData.ageGroup" placeholder="Select your age group" class="form-select">
@@ -195,7 +190,6 @@
   </ng-template>
 </ion-modal>
 
-<!-- Photo Options Modal -->
 <ion-modal #photoModal class="photo-modal" [isOpen]="isPhotoModalOpen" [presentingElement]="presentingElement" [breakpoints]="[0.5, 0.75, 1]" initialBreakpoint="0.75">
   <ng-template>
     <ion-header [translucent]="true" class="photo-modal-header">
@@ -208,9 +202,8 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
+
     <ion-content class="photo-modal-content">
-      <!-- Current Photo Preview -->
       <div class="photo-preview-section" *ngIf="userProfile.photoUrl">
         <h3>Current Picture</h3>
         <div class="current-photo-preview">
@@ -218,9 +211,7 @@
         </div>
       </div>
 
-      <!-- Photo Options -->
       <div class="photo-options-container">
-        <!-- Add/Change Photo Option -->
         <ion-card class="photo-option-card">
           <ion-card-content>
             <div class="option-icon">
@@ -235,7 +226,6 @@
           </ion-card-content>
         </ion-card>
 
-        <!-- Remove Photo Option -->
         <ion-card class="photo-option-card danger" *ngIf="userProfile.photoUrl">
           <ion-card-content>
             <div class="option-icon danger">
@@ -250,7 +240,6 @@
           </ion-card-content>
         </ion-card>
 
-        <!-- Info Box -->
         <div class="photo-info-box">
           <ion-icon name="information-circle"></ion-icon>
           <div class="info-text">
@@ -264,7 +253,6 @@
         </div>
       </div>
 
-      <!-- Close Button at Bottom -->
       <div class="photo-modal-footer">
         <ion-button expand="block" fill="clear" color="medium" (click)="closePhotoModal()">
           Cancel

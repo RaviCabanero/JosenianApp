@@ -11,64 +11,135 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Feed Stats -->
-    <ion-card class="stats-card">
+    <!-- Create Post Section -->
+    <ion-card class="create-post-card" *ngIf="currentUser">
       <ion-card-content>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <p class="stat-label">Total Posts</p>
-            <p class="stat-value">{{ feedStats.totalPosts }}</p>
+        <div class="create-post-header">
+          <div class="user-avatar-sm">{{ currentUser.avatar }}</div>
+          <input
+            type="text"
+            placeholder="What's on your mind, {{ currentUser.name }}?"
+            class="post-input"
+            (click)="togglePostForm()"
+            readonly
+          />
+          <button class="camera-btn" (click)="togglePostForm()">
+            <ion-icon name="image"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Post Form -->
+        <div class="post-form" *ngIf="showPostForm">
+          <textarea
+            [(ngModel)]="newPostContent"
+            placeholder="Share your thoughts..."
+            class="post-textarea"
+          ></textarea>
+
+          <!-- Image Preview -->
+          <div class="image-preview" *ngIf="newPostImage">
+            <img [src]="newPostImage" alt="preview" />
+            <button class="remove-img-btn" (click)="removeImage()">
+              <ion-icon name="close"></ion-icon>
+            </button>
           </div>
-          <div class="stat-item">
-            <p class="stat-label">New Today</p>
-            <p class="stat-value">{{ feedStats.newToday }}</p>
+
+          <div class="form-actions">
+            <!-- Image Upload Input -->
+            <label class="image-upload-label">
+              <ion-icon name="image"></ion-icon>
+              <input
+                type="file"
+                accept="image/*"
+                (change)="onImageSelected($event)"
+                style="display: none"
+              />
+            </label>
+
+            <div class="button-group">
+              <button class="btn-cancel" (click)="togglePostForm()">Cancel</button>
+              <button class="btn-post" (click)="createPost()" [disabled]="!newPostContent.trim() && !newPostImage">
+                <ion-icon name="checkmark" slot="start"></ion-icon>
+                Post
+              </button>
+            </div>
           </div>
         </div>
       </ion-card-content>
     </ion-card>
 
-    <!-- Feed Section -->
-    <div class="section-header">
-      <h2>Posts</h2>
-    </div>
+    <!-- Suggested Friends Section (Always show if there are suggestions) -->
+    <div *ngIf="suggestedUsers.length > 0">
+      <div class="section-header">
+        <h2>Suggested Friends</h2>
+      </div>
 
-    <!-- Posts List -->
-    <div class="posts-list">
-      <ion-card class="post-card" *ngFor="let post of posts" (click)="viewPost(post.id)">
-        <!-- Post Header -->
-        <div class="post-header">
-          <div class="author-info">
-            <div class="author-avatar">
-              {{ post.avatar }}
-            </div>
-            <div>
-              <h4>{{ post.author }}</h4>
-              <p class="timestamp">{{ getTimeAgo(post.timestamp) }}</p>
+      <div class="suggestion-container">
+        <div class="suggested-users-horizontal">
+          <div class="user-card" *ngFor="let user of suggestedUsers">
+            <div class="card-content">
+              <div class="user-avatar-large">{{ user.avatar }}</div>
+              <h5>{{ user.name }}</h5>
+              <p class="mutual-friends">{{ user.mutualFriends || 0 }} mutual friends</p>
+              <button class="add-btn" (click)="addFriend(user.uid)">
+                <ion-icon name="person-add"></ion-icon>
+                Add Friend
+              </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Post Content -->
-        <div class="post-content">
-          <p>{{ post.content }}</p>
-        </div>
+    <!-- Feed Section -->
+    <div *ngIf="getAllPosts().length > 0">
+      <div class="section-header">
+        <h2>Posts</h2>
+      </div>
 
-        <!-- Post Actions -->
-        <div class="post-actions">
-          <button class="action-btn" (click)="toggleLike(post.id)">
-            <ion-icon [name]="post.liked ? 'heart' : 'heart-outline'" [color]="post.liked ? 'danger' : 'medium'"></ion-icon>
-            <span>{{ post.likes }}</span>
-          </button>
-          <button class="action-btn">
-            <ion-icon name="chatbubble-outline" color="medium"></ion-icon>
-            <span>{{ post.comments }}</span>
-          </button>
-          <button class="action-btn">
-            <ion-icon name="share-social-outline" color="medium"></ion-icon>
-            <span>{{ post.shares }}</span>
-          </button>
-        </div>
-      </ion-card>
+      <!-- Posts List -->
+      <div class="posts-list">
+        <ion-card class="post-card" *ngFor="let item of getAllPosts()" (click)="item.post.id && viewPost(item.post.id)">
+          <!-- Post Header -->
+          <div class="post-header">
+            <div class="author-info">
+              <div class="author-avatar">
+                {{ item.user.avatar }}
+              </div>
+              <div>
+                <h4>{{ item.user.name }}</h4>
+                <p class="timestamp">{{ getTimeAgo(item.post.timestamp) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Image -->
+          <div class="post-image" *ngIf="item.post.image">
+            <img [src]="item.post.image" alt="post image" />
+          </div>
+
+          <!-- Post Content -->
+          <div class="post-content">
+            <p>{{ item.post.content }}</p>
+          </div>
+
+          <!-- Post Actions -->
+          <div class="post-actions">
+            <button class="action-btn" (click)="item.post.id && toggleLike(item.post.id)">
+              <ion-icon [name]="item.post.liked ? 'heart' : 'heart-outline'" [color]="item.post.liked ? 'danger' : 'medium'"></ion-icon>
+              <span>{{ item.post.likes }}</span>
+            </button>
+            <button class="action-btn">
+              <ion-icon name="chatbubble-outline" color="medium"></ion-icon>
+              <span>{{ item.post.comments }}</span>
+            </button>
+            <button class="action-btn">
+              <ion-icon name="share-social-outline" color="medium"></ion-icon>
+              <span>{{ item.post.shares }}</span>
+            </button>
+          </div>
+        </ion-card>
+      </div>
     </div>
   </div>
 </ion-content>

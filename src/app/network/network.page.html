@@ -11,45 +11,67 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Network Stats Card -->
+
+    <!-- Stats Card -->
     <ion-card class="stats-card">
       <ion-card-content>
         <div class="stats-grid">
           <div class="stat-item">
-            <p class="stat-label">Total Connections</p>
             <p class="stat-value">{{ networkStats.totalConnections }}</p>
+            <p class="stat-label">Members</p>
           </div>
           <div class="stat-item">
-            <p class="stat-label">Common Connections</p>
-            <p class="stat-value">{{ networkStats.commonConnections }}</p>
+            <p class="stat-value">{{ networkStats.students }}</p>
+            <p class="stat-label">Students</p>
           </div>
           <div class="stat-item">
-            <p class="stat-label">Recent Added</p>
-            <p class="stat-value">{{ networkStats.recentAdded }}</p>
+            <p class="stat-value">{{ networkStats.alumni }}</p>
+            <p class="stat-label">Alumni</p>
           </div>
         </div>
       </ion-card-content>
     </ion-card>
 
-    <!-- Connections Section -->
-    <div class="section-header">
-      <h2>Your Connections</h2>
-      <span class="connection-count">{{ connections.length }} connections</span>
+    <!-- Search -->
+    <div class="search-wrapper">
+      <ion-searchbar
+        placeholder="Search by name, department..."
+        (ionInput)="onSearchChange($event)"
+        debounce="300">
+      </ion-searchbar>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading members...</p>
     </div>
 
     <!-- Connections List -->
-    <ion-list class="connections-list">
-      <ion-item *ngFor="let connection of connections" class="connection-item" (click)="viewConnection(connection.id)">
-        <div class="connection-avatar">
-          {{ connection.name.charAt(0) }}
-        </div>
+    <ion-list *ngIf="!isLoading && filteredConnections.length > 0" class="connections-list">
+      <ion-item
+        *ngFor="let connection of filteredConnections"
+        class="connection-item"
+        (click)="viewConnection(connection.uid)"
+        lines="none">
+        <div class="connection-avatar" slot="start">{{ connection.avatar }}</div>
         <div class="connection-info">
           <h3>{{ connection.name }}</h3>
-          <p>{{ connection.role }}</p>
-          <p class="mutual-connections">{{ connection.mutualConnections }} mutual connections</p>
+          <p>{{ connection.department }}</p>
+          <ion-badge [color]="connection.userType === 'alumni' ? 'tertiary' : 'primary'" class="type-badge">
+            {{ connection.userType | titlecase }}
+          </ion-badge>
         </div>
-        <ion-icon name="chevron-forward" color="medium"></ion-icon>
+        <ion-icon name="chevron-forward" color="medium" slot="end"></ion-icon>
       </ion-item>
     </ion-list>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && filteredConnections.length === 0" class="empty-state">
+      <ion-icon name="people-outline"></ion-icon>
+      <h2>No Members Found</h2>
+      <p>No approved members match your search.</p>
+    </div>
+
   </div>
 </ion-content>

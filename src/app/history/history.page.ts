@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-history',
@@ -9,45 +10,76 @@ import { Router } from '@angular/router';
 })
 export class HistoryPage implements OnInit {
 
-  events = [
-    { id: 1, title: 'Engineering Seminar', date: '2024-04-20', type: 'seminar', attendees: 45 },
-    { id: 2, title: 'Networking Event', date: '2024-04-18', type: 'event', attendees: 120 },
-    { id: 3, title: 'Department Meeting', date: '2024-04-15', type: 'meeting', attendees: 28 },
-    { id: 4, title: 'Workshop: Python Basics', date: '2024-04-12', type: 'workshop', attendees: 65 },
-    { id: 5, title: 'Social Gathering', date: '2024-04-10', type: 'social', attendees: 89 },
-    { id: 6, title: 'Career Fair', date: '2024-04-05', type: 'fair', attendees: 300 },
-  ];
+  events: any[] = [];
+  filteredEvents: any[] = [];
+  selectedType: string = 'all';
+  isLoading: boolean = false;
 
-  eventTypeColors: {[key: string]: string} = {
-    seminar: 'primary',
-    event: 'secondary',
-    meeting: 'tertiary',
+  eventTypeColors: { [key: string]: string } = {
+    seminar:  'primary',
+    event:    'secondary',
+    meeting:  'tertiary',
     workshop: 'success',
-    social: 'warning',
-    fair: 'danger'
+    social:   'warning',
+    fair:     'danger'
   };
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private authService: AuthService) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.loadEvents();
+  }
+
+  async loadEvents() {
+    this.isLoading = true;
+    try {
+      this.events = await this.authService.getEvents();
+      this.applyFilter();
+    } catch (error) {
+      console.error('Error loading events:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  applyFilter() {
+    this.filteredEvents = this.selectedType === 'all'
+      ? this.events
+      : this.events.filter(e => e.type === this.selectedType);
+  }
+
+  onTypeChange(event: any) {
+    this.selectedType = event.detail.value || 'all';
+    this.applyFilter();
+  }
+
+  getUniqueTypes(): string[] {
+    return Array.from(new Set(this.events.map(e => e.type).filter(Boolean))) as string[];
+  }
 
   goBack() {
     this.router.navigate(['/home']);
   }
 
   getEventIcon(type: string): string {
-    const icons: {[key: string]: string} = {
-      seminar: 'school',
-      event: 'calendar',
-      meeting: 'people',
+    const icons: { [key: string]: string } = {
+      seminar:  'school',
+      event:    'calendar',
+      meeting:  'people',
       workshop: 'laptop',
-      social: 'beer',
-      fair: 'briefcase'
+      social:   'beer',
+      fair:     'briefcase'
     };
     return icons[type] || 'calendar';
   }
 
-  viewEventDetails(eventId: number) {
+  viewEventDetails(eventId: string) {
     console.log('View event details:', eventId);
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 }

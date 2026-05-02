@@ -92,8 +92,8 @@
           </ion-select>
         </div>
 
-        <!-- Student Number Field (Student Only) -->
-        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
+        <!-- Student Number Field (Student and Alumni) -->
+        <div class="form-group" *ngIf="userType === 'student' || userType === 'alumni'" [@slideIn]>
           <label class="form-label">Student Number</label>
           <div class="input-wrapper">
             <ion-icon name="card" class="input-icon"></ion-icon>
@@ -106,8 +106,8 @@
           </div>
         </div>
 
-        <!-- Course Field (Student Only) - Dynamic from Department -->
-        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
+        <!-- Course Field (Student and Alumni) - Dynamic from Department -->
+        <div class="form-group" *ngIf="userType === 'student' || userType === 'alumni'" [@slideIn]>
           <label class="form-label">Course</label>
           <ion-select
             [(ngModel)]="course"

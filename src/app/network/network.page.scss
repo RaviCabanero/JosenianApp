@@ -58,6 +58,35 @@
   }
 }
 
+.cards-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .network-card {
+    flex: 1;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(2,6,23,0.08);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h3 { margin: 0; font-size: 16px; }
+      .count { font-weight: 700; color: #10b981; }
+    }
+
+    .card-sub { margin-top: 8px; color: #6b7280; font-size: 13px; }
+  }
+}
+
 .connections-list {
   padding: 0;
   margin: 0;
@@ -124,6 +153,47 @@
   ion-icon {
     font-size: 20px;
   }
+
+.list-panel {
+  margin-top: 12px;
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: #10b981;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.empty-state.small {
+  padding: 28px 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+
+  .btn-accept {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-decline {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
 }
 
 // Responsive

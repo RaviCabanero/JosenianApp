@@ -82,9 +82,12 @@ export class RegisterPage implements OnInit {
   // Handle user type change
   onUserTypeChange(event: any) {
     this.userType = event.detail.value;
-    // Clear conditional fields when switching
+    // Clear conditional fields when switching between student and alumni
     if (this.userType === 'student') {
       this.graduationYear = '';
+      this.alumniIdFile = null;
+      this.alumniIdFileName = '';
+      this.alumniIdFileSize = '';
     } else {
       this.studentNumber = '';
       this.course = '';
@@ -154,7 +157,7 @@ export class RegisterPage implements OnInit {
     }
 
     // Conditional validation
-    if (this.userType === 'student') {
+    if (this.userType === 'student' || this.userType === 'alumni') {
       if (!this.studentNumber.trim()) {
         this.registerError = 'Please enter your student number';
         return;
@@ -163,7 +166,9 @@ export class RegisterPage implements OnInit {
         this.registerError = 'Please enter your course';
         return;
       }
-    } else {
+    }
+
+    if (this.userType === 'alumni') {
       if (!this.graduationYear) {
         this.registerError = 'Please select your graduation year';
         return;
@@ -182,9 +187,9 @@ export class RegisterPage implements OnInit {
         firstName: this.firstName,
         lastName: this.lastName,
         userType: this.userType,
-        studentNumber: this.userType === 'student' ? this.studentNumber : '',
+        studentNumber: this.studentNumber,
         department: this.department,
-        course: this.userType === 'student' ? this.course : '',
+        course: this.course,
         graduationYear: this.userType === 'alumni' ? this.graduationYear : '',
         status: 'pending', // Account pending admin approval
       };

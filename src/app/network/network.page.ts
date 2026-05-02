@@ -1,5 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Auth, authState } from '@angular/fire/auth';
+import { AuthService } from '../services/auth.service';
+
+interface Connection {
+  uid: string;
+  name: string;
+  avatar: string;
+  department: string;
+  userType: string;
+  role: string;
+}
 
 @Component({
   selector: 'app-network',
@@ -9,30 +20,81 @@ import { Router } from '@angular/router';
 })
 export class NetworkPage implements OnInit {
 
-  connections = [
-    { id: 1, name: 'Alice Johnson', role: 'Software Engineer', mutualConnections: 12 },
-    { id: 2, name: 'Bob Smith', role: 'Product Manager', mutualConnections: 8 },
-    { id: 3, name: 'Carol White', role: 'Data Scientist', mutualConnections: 15 },
-    { id: 4, name: 'David Brown', role: 'UX Designer', mutualConnections: 10 },
-    { id: 5, name: 'Eva Green', role: 'Project Manager', mutualConnections: 18 },
-    { id: 6, name: 'Frank Lee', role: 'Developer', mutualConnections: 7 },
-  ];
+  connections: Connection[] = [];
+  filteredConnections: Connection[] = [];
+  searchQuery: string = '';
+  isLoading: boolean = false;
+  private currentUserUid: string | null = null;
 
   networkStats = {
-    totalConnections: 156,
-    commonConnections: 52,
-    recentAdded: 5,
+    totalConnections: 0,
+    students: 0,
+    alumni: 0,
   };
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: Auth,
+    private authService: AuthService
+  ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    authState(this.auth).subscribe(async user => {
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      this.currentUserUid = user.uid;
+      await this.loadConnections();
+    });
+  }
+
+  async loadConnections() {
+    this.isLoading = true;
+    try {
+      const allUsers = await this.authService.getAllUsers();
+      this.connections = allUsers
+        .filter((u: any) => u.status === 'approved' && u.role !== 'admin' && u.id !== this.currentUserUid)
+        .map((u: any) => {
+          const firstName = u.firstName || '';
+          const lastName = u.lastName || '';
+          const name = `${firstName} ${lastName}`.trim() || u.email || 'Unknown';
+          return {
+            uid: u.id,
+            name,
+            avatar: firstName.charAt(0).toUpperCase() || '?',
+            department: u.department || 'No Department',
+            userType: u.userType || 'student',
+            role: u.role || 'user'
+          };
+        });
+
+      this.networkStats.totalConnections = this.connections.length;
+      this.networkStats.students = this.connections.filter(c => c.userType === 'student').length;
+      this.networkStats.alumni = this.connections.filter(c => c.userType === 'alumni').length;
+
+      this.filteredConnections = this.connections;
+    } catch (error) {
+      console.error('Error loading connections:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  onSearchChange(event: any) {
+    const query = (event.detail.value || '').toLowerCase();
+    this.filteredConnections = this.connections.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.department.toLowerCase().includes(query) ||
+      c.userType.toLowerCase().includes(query)
+    );
+  }
 
   goBack() {
     this.router.navigate(['/home']);
   }
 
-  viewConnection(connectionId: number) {
-    console.log('View connection:', connectionId);
+  viewConnection(uid: string) {
+    console.log('View connection:', uid);
   }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ModalController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 
 interface Department {
@@ -14,8 +14,22 @@ interface Department {
 
 interface UserDepartment {
   departmentId: string;
-  status: 'primary' | 'following'; // primary = enrolled, following = just following
+  status: 'primary' | 'following';
   joinedDate: string;
+}
+
+interface DeptEvent {
+  id?: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  venue: string;
+  type: string;
+  createdBy?: string;
+  createdByName?: string;
+  attendees?: string[];
+  status?: string;
 }
 
 @Component({
@@ -29,7 +43,13 @@ export class DepartmentPage implements OnInit {
   // Departments
   allDepartments: Department[] = [];
   userDepartments: UserDepartment[] = [];
-  
+
+  // Current user
+  currentUserId: string = '';
+  currentUserType: string = '';
+  currentUserRole: string = '';
+  currentUserName: string = '';
+
   // UI State
   selectedDepartment: Department | null = null;
   showDetailModal: boolean = false;
@@ -37,27 +57,54 @@ export class DepartmentPage implements OnInit {
   errorMessage: string = '';
   activeTab: string = 'overview';
 
+  // Events
+  departmentEvents: DeptEvent[] = [];
+  isLoadingEvents: boolean = false;
+  showEventForm: boolean = false;
+  isEditingEvent: boolean = false;
+  editingEventId: string = '';
+  eventForm: DeptEvent = this.emptyEventForm();
+
   // Tab content
   departments_tabs = ['overview', 'members', 'events', 'discussion', 'resources'];
 
+  get isHOD(): boolean {
+    return this.currentUserType === 'alumni' && this.currentUserRole === 'hod';
+  }
+
   constructor(
     private router: Router,
-    private modalController: ModalController,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertCtrl: AlertController
   ) {}
 
-  ngOnInit() {
+  async ngOnInit() {
+    await this.loadCurrentUserProfile();
     this.loadDepartments();
     this.loadUserDepartments();
   }
 
-  // Load all departments from Firestore
+  private emptyEventForm(): DeptEvent {
+    return { title: '', description: '', date: '', time: '', venue: '', type: 'academic' };
+  }
+
+  async loadCurrentUserProfile() {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    this.currentUserId = user.uid;
+    const profile = await this.authService.getUserProfile(user.uid);
+    if (profile) {
+      this.currentUserType = profile['userType'] || '';
+      this.currentUserRole = profile['role'] || 'user';
+      this.currentUserName = `${profile['firstName'] || ''} ${profile['lastName'] || ''}`.trim();
+    }
+  }
+
   async loadDepartments() {
     try {
       this.isLoading = true;
       this.errorMessage = '';
       this.allDepartments = await this.authService.getDepartments();
-      console.log('All departments loaded:', this.allDepartments);
     } catch (error) {
       console.error('Error loading departments:', error);
       this.errorMessage = 'Failed to load departments. Please try again.';
@@ -66,49 +113,147 @@ export class DepartmentPage implements OnInit {
     }
   }
 
-  // Load user's department memberships
   async loadUserDepartments() {
     try {
       const user = this.authService.getCurrentUser();
+      this.userDepartments = [];
       if (user) {
-        // Fetch user profile to get their primary department
         const userProfile = await this.authService.getUserProfile(user.uid);
-        if (userProfile && userProfile['department']) {
-          // User's primary department is stored in their profile
+        const primaryDepartment = userProfile?.['department'] || '';
+        const followedDepartments: string[] = userProfile?.['followedDepartments'] || [];
+
+        if (primaryDepartment) {
           this.userDepartments.push({
-            departmentId: userProfile['department'],
+            departmentId: primaryDepartment,
             status: 'primary',
             joinedDate: userProfile['joinDate'] || new Date().toISOString()
           });
         }
-        console.log('User departments loaded:', this.userDepartments);
+
+        followedDepartments
+          .filter(departmentId => departmentId && departmentId !== primaryDepartment)
+          .forEach(departmentId => {
+            this.userDepartments.push({
+              departmentId,
+              status: 'following',
+              joinedDate: new Date().toISOString()
+            });
+          });
       }
     } catch (error) {
       console.error('Error loading user departments:', error);
     }
   }
 
-  // Check if user is in this department
+  // ==================== EVENTS ====================
+
+  async loadDepartmentEvents() {
+    if (!this.selectedDepartment) return;
+    this.isLoadingEvents = true;
+    try {
+      this.departmentEvents = await this.authService.getDepartmentEvents(this.selectedDepartment.id);
+    } catch (error) {
+      console.error('Error loading events:', error);
+    } finally {
+      this.isLoadingEvents = false;
+    }
+  }
+
+  openEventForm(event?: DeptEvent) {
+    if (event && event.id) {
+      this.isEditingEvent = true;
+      this.editingEventId = event.id;
+      this.eventForm = { ...event };
+    } else {
+      this.isEditingEvent = false;
+      this.editingEventId = '';
+      this.eventForm = this.emptyEventForm();
+    }
+    this.showEventForm = true;
+  }
+
+  cancelEventForm() {
+    this.showEventForm = false;
+    this.eventForm = this.emptyEventForm();
+    this.isEditingEvent = false;
+    this.editingEventId = '';
+  }
+
+  async submitEvent() {
+    if (!this.selectedDepartment || !this.eventForm.title.trim() || !this.eventForm.date) return;
+    try {
+      if (this.isEditingEvent && this.editingEventId) {
+        await this.authService.updateDepartmentEvent(
+          this.selectedDepartment.id,
+          this.editingEventId,
+          { ...this.eventForm }
+        );
+      } else {
+        await this.authService.addDepartmentEvent(this.selectedDepartment.id, {
+          ...this.eventForm,
+          createdBy: this.currentUserId,
+          createdByName: this.currentUserName,
+          status: 'upcoming'
+        });
+      }
+      this.cancelEventForm();
+      await this.loadDepartmentEvents();
+    } catch (error) {
+      console.error('Error saving event:', error);
+    }
+  }
+
+  async deleteEvent(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Event',
+      message: `Delete "${event.title}"?`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            await this.authService.deleteDepartmentEvent(this.selectedDepartment!.id, event.id!);
+            await this.loadDepartmentEvents();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async joinEvent(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id || !this.currentUserId) return;
+    await this.authService.joinDepartmentEvent(this.selectedDepartment.id, event.id, this.currentUserId);
+    await this.loadDepartmentEvents();
+  }
+
+  async leaveEvent(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id || !this.currentUserId) return;
+    await this.authService.leaveDepartmentEvent(this.selectedDepartment.id, event.id, this.currentUserId);
+    await this.loadDepartmentEvents();
+  }
+
+  isJoinedEvent(event: DeptEvent): boolean {
+    return (event.attendees || []).includes(this.currentUserId);
+  }
+
+  // ==================== DEPARTMENT UI ====================
+
   isUserInDepartment(deptId: string): boolean {
     const user = this.authService.getCurrentUser();
     if (!user) return false;
-    
-    // Check if user is in the department's members array
     const department = this.allDepartments.find(d => d.id === deptId);
     if (department && department.members) {
       return department.members.some((m: any) => m.userId === user.uid);
     }
-    
-    // Fallback to userDepartments
     return this.userDepartments.some(ud => ud.departmentId === deptId);
   }
 
-  // Check if this is user's primary department
   isPrimaryDepartment(deptId: string): boolean {
     const user = this.authService.getCurrentUser();
     if (!user) return false;
-    
-    // Check if user's profile shows this as primary department
     return this.userDepartments.some(ud => ud.departmentId === deptId && ud.status === 'primary');
   }
 
@@ -120,15 +265,22 @@ export class DepartmentPage implements OnInit {
     this.selectedDepartment = department;
     this.showDetailModal = true;
     this.activeTab = 'overview';
+    this.departmentEvents = [];
+    this.showEventForm = false;
   }
 
   closeDetailModal() {
     this.showDetailModal = false;
     this.selectedDepartment = null;
+    this.departmentEvents = [];
+    this.showEventForm = false;
   }
 
   switchTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'events') {
+      this.loadDepartmentEvents();
+    }
   }
 
   getTabIcon(tab: string): string {
@@ -142,47 +294,72 @@ export class DepartmentPage implements OnInit {
     return icons[tab] || 'document';
   }
 
-  // Register for department (make it primary)
   async registerDepartment() {
-    if (this.selectedDepartment) {
-      try {
-        console.log('Registering for department:', this.selectedDepartment.name);
-        // TODO: Save to Firestore
-        // await this.authService.setUserPrimaryDepartment(this.selectedDepartment.id);
-        
-        this.userDepartments.push({
-          departmentId: this.selectedDepartment.id,
-          status: 'primary',
-          joinedDate: new Date().toISOString()
-        });
-        
-        alert(`Successfully registered for ${this.selectedDepartment.name}!`);
-        this.closeDetailModal();
-      } catch (error) {
-        console.error('Error registering:', error);
-        alert('Failed to register for department');
-      }
+    if (!this.selectedDepartment) return;
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    try {
+      const profile = await this.authService.getUserProfile(user.uid);
+      const firstName = profile?.['firstName'] || '';
+      const lastName = profile?.['lastName'] || '';
+      const joinedDate = new Date().toISOString().split('T')[0];
+
+      await this.authService.updateUserProfile(user.uid, {
+        department: this.selectedDepartment.id,
+        joinDate: joinedDate
+      });
+
+      await this.authService.addMemberToDepartment(
+        this.selectedDepartment.id,
+        user.uid,
+        {
+          name: `${firstName} ${lastName}`.trim() || user.email || '',
+          email: user.email || '',
+          userType: profile?.['userType'] || 'student',
+          role: profile?.['userType'] || 'student',
+          studentNumber: profile?.['studentNumber'] || '',
+          course: profile?.['course'] || '',
+          joinedDate
+        }
+      );
+
+      this.userDepartments = this.userDepartments.filter(ud => ud.status !== 'primary');
+      this.userDepartments.push({
+        departmentId: this.selectedDepartment.id,
+        status: 'primary',
+        joinedDate
+      });
+
+      this.closeDetailModal();
+      await this.loadDepartments();
+    } catch (error) {
+      console.error('Error registering for department:', error);
     }
   }
 
-  // Follow/Join department (without making it primary)
   async followDepartment() {
-    if (this.selectedDepartment) {
-      try {
-        console.log('Following department:', this.selectedDepartment.name);
-        // TODO: Save to Firestore
-        
+    if (!this.selectedDepartment) return;
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    try {
+      const profile = await this.authService.getUserProfile(user.uid);
+      const followedDepartments: string[] = profile?.['followedDepartments'] || [];
+
+      if (!followedDepartments.includes(this.selectedDepartment.id)) {
+        followedDepartments.push(this.selectedDepartment.id);
+        await this.authService.updateUserProfile(user.uid, { followedDepartments });
+      }
+
+      const alreadyTracked = this.userDepartments.some(ud => ud.departmentId === this.selectedDepartment!.id);
+      if (!alreadyTracked) {
         this.userDepartments.push({
           departmentId: this.selectedDepartment.id,
           status: 'following',
           joinedDate: new Date().toISOString()
         });
-        
-        alert(`Now following ${this.selectedDepartment.name}!`);
-      } catch (error) {
-        console.error('Error following:', error);
-        alert('Failed to follow department');
       }
+    } catch (error) {
+      console.error('Error following department:', error);
     }
   }
 

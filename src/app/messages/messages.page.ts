@@ -1,5 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Auth, authState } from '@angular/fire/auth';
+import { AuthService } from '../services/auth.service';
+
+interface Conversation {
+  uid: string;
+  name: string;
+  avatar: string;
+  role: string;
+  department: string;
+  online: boolean;
+}
 
 @Component({
   selector: 'app-messages',
@@ -9,96 +20,69 @@ import { Router } from '@angular/router';
 })
 export class MessagesPage implements OnInit {
   searchQuery = '';
-  
-  // Chat conversations
-  conversations = [
-    {
-      id: 1,
-      name: 'John Doe',
-      role: 'Department Head',
-      avatar: 'JD',
-      lastMessage: 'Thanks for your feedback on the project',
-      timestamp: '2 minutes ago',
-      unread: 2,
-      online: true,
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      role: 'Colleague',
-      avatar: 'SJ',
-      lastMessage: 'Let\'s meet tomorrow to discuss',
-      timestamp: '15 minutes ago',
-      unread: 0,
-      online: true,
-    },
-    {
-      id: 3,
-      name: 'Mike Chen',
-      role: 'Team Lead',
-      avatar: 'MC',
-      lastMessage: 'The report is ready for review',
-      timestamp: '1 hour ago',
-      unread: 1,
-      online: false,
-    },
-    {
-      id: 4,
-      name: 'Emily Rodriguez',
-      role: 'Colleague',
-      avatar: 'ER',
-      lastMessage: 'See you at the conference next week',
-      timestamp: '3 hours ago',
-      unread: 0,
-      online: true,
-    },
-    {
-      id: 5,
-      name: 'David Park',
-      role: 'Senior Advisor',
-      avatar: 'DP',
-      lastMessage: 'Great work on the presentation',
-      timestamp: 'Yesterday',
-      unread: 0,
-      online: false,
-    },
-    {
-      id: 6,
-      name: 'Lisa Wang',
-      role: 'Colleague',
-      avatar: 'LW',
-      lastMessage: 'Thanks for sharing the document',
-      timestamp: 'Yesterday',
-      unread: 0,
-      online: true,
-    },
-  ];
+  conversations: Conversation[] = [];
+  filteredConversations: Conversation[] = [];
+  isLoading = false;
+  private currentUserUid: string | null = null;
 
-  filteredConversations = this.conversations;
-
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: Auth,
+    private authService: AuthService
+  ) {}
 
   ngOnInit() {
+    authState(this.auth).subscribe(async user => {
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      this.currentUserUid = user.uid;
+      await this.loadConversations();
+    });
+  }
+
+  async loadConversations() {
+    this.isLoading = true;
+    try {
+      const allUsers = await this.authService.getAllUsers();
+      this.conversations = allUsers
+        .filter((u: any) => u.status === 'approved' && u.role !== 'admin' && u.id !== this.currentUserUid)
+        .map((u: any) => {
+          const firstName = u.firstName || '';
+          const lastName = u.lastName || '';
+          const name = `${firstName} ${lastName}`.trim() || u.email || 'Unknown';
+          return {
+            uid: u.id,
+            name,
+            avatar: firstName.charAt(0).toUpperCase() || '?',
+            role: u.userType === 'alumni' ? 'Alumni' : 'Student',
+            department: u.department || 'No Department',
+            online: false
+          };
+        });
+      this.filteredConversations = this.conversations;
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   goBack() {
     this.router.navigate(['/home']);
   }
 
-  openChat(conversationId: number) {
-    // Navigate to chat detail page when ready
-    console.log('Opening chat:', conversationId);
+  openChat(uid: string) {
+    console.log('Opening chat with:', uid);
   }
 
   onSearchChange(event: any) {
-    const query = event.detail.value.toLowerCase();
-    this.filteredConversations = this.conversations.filter(conv =>
-      conv.name.toLowerCase().includes(query) ||
-      conv.role.toLowerCase().includes(query)
+    const query = (event.detail.value || '').toLowerCase();
+    this.filteredConversations = this.conversations.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.role.toLowerCase().includes(query) ||
+      c.department.toLowerCase().includes(query)
     );
-  }
-
-  getTotalUnread(): number {
-    return this.conversations.reduce((sum, conv) => sum + conv.unread, 0);
   }
 }

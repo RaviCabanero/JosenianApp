@@ -1,5 +1,30 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc, deleteDoc, writeBatch } from '@angular/fire/firestore';
+import { Timestamp } from '@angular/fire/firestore';
+import { Auth, authState } from '@angular/fire/auth';
+
+interface Post {
+  id?: string;
+  userId: number;
+  content: string;
+  image?: string; // Base64 or image URL
+  timestamp: Timestamp | Date;
+  likes: number;
+  comments: number;
+  shares: number;
+  liked: boolean;
+  likedBy?: string[]; // Array of user IDs who liked this post
+}
+
+interface User {
+  id: number;
+  uid: string;
+  name: string;
+  avatar: string;
+  mutualFriends?: number;
+  posts: Post[];
+}
 
 @Component({
   selector: 'app-feeds',
@@ -9,85 +34,284 @@ import { Router } from '@angular/router';
 })
 export class FeedsPage implements OnInit {
 
-  posts = [
-    {
-      id: 1,
-      author: 'John Doe',
-      avatar: 'J',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      content: 'Just completed an amazing project with the team! Excited to share the results soon.',
-      likes: 45,
-      comments: 12,
-      shares: 5,
-      liked: false
-    },
-    {
-      id: 2,
-      author: 'Jane Smith',
-      avatar: 'S',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      content: 'Attending the annual engineering conference. Great networking opportunities!',
-      likes: 89,
-      comments: 23,
-      shares: 15,
-      liked: false
-    },
-    {
-      id: 3,
-      author: 'Mike Johnson',
-      avatar: 'M',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      content: 'New research paper published on advanced algorithms. Feel free to review!',
-      likes: 120,
-      comments: 34,
-      shares: 28,
-      liked: false
-    },
-    {
-      id: 4,
-      author: 'Sarah Williams',
-      avatar: 'W',
-      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      content: 'Congratulations to all the graduates! Wishing you all success in your careers.',
-      likes: 156,
-      comments: 45,
-      shares: 32,
-      liked: false
-    },
-  ];
+  currentUser: User | null = null;
+  currentUserUid: string | null = null; // Store Firebase UID
+  friends: User[] = [];
+  suggestedUsers: User[] = [];
+  newPostContent: string = '';
+  newPostImage: string | null = null;
+  showPostForm: boolean = false;
 
   feedStats = {
     totalPosts: 42,
     newToday: 7,
   };
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private firestore: Firestore, private auth: Auth) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    authState(this.auth).subscribe(async user => {
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      this.currentUserUid = user.uid;
+      await this.initializeCurrentUser();
+      this.loadPostsFromFirestore();
+      await this.loadSuggestedFriends();
+    });
+  }
+
+  async initializeCurrentUser() {
+    if (!this.currentUserUid) return;
+    try {
+      const userDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const firstName = data['firstName'] || '';
+        const lastName = data['lastName'] || '';
+        const name = `${firstName} ${lastName}`.trim() || data['email'] || 'User';
+        this.currentUser = {
+          id: 0,
+          uid: this.currentUserUid,
+          name,
+          avatar: firstName.charAt(0).toUpperCase() || 'U',
+          posts: []
+        };
+        this.friends = [this.currentUser];
+      }
+    } catch (error) {
+      console.error('Error loading current user profile:', error);
+    }
+  }
+
+  // Load posts from Firestore using the user's UID
+  async loadPostsFromFirestore() {
+    if (!this.currentUserUid) return;
+
+    try {
+      // Load posts for the current user from Firestore
+      const postsRef = collection(this.firestore, `users/${this.currentUserUid}/posts`);
+      const q = query(postsRef);
+      const snapshot = await getDocs(q);
+      
+      if (this.currentUser) {
+        this.currentUser.posts = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp'])
+          } as Post;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading posts from Firestore:', error);
+    }
+  }
+
+  // Save post to Firestore using the user's UID
+  async savePostToFirestore(post: Post) {
+    try {
+      if (!this.currentUserUid) {
+        throw new Error('No user UID available');
+      }
+      
+      const postsRef = collection(this.firestore, `users/${this.currentUserUid}/posts`);
+      // Create a copy of the post without undefined fields
+      const postData: any = {
+        userId: this.currentUser?.id || 1,
+        content: post.content,
+        timestamp: Timestamp.now(),
+        likes: post.likes,
+        comments: post.comments,
+        shares: post.shares,
+        liked: post.liked
+      };
+      
+      // Only add image if it exists
+      if (post.image) {
+        postData.image = post.image;
+      }
+      
+      const docRef = await addDoc(postsRef, postData);
+      post.id = docRef.id;
+      return docRef.id;
+    } catch (error) {
+      console.error('Error saving post to Firestore:', error);
+      throw error;
+    }
+  }
+
+  // Update post in Firestore using the user's UID
+  async updatePostInFirestore(post: Post) {
+    try {
+      if (!post.id || !this.currentUserUid) return;
+      const postRef = doc(this.firestore, `users/${this.currentUserUid}/posts/${post.id}`);
+      await updateDoc(postRef, {
+        liked: post.liked,
+        likes: post.likes
+      });
+    } catch (error) {
+      console.error('Error updating post in Firestore:', error);
+      throw error;
+    }
+  }
+
+  async loadSuggestedFriends() {
+    if (!this.currentUserUid) return;
+    try {
+      const currentUserDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
+      const currentDept = currentUserDoc.exists() ? currentUserDoc.data()['department'] : '';
+
+      const q = query(
+        collection(this.firestore, 'users'),
+        where('status', '==', 'approved'),
+        where('role', '==', 'user')
+      );
+      const snapshot = await getDocs(q);
+
+      const friendUids = new Set(this.friends.map(f => f.uid));
+      let counter = 1;
+      this.suggestedUsers = snapshot.docs
+        .filter(d => d.id !== this.currentUserUid && !friendUids.has(d.id))
+        .map(d => {
+          const data = d.data();
+          const firstName = data['firstName'] || '';
+          const lastName = data['lastName'] || '';
+          const name = `${firstName} ${lastName}`.trim() || data['email'] || 'Unknown';
+          const dept = data['department'] || '';
+          const mutualFriends = dept && currentDept && dept === currentDept ? 1 : 0;
+          return {
+            id: counter++,
+            uid: d.id,
+            name,
+            avatar: firstName.charAt(0).toUpperCase() || '?',
+            mutualFriends,
+            posts: []
+          };
+        });
+    } catch (error) {
+      console.error('Error loading suggested friends:', error);
+    }
+  }
 
   goBack() {
     this.router.navigate(['/home']);
   }
 
-  toggleLike(postId: number) {
-    const post = this.posts.find(p => p.id === postId);
-    if (post) {
-      post.liked = !post.liked;
-      post.likes += post.liked ? 1 : -1;
+  toggleLike(postId: string) {
+    for (let friend of this.friends) {
+      const post = friend.posts.find(p => p.id === postId);
+      if (post) {
+        post.liked = !post.liked;
+        post.likes += post.liked ? 1 : -1;
+        // Save updated post to Firestore
+        this.updatePostInFirestore(post);
+        return;
+      }
     }
   }
 
-  viewPost(postId: number) {
-    console.log('View post:', postId);
+  viewPost(postId: string | undefined) {
+    if (postId) {
+      console.log('View post:', postId);
+    }
   }
 
-  getTimeAgo(date: Date): string {
+  addFriend(userUid: string) {
+    const user = this.suggestedUsers.find(u => u.uid === userUid);
+    if (user) {
+      this.friends.push(user);
+      this.suggestedUsers = this.suggestedUsers.filter(u => u.uid !== userUid);
+    }
+  }
+
+  onImageSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.newPostImage = e.target.result; // Base64 string
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeImage() {
+    this.newPostImage = null;
+  }
+
+  async createPost() {
+    if (!this.newPostContent.trim() && !this.newPostImage) {
+      return;
+    }
+    
+    if (!this.currentUser) {
+      console.log('No current user');
+      return;
+    }
+    
+    const newPost: Post = {
+      userId: this.currentUser.id,
+      content: this.newPostContent,
+      image: this.newPostImage || undefined,
+      timestamp: new Date(),
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      liked: false
+    };
+    
+    // Add to local state
+    this.currentUser.posts.unshift(newPost);
+    
+    // Save to Firestore
+    try {
+      await this.savePostToFirestore(newPost);
+      console.log('Post saved to Firestore');
+    } catch (error) {
+      console.error('Failed to save post:', error);
+      // Remove from local state if failed
+      this.currentUser.posts.shift();
+      return;
+    }
+    
+    this.newPostContent = '';
+    this.newPostImage = null;
+    this.showPostForm = false;
+  }
+
+  getAllPosts(): Array<{post: Post; user: User}> {
+    const allPosts: Array<{post: Post; user: User}> = [];
+    for (let friend of this.friends) {
+      for (let post of friend.posts) {
+        allPosts.push({post, user: friend});
+      }
+    }
+    return allPosts.sort((a, b) => {
+      const timeA = a.post.timestamp instanceof Date ? a.post.timestamp.getTime() : a.post.timestamp.toDate().getTime();
+      const timeB = b.post.timestamp instanceof Date ? b.post.timestamp.getTime() : b.post.timestamp.toDate().getTime();
+      return timeB - timeA;
+    });
+  }
+
+  getTimeAgo(date: Date | Timestamp): string {
     const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    const targetDate = date instanceof Date ? date : date.toDate();
+    const seconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
     
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     return `${Math.floor(seconds / 86400)}d ago`;
+  }
+
+  togglePostForm() {
+    this.showPostForm = !this.showPostForm;
+    if (!this.showPostForm) {
+      this.newPostContent = '';
+      this.newPostImage = null;
+    }
   }
 }

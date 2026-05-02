@@ -11,16 +11,40 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Section Title -->
+
+    <!-- Header row with count and filter -->
     <div class="section-header">
-      <h2>Recent Events</h2>
-      <span class="event-count">{{ events.length }} events</span>
+      <h2>Events</h2>
+      <span class="event-count">{{ filteredEvents.length }} events</span>
+    </div>
+
+    <!-- Type filter -->
+    <div class="filter-bar" *ngIf="events.length > 0">
+      <ion-select
+        placeholder="All Types"
+        interface="popover"
+        (ionChange)="onTypeChange($event)">
+        <ion-select-option value="all">All Types</ion-select-option>
+        <ion-select-option *ngFor="let type of getUniqueTypes()" [value]="type">
+          {{ type | titlecase }}
+        </ion-select-option>
+      </ion-select>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading events...</p>
     </div>
 
     <!-- Events Timeline -->
-    <div class="events-timeline">
-      <div *ngFor="let event of events; let last = last" class="event-item" [class.last]="last" (click)="viewEventDetails(event.id)">
-        <!-- Timeline Dot and Line -->
+    <div class="events-timeline" *ngIf="!isLoading && filteredEvents.length > 0">
+      <div
+        *ngFor="let event of filteredEvents; let last = last"
+        class="event-item"
+        [class.last]="last"
+        (click)="viewEventDetails(event.id)">
+
         <div class="timeline-marker">
           <div class="timeline-dot">
             <ion-icon [name]="getEventIcon(event.type)"></ion-icon>
@@ -28,24 +52,32 @@
           <div class="timeline-line" *ngIf="!last"></div>
         </div>
 
-        <!-- Event Card -->
         <div class="event-card">
           <div class="event-header">
             <h3>{{ event.title }}</h3>
-            <ion-badge [color]="eventTypeColors[event.type]">
+            <ion-badge [color]="eventTypeColors[event.type] || 'medium'">
               {{ event.type | titlecase }}
             </ion-badge>
           </div>
           <p class="event-date">
             <ion-icon name="calendar-clear" size="small"></ion-icon>
-            {{ event.date | date:'MMM dd, yyyy' }}
+            {{ formatDate(event.date) }}
           </p>
-          <p class="event-attendees">
+          <p class="event-attendees" *ngIf="event.attendees !== undefined">
             <ion-icon name="people" size="small"></ion-icon>
             {{ event.attendees }} attendees
           </p>
+          <p class="event-description" *ngIf="event.description">{{ event.description }}</p>
         </div>
       </div>
     </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!isLoading && filteredEvents.length === 0">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <h2>No Events Yet</h2>
+      <p>Events posted by the admin will appear here.</p>
+    </div>
+
   </div>
 </ion-content>

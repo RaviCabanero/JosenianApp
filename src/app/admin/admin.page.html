@@ -120,19 +120,25 @@
               </div>
 
               <!-- Search and Filter Bar -->
-              <div class="search-filter-bar" *ngIf="pendingUsers.length > 0">
-                <input 
-                  type="text" 
-                  [(ngModel)]="searchTerm" 
-                  (input)="filterAndPaginateUsers()"
-                  placeholder="Search by name or email..."
-                  class="search-input"
-                />
-                <select [(ngModel)]="filterByRole" (change)="filterAndPaginateUsers()" class="filter-select">
-                  <option value="">All Roles</option>
-                  <option value="student">Student</option>
-                  <option value="alumni">Alumni</option>
-                </select>
+              <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                  <ion-icon name="search"></ion-icon>
+                  <input
+                    type="text"
+                    [(ngModel)]="searchTerm"
+                    (input)="filterAndPaginateUsers()"
+                    placeholder="Search by name or email..."
+                    class="search-input"
+                  />
+                </div>
+                <div class="filter-dropdown">
+                  <select [(ngModel)]="filterByRole" (change)="filterAndPaginateUsers()" class="filter-select">
+                    <option value="">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="alumni">Alumni</option>
+                    <option value="faculty">Faculty</option>
+                  </select>
+                </div>
               </div>
 
               <div class="requests-table-wrapper" *ngIf="paginatedUsers.length > 0">
@@ -159,7 +165,7 @@
                       </span>
                     </div>
                     <div class="row-department">
-                      {{ user.department || 'N/A' }}
+                      {{ getDepartmentName(user.department) }}
                     </div>
                     <div class="row-submitted">
                       {{ user.joinDate || user.createdAt | date: 'MMM dd, yyyy' }}
@@ -174,36 +180,28 @@
               </div>
 
               <!-- Pagination Controls -->
-              <div class="pagination-controls" *ngIf="filteredUsers.length > itemsPerPage">
-                <button 
-                  class="btn btn-sm btn-pagination" 
-                  (click)="previousPage()"
-                  [disabled]="currentPage === 1">
+              <div class="pagination-controls" *ngIf="totalPages > 1">
+                <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage === 1">
                   <ion-icon name="chevron-back"></ion-icon>
                   Previous
                 </button>
-                <span class="page-info">
-                  Page {{ currentPage }} of {{ totalPages }}
-                </span>
-                <button 
-                  class="btn btn-sm btn-pagination" 
-                  (click)="nextPage()"
-                  [disabled]="currentPage === totalPages">
-                  <ion-icon name="chevron-forward"></ion-icon>
+                <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+                <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
                   Next
+                  <ion-icon name="chevron-forward"></ion-icon>
                 </button>
               </div>
 
-              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && filteredUsers.length === 0">
-                <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
-                <h4>All Approvals Complete</h4>
-                <p>No pending user approvals at the moment.</p>
-              </div>
-
-              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && filteredUsers.length > 0">
+              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && pendingUsers.length > 0">
                 <ion-icon name="search" class="empty-icon"></ion-icon>
                 <h4>No Results Found</h4>
                 <p>No users match your search criteria.</p>
+              </div>
+
+              <div class="empty-state" *ngIf="pendingUsers.length === 0">
+                <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
+                <h4>All Approvals Complete</h4>
+                <p>No pending user approvals at the moment.</p>
               </div>
             </div>
 
@@ -215,18 +213,21 @@
 
               <div class="detail-content">
                 <!-- Profile Section -->
-                <div class="profile-section">
+                <div class="profile-section profile-section-horizontal">
                   <div class="profile-avatar-lg">
                     {{ (selectedUser.firstName?.charAt(0) || 'U').toUpperCase() }}
                   </div>
                   <div class="profile-info">
                     <h2>{{ selectedUser.firstName }} {{ selectedUser.lastName }}</h2>
                     <p class="profile-email">{{ selectedUser.email }}</p>
-                    <p class="profile-role">
+                    <div class="profile-role">
                       <span class="badge" [ngClass]="selectedUser.userType?.toLowerCase()">
-                        {{ selectedUser.userType === 'student' ? 'Student' : 'Alumni' }}
+                        {{ selectedUser.userType === 'student' ? 'Student' : selectedUser.userType === 'alumni' ? 'Alumni' : (selectedUser.userType || 'Unknown') }}
                       </span>
-                    </p>
+                      <span class="badge-status" [ngClass]="selectedUser.status?.toLowerCase() || 'pending'">
+                        {{ selectedUser.status === 'approved' ? 'Approved' : selectedUser.status === 'rejected' ? 'Rejected' : 'Pending' }}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -234,7 +235,7 @@
                 <div class="info-grid">
                   <div class="info-item">
                     <label>Department</label>
-                    <p>{{ selectedUser.department || 'N/A' }}</p>
+                    <p>{{ getDepartmentName(selectedUser.department) }}</p>
                   </div>
                   <div class="info-item">
                     <label>Student/Alumni ID</label>
@@ -477,13 +478,6 @@
               />
             </div>
             <div class="filter-group">
-              <select [(ngModel)]="alumniSearchFilters.userType" (change)="filterAlumni()" class="form-input filter-input">
-                <option value="">All Types</option>
-                <option value="student">Student</option>
-                <option value="alumni">Alumni</option>
-              </select>
-            </div>
-            <div class="filter-group">
               <select [(ngModel)]="alumniSearchFilters.department" (change)="filterAlumni()" class="form-input filter-input">
                 <option value="">All Departments</option>
                 <option *ngFor="let dept of getUniqueDepartmentsForAlumni()" [value]="dept">
@@ -493,53 +487,173 @@
             </div>
             <div class="filter-group">
               <select [(ngModel)]="alumniSearchFilters.batch" (change)="filterAlumni()" class="form-input filter-input">
-                <option value="">All Batches/Years</option>
+                <option value="">All Batches</option>
                 <option *ngFor="let batch of getUniqueBatches()" [value]="batch">
                   {{ batch }}
                 </option>
               </select>
             </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.userType" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Types</option>
+                <option value="student">Student</option>
+                <option value="alumni">Alumni</option>
+              </select>
+            </div>
           </div>
 
-          <!-- Alumni Table -->
-          <div class="table-wrapper" *ngIf="filteredAlumni.length > 0">
-            <table class="alumni-table">
-              <thead>
-                <tr>
-                  <th>Student Number</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Type</th>
-                  <th>Department</th>
-                  <th>Course</th>
-                  <th>{{ hasAlumniType() ? 'Graduation Year' : 'Batch/Year' }}</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let alumnus of filteredAlumni" class="table-row">
-                  <td>{{ alumnus.studentNumber }}</td>
-                  <td>{{ alumnus.name }}</td>
-                  <td>{{ alumnus.email }}</td>
-                  <td>
-                    <span class="type-badge" [ngClass]="alumnus.userType?.toLowerCase() || 'student'">
-                      {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
-                    </span>
-                  </td>
-                  <td>{{ alumnus.department }}</td>
-                  <td>{{ alumnus.course }}</td>
-                  <td>{{ alumnus.batch }}</td>
-                  <td class="actions-cell">
-                    <button class="btn-icon btn-edit" (click)="editAlumni(alumnus.id)" title="Edit alumni">
-                      <ion-icon name="pencil"></ion-icon>
-                    </button>
-                    <button class="btn-icon btn-delete" (click)="deleteAlumni(alumnus.id)" title="Delete alumni">
-                      <ion-icon name="trash"></ion-icon>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Alumni Table & Detail Panel Container -->
+          <div class="table-and-detail-container" *ngIf="filteredAlumni.length > 0">
+            <!-- Alumni Table -->
+            <div class="table-wrapper">
+              <table class="alumni-table">
+                <thead>
+                  <tr>
+                    <th>Student Number</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Course</th>
+                    <th>Batch</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let alumnus of filteredAlumni" 
+                      class="table-row" 
+                      [class.registered-user]="alumnus.source === 'registered'"
+                      [class.active]="selectedAlumni?.id === alumnus.id"
+                      (click)="selectAlumniForDetail(alumnus)">
+                    <td>{{ alumnus.studentNumber }}</td>
+                    <td>{{ alumnus.name }}</td>
+                    <td>{{ alumnus.email }}</td>
+                    <td>{{ alumnus.department }}</td>
+                    <td>{{ alumnus.course }}</td>
+                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '—' }}</td>
+                    <td>
+                      <span class="type-badge" [class.alumni]="alumnus.userType === 'alumni'" [class.student]="alumnus.userType === 'student'">
+                        {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                      </span>
+                      <span class="source-badge" *ngIf="alumnus.source === 'registered'">Registered</span>
+                    </td>
+                    <td class="actions-cell" (click)="$event.stopPropagation()">
+                      <div class="action-group">
+                        <button class="btn-icon btn-edit" [disabled]="alumnus.source === 'registered'" (click)="editAlumni(alumnus.id)" [title]="alumnus.source === 'registered' ? 'Cannot edit registered users' : 'Edit alumni'">
+                          <ion-icon name="pencil"></ion-icon>
+                        </button>
+                        <button class="btn-icon btn-delete" [disabled]="alumnus.source === 'registered'" (click)="deleteAlumni(alumnus.id)" [title]="alumnus.source === 'registered' ? 'Cannot delete registered users' : 'Delete alumni'">
+                          <ion-icon name="trash"></ion-icon>
+                        </button>
+                      </div>
+                      <div class="action-group action-group-role" *ngIf="alumnus.source === 'registered'">
+                        <button class="btn-icon btn-role" (click)="selectAlumniForDetail(alumnus)" title="Manage role">
+                          <ion-icon name="shield"></ion-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Alumni Detail Panel -->
+            <div class="detail-panel" *ngIf="selectedAlumni">
+              <div class="detail-header">
+                <h3>Alumni Details</h3>
+                <button class="close-btn" (click)="closeAlumniDetail()">
+                  <ion-icon name="close"></ion-icon>
+                </button>
+              </div>
+
+              <div class="detail-content">
+                <!-- Profile Section -->
+                <div class="profile-section">
+                  <div class="profile-avatar-lg">
+                    {{ (selectedAlumni.name?.charAt(0) || 'A').toUpperCase() }}
+                  </div>
+                  <div class="profile-info">
+                    <h2>{{ selectedAlumni.name }}</h2>
+                    <p class="profile-email">{{ selectedAlumni.email }}</p>
+                    <div class="profile-role">
+                      <span class="badge" [ngClass]="selectedAlumni.userType?.toLowerCase()">
+                        {{ selectedAlumni.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                      </span>
+                      <span class="hod-badge" *ngIf="selectedAlumni.role === 'hod'">HOD</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="info-grid">
+                  <div class="info-item">
+                    <label>Student/Alumni ID</label>
+                    <p>{{ selectedAlumni.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Department</label>
+                    <p>{{ selectedAlumni.department || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Course</label>
+                    <p>{{ selectedAlumni.course || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Batch/Graduation Year</label>
+                    <p>{{ selectedAlumni.batch || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.source === 'registered'">
+                    <label>Status</label>
+                    <p>
+                      <span class="badge-status" [ngClass]="selectedAlumni.status || 'pending'">
+                        {{ selectedAlumni.status || 'Pending' }}
+                      </span>
+                    </p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.createdAt">
+                    <label>Member Since</label>
+                    <p>{{ selectedAlumni.createdAt | date: 'MMM dd, yyyy' }}</p>
+                  </div>
+                </div>
+
+                <!-- Role Assignment — inline, alumni only -->
+                <div class="role-management-section" *ngIf="selectedAlumni.source === 'registered' && selectedAlumni.userType === 'alumni'">
+                  <h4>
+                    <ion-icon name="shield-checkmark"></ion-icon>
+                    Role Assignment
+                  </h4>
+                  <p class="section-description">HOD grants department management permissions (create/manage events and activities).</p>
+                  <div class="role-options-inline">
+                    <label class="role-opt" [class.selected]="selectedAlumniRole === 'user'">
+                      <input type="radio" name="alumni-role" value="user" [(ngModel)]="selectedAlumniRole" />
+                      <span class="role-name">User</span>
+                      <span class="role-desc">View &amp; join events</span>
+                    </label>
+                    <label class="role-opt" [class.selected]="selectedAlumniRole === 'hod'">
+                      <input type="radio" name="alumni-role" value="hod" [(ngModel)]="selectedAlumniRole" />
+                      <span class="role-name">HOD</span>
+                      <span class="role-desc">Head of Department</span>
+                    </label>
+                  </div>
+                  <button class="btn btn-primary btn-sm" (click)="updateAlumniRole(selectedAlumniRole)">
+                    <ion-icon name="checkmark"></ion-icon>
+                    Save Role
+                  </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons" *ngIf="selectedAlumni.source === 'manual'">
+                  <button class="btn btn-edit" (click)="editAlumni(selectedAlumni.id)">
+                    <ion-icon name="pencil"></ion-icon>
+                    Edit Alumni
+                  </button>
+                  <button class="btn btn-delete" (click)="deleteAlumni(selectedAlumni.id)">
+                    <ion-icon name="trash"></ion-icon>
+                    Delete Alumni
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Empty State -->
@@ -548,6 +662,7 @@
             <h4>No Alumni Records</h4>
             <p>{{ alumni.length === 0 ? 'No alumni added yet.' : 'No results matching your search criteria.' }}</p>
           </div>
+
         </section>
 
         <!-- Alumni ID Verification Tab -->

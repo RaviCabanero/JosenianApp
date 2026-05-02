@@ -48,13 +48,15 @@ export class AuthService {
       department: string;
       course?: string;
       graduationYear?: string;
+      alumniIdBase64?: string;
+      alumniIdFileName?: string;
+      alumniIdVerificationStatus?: string;
     }
   ): Promise<any> {
     try {
       const result = await createUserWithEmailAndPassword(this.auth, email, password);
-      
-      // Create user profile in Firestore with all data
-      await setDoc(doc(this.firestore, 'users', result.user.uid), {
+
+      const userData: any = {
         email: email,
         firstName: profileData.firstName,
         lastName: profileData.lastName,
@@ -64,10 +66,19 @@ export class AuthService {
         course: profileData.course || '',
         graduationYear: profileData.graduationYear || '',
         role: 'user',
-        status: 'pending', // Pending admin approval
+        status: 'pending',
         createdAt: new Date(),
-        joinDate: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
-      });
+        joinDate: new Date().toISOString().split('T')[0],
+      };
+
+      if (profileData.alumniIdBase64) {
+        userData.alumniIdBase64 = profileData.alumniIdBase64;
+        userData.alumniIdFileName = profileData.alumniIdFileName || '';
+        userData.alumniIdVerificationStatus = profileData.alumniIdVerificationStatus || 'pending';
+      }
+
+      // Create user profile in Firestore with all data
+      await setDoc(doc(this.firestore, 'users', result.user.uid), userData);
 
       // Automatically add user as member to their selected department
       await this.addMemberToDepartment(
@@ -438,26 +449,62 @@ export class AuthService {
   // Get all alumni from Firestore
   async getAlumni(): Promise<any[]> {
     try {
-      const querySnapshot = await getDocs(collection(this.firestore, 'alumni'));
       const alumniList: any[] = [];
+      
+      // Fetch registered alumni users from the users collection
+      const q = query(
+        collection(this.firestore, 'users'),
+        where('userType', '==', 'alumni')
+      );
+      
+      const querySnapshot = await getDocs(q);
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         alumniList.push({
           id: doc.id,
-          studentNumber: data['studentNumber'],
-          name: data['name'],
-          email: data['email'],
-          department: data['department'],
-          course: data['course'],
-          batch: data['batch'],
-          createdAt: data['createdAt']
+          studentNumber: data['studentNumber'] || '',
+          name: `${data['firstName'] || ''} ${data['lastName'] || ''}`.trim(),
+          email: data['email'] || '',
+          department: data['department'] || '',
+          course: data['course'] || '',
+          batch: data['graduationYear'] || '',
+          userType: data['userType'],
+          status: data['status'],
+          role: data['role'] || 'user',
+          createdAt: data['createdAt'],
+          source: 'registered'
         });
       });
       
+      // Also fetch manually managed alumni from the alumni collection
+      try {
+        const manualAlumniSnapshot = await getDocs(collection(this.firestore, 'alumni'));
+        manualAlumniSnapshot.forEach((doc) => {
+          const data = doc.data();
+          alumniList.push({
+            id: doc.id,
+            studentNumber: data['studentNumber'] || '',
+            name: data['name'] || '',
+            email: data['email'] || '',
+            department: data['department'] || '',
+            course: data['course'] || '',
+            batch: data['batch'] || '',
+            userType: 'alumni',
+            createdAt: data['createdAt'],
+            source: 'manual'
+          });
+        });
+      } catch (error) {
+        // Alumni collection might not exist, that's okay
+        console.log('Alumni collection not found or empty');
+      }
+      
       // Sort by batch (newest first), then by name
       alumniList.sort((a, b) => {
-        const batchDiff = parseInt(b.batch) - parseInt(a.batch);
+        const batchA = parseInt(a.batch) || 0;
+        const batchB = parseInt(b.batch) || 0;
+        const batchDiff = batchB - batchA;
         if (batchDiff !== 0) return batchDiff;
         return a.name.localeCompare(b.name);
       });
@@ -479,13 +526,15 @@ export class AuthService {
         department: alumniData.department,
         course: alumniData.course,
         batch: alumniData.batch,
+        userType: 'alumni',
         createdAt: new Date()
       });
       
       console.log('Alumni added with ID:', docRef.id);
       return {
         id: docRef.id,
-        ...alumniData
+        ...alumniData,
+        userType: 'alumni'
       };
     } catch (error) {
       console.error('Error adding alumni:', error);
@@ -584,6 +633,20 @@ export class AuthService {
     } catch (error) {
       console.error('Error getting user role:', error);
       return 'user';
+    }
+  }
+
+  // Update user role (e.g., to HOD, admin, or user)
+  async updateUserRole(uid: string, newRole: string): Promise<void> {
+    try {
+      await updateDoc(doc(this.firestore, 'users', uid), {
+        role: newRole,
+        roleUpdatedAt: new Date()
+      });
+      console.log('User role updated:', uid, newRole);
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      throw error;
     }
   }
 
@@ -885,6 +948,138 @@ export class AuthService {
       await updateDoc(notifRef, { read: true });
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  }
+
+  // Mark all notifications as read
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    try {
+      const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
+      const q = query(notificationsRef, where('read', '==', false));
+      const snapshot = await getDocs(q);
+      await Promise.all(snapshot.docs.map(d => updateDoc(d.ref, { read: true })));
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  }
+
+  // Delete a notification
+  async deleteNotification(userId: string, notificationId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(this.firestore, 'users', userId, 'notifications', notificationId));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      throw error;
+    }
+  }
+
+  // ==================== EVENTS ====================
+
+  // Get all events from Firestore
+  async getEvents(): Promise<any[]> {
+    try {
+      const snapshot = await getDocs(collection(this.firestore, 'events'));
+      return snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+  }
+
+  // Add an event to Firestore
+  async addEvent(eventData: { title: string; date: string; type: string; description?: string; attendees?: number }): Promise<any> {
+    try {
+      const docRef = await addDoc(collection(this.firestore, 'events'), {
+        ...eventData,
+        attendees: eventData.attendees || 0,
+        createdAt: new Date()
+      });
+      return { id: docRef.id, ...eventData };
+    } catch (error) {
+      console.error('Error adding event:', error);
+      throw error;
+    }
+  }
+
+  // ==================== DEPARTMENT EVENTS ====================
+
+  async getDepartmentEvents(departmentId: string): Promise<any[]> {
+    try {
+      const snap = await getDocs(collection(this.firestore, `departments/${departmentId}/events`));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+    } catch (error) {
+      console.error('Error fetching department events:', error);
+      return [];
+    }
+  }
+
+  async addDepartmentEvent(departmentId: string, eventData: any): Promise<any> {
+    try {
+      const docRef = await addDoc(collection(this.firestore, `departments/${departmentId}/events`), {
+        ...eventData,
+        attendees: [],
+        createdAt: new Date()
+      });
+      return { id: docRef.id, ...eventData, attendees: [] };
+    } catch (error) {
+      console.error('Error adding department event:', error);
+      throw error;
+    }
+  }
+
+  async updateDepartmentEvent(departmentId: string, eventId: string, data: any): Promise<void> {
+    try {
+      await updateDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId), {
+        ...data,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating department event:', error);
+      throw error;
+    }
+  }
+
+  async deleteDepartmentEvent(departmentId: string, eventId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId));
+    } catch (error) {
+      console.error('Error deleting department event:', error);
+      throw error;
+    }
+  }
+
+  async joinDepartmentEvent(departmentId: string, eventId: string, userId: string): Promise<void> {
+    try {
+      const eventRef = doc(this.firestore, `departments/${departmentId}/events`, eventId);
+      const eventDoc = await getDoc(eventRef);
+      if (eventDoc.exists()) {
+        const attendees: string[] = eventDoc.data()['attendees'] || [];
+        if (!attendees.includes(userId)) {
+          attendees.push(userId);
+          await updateDoc(eventRef, { attendees });
+        }
+      }
+    } catch (error) {
+      console.error('Error joining department event:', error);
+      throw error;
+    }
+  }
+
+  async leaveDepartmentEvent(departmentId: string, eventId: string, userId: string): Promise<void> {
+    try {
+      const eventRef = doc(this.firestore, `departments/${departmentId}/events`, eventId);
+      const eventDoc = await getDoc(eventRef);
+      if (eventDoc.exists()) {
+        const attendees: string[] = (eventDoc.data()['attendees'] || []).filter((id: string) => id !== userId);
+        await updateDoc(eventRef, { attendees });
+      }
+    } catch (error) {
+      console.error('Error leaving department event:', error);
+      throw error;
     }
   }
 
