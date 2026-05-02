@@ -319,53 +319,107 @@
 
         <!-- Departments Tab -->
         <section class="tab-content" *ngIf="activeTab === 'departments'">
-          <div class="section-header">
-            <h3>Manage Departments & Courses</h3>
-            <button class="btn btn-primary" (click)="toggleDepartmentForm()">
-              <ion-icon name="add-circle"></ion-icon>
-              {{ showDepartmentForm ? 'Cancel' : 'Add Department' }}
+          <div class="departments-admin-hero">
+            <div>
+              <p class="admin-eyebrow">Academic structure</p>
+              <h3>Departments & Courses</h3>
+              <p>Maintain department records and organize the course options shown across the app.</p>
+            </div>
+            <button class="btn btn-primary btn-add-department" (click)="toggleDepartmentForm()">
+              <ion-icon [name]="showDepartmentForm ? 'close-circle' : 'add-circle'"></ion-icon>
+              {{ showDepartmentForm ? 'Close Form' : 'Add Department' }}
             </button>
+          </div>
+
+          <div class="department-admin-summary">
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="business-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ departments.length }}</p>
+                <span>Departments</span>
+              </div>
+            </div>
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="library-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ getTotalCourses() }}</p>
+                <span>Total Courses</span>
+              </div>
+            </div>
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="albums-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ getDepartmentsWithCourses() }}</p>
+                <span>With Courses</span>
+              </div>
+            </div>
           </div>
 
           <!-- Add Department Form -->
-          <div class="form-card" *ngIf="showDepartmentForm">
-            <h4>New Department</h4>
-            <div class="form-group">
-              <input
-                type="text"
-                [(ngModel)]="newDepartmentName"
-                placeholder="Enter department name"
-                class="form-input"
-              />
+          <div class="form-card department-form-card" *ngIf="showDepartmentForm">
+            <div class="form-card-header">
+              <div class="form-card-icon">
+                <ion-icon name="add-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>New Department</h4>
+                <p>Create a department before adding course options.</p>
+              </div>
             </div>
-            <button class="btn btn-primary" (click)="addDepartment()">
-              <ion-icon name="checkmark"></ion-icon>
-              Add Department
-            </button>
+            <div class="form-row-inline">
+              <div class="form-group department-name-field">
+                <label>Department Name</label>
+                <input
+                  type="text"
+                  [(ngModel)]="newDepartmentName"
+                  placeholder="Example: College of Computer Studies"
+                  class="form-input"
+                />
+              </div>
+              <button class="btn btn-primary btn-create-dept" (click)="addDepartment()">
+                <ion-icon name="checkmark"></ion-icon>
+                Save
+              </button>
+            </div>
           </div>
 
           <!-- Departments List -->
-          <div class="departments-grid">
-            <div class="department-card" *ngFor="let dept of departments">
+          <div class="departments-grid admin-departments-grid">
+            <div class="department-card admin-department-card" *ngFor="let dept of departments">
               <div class="dept-header">
-                <h4 class="dept-name">{{ dept.name }}</h4>
-                <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
-                  <ion-icon name="trash"></ion-icon>
-                </button>
-              </div>
-
-              <!-- Courses List -->
-              <div class="courses-section">
-                <div class="courses-header">
-                  <span class="courses-label">Courses ({{ dept.courses.length }})</span>
+                <div class="dept-title-wrap">
+                  <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
+                  <div>
+                    <h4 class="dept-name">{{ dept.name }}</h4>
+                    <p>{{ dept.courses.length }} {{ dept.courses.length === 1 ? 'course' : 'courses' }} listed</p>
+                  </div>
+                </div>
+                <div class="dept-actions">
                   <button
                     class="btn-icon btn-add"
                     (click)="toggleCourseForm(dept.id)"
                     title="Add course"
                     [class.active]="selectedDepartmentId === dept.id"
                   >
-                    <ion-icon name="add"></ion-icon>
+                    <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove' : 'add'"></ion-icon>
                   </button>
+                  <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
+                    <ion-icon name="trash"></ion-icon>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Courses List -->
+              <div class="courses-section">
+                <div class="courses-header">
+                  <span class="courses-label">Courses</span>
+                  <span class="courses-count">{{ dept.courses.length }}</span>
                 </div>
 
                 <!-- Add Course Form -->
@@ -385,12 +439,16 @@
                 <!-- Courses List -->
                 <div class="courses-list">
                   <div class="course-item" *ngFor="let course of dept.courses; let i = index">
-                    <span class="course-name">{{ course }}</span>
+                    <span class="course-name">
+                      <ion-icon name="school-outline"></ion-icon>
+                      {{ course }}
+                    </span>
                     <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
                       <ion-icon name="close"></ion-icon>
                     </button>
                   </div>
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
+                    <ion-icon name="library-outline"></ion-icon>
                     <p>No courses yet</p>
                   </div>
                 </div>

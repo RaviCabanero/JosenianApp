@@ -313,6 +313,14 @@ export class AdminPage implements OnInit {
     return this.departmentMap[departmentId] || departmentId;
   }
 
+  getTotalCourses(): number {
+    return this.departments.reduce((total, dept) => total + (dept.courses?.length || 0), 0);
+  }
+
+  getDepartmentsWithCourses(): number {
+    return this.departments.filter(dept => (dept.courses?.length || 0) > 0).length;
+  }
+
   toggleDepartmentForm() {
     this.showDepartmentForm = !this.showDepartmentForm;
     if (!this.showDepartmentForm) this.newDepartmentName = '';
