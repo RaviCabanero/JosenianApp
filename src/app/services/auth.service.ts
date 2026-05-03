@@ -8,8 +8,12 @@ import {
   User,
   onAuthStateChanged,
   AuthError,
+  getAuth,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
-import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
+import { environment } from '../../environments/environment';
+import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -442,6 +446,71 @@ export class AuthService {
     }
   }
 
+  // ==================== ADMIN USER CREATION ====================
+
+  async adminCreateUser(
+    email: string,
+    profileData: {
+      firstName: string;
+      lastName: string;
+      userType: 'student' | 'alumni';
+      studentNumber?: string;
+      department: string;
+      course?: string;
+      graduationYear?: string;
+    }
+  ): Promise<string> {
+    const appName = 'adminUserCreation';
+    const existing = getApps().find(a => a.name === appName);
+    const secondaryApp = existing || initializeApp(environment.firebase, appName);
+    const secondaryAuth = getAuth(secondaryApp);
+    const tempPassword = this.generateTempPassword();
+
+    try {
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, tempPassword);
+      const uid = cred.user.uid;
+
+      await setDoc(doc(this.firestore, 'users', uid), {
+        email,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        userType: profileData.userType,
+        studentNumber: profileData.studentNumber || '',
+        department: profileData.department,
+        course: profileData.course || '',
+        graduationYear: profileData.graduationYear || '',
+        role: 'user',
+        status: 'approved',
+        createdAt: new Date(),
+        joinDate: new Date().toISOString().split('T')[0],
+        createdByAdmin: true,
+      });
+
+      await this.addMemberToDepartment(profileData.department, uid, {
+        name: `${profileData.firstName} ${profileData.lastName}`,
+        email,
+        userType: profileData.userType,
+        role: profileData.userType,
+        studentNumber: profileData.studentNumber || '',
+        course: profileData.course || '',
+        joinedDate: new Date().toISOString().split('T')[0],
+      });
+
+      await signOut(secondaryAuth);
+      await sendPasswordResetEmail(this.auth, email);
+
+      return uid;
+    } catch (error) {
+      await signOut(secondaryAuth).catch(() => {});
+      throw error;
+    }
+  }
+
+  private generateTempPassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+    return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
   // ==================== ADMIN CHECKS ====================
 
   // ==================== ALUMNI MANAGEMENT ====================
@@ -667,6 +736,17 @@ export class AuthService {
     return this.currentUserSubject.value !== null;
   }
 
+  async getUserProfiles(uids: string[]): Promise<any[]> {
+    if (!uids.length) return [];
+    try {
+      const docs = await Promise.all(uids.map(uid => getDoc(doc(this.firestore, 'users', uid))));
+      return docs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.error('Error fetching user profiles:', error);
+      return [];
+    }
+  }
+
   // Get user profile from Firestore
   async getUserProfile(uid: string): Promise<any> {
     try {
@@ -868,14 +948,23 @@ export class AuthService {
   async approveUser(userId: string): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data() || {};
+
       await updateDoc(userRef, {
         status: 'approved',
         approvalDate: new Date().toISOString(),
         approvalStatus: 'approved'
       });
-      
-      // Create notification for user
+
       await this.createNotification(userId, 'Account Approved', 'Your account has been approved. You can now access all features of JosenianLink.', 'success');
+
+      if (userData['email']) {
+        await sendPasswordResetEmail(this.auth, userData['email']).catch(err =>
+          console.error('Failed to send approval email:', err)
+        );
+      }
+
       console.log('User approved:', userId);
     } catch (error) {
       console.error('Error approving user:', error);
@@ -887,14 +976,23 @@ export class AuthService {
   async rejectUser(userId: string, rejectionReason: string = ''): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data() || {};
+
       await updateDoc(userRef, {
         status: 'rejected',
         rejectionDate: new Date().toISOString(),
         rejectionReason: rejectionReason
       });
-      
-      // Create notification for user
+
       await this.createNotification(userId, 'Account Registration Rejected', 'Your account registration was not approved. Please ensure your information is correct or contact the administrator.', 'error');
+
+      if (userData['email']) {
+        await sendPasswordResetEmail(this.auth, userData['email']).catch(err =>
+          console.error('Failed to send rejection email:', err)
+        );
+      }
+
       console.log('User rejected:', userId);
     } catch (error) {
       console.error('Error rejecting user:', error);
@@ -985,6 +1083,97 @@ export class AuthService {
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
+    }
+  }
+
+  async getGlobalEvents(): Promise<any[]> {
+    try {
+      const snapshot = await getDocs(collection(this.firestore, 'events'));
+      return snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const dA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
+          const dB = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+          return dA - dB;
+        });
+    } catch (error) {
+      console.error('Error fetching global events:', error);
+      return [];
+    }
+  }
+
+  async addGlobalEvent(eventData: {
+    title: string; description: string; date: string; time: string;
+    location: string; eventType: string; maxParticipants?: number | null;
+    coverImageBase64?: string; coverImageFileName?: string;
+  }): Promise<any> {
+    try {
+      const user = this.auth.currentUser;
+      const docRef = await addDoc(collection(this.firestore, 'events'), {
+        ...eventData,
+        maxParticipants: eventData.maxParticipants || null,
+        coverImageBase64: eventData.coverImageBase64 || '',
+        coverImageFileName: eventData.coverImageFileName || '',
+        attendees: [],
+        createdBy: user?.uid || 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      return { id: docRef.id, ...eventData, attendees: [] };
+    } catch (error) {
+      console.error('Error adding global event:', error);
+      throw error;
+    }
+  }
+
+  async updateGlobalEvent(eventId: string, eventData: any): Promise<void> {
+    try {
+      await updateDoc(doc(this.firestore, 'events', eventId), {
+        ...eventData,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating global event:', error);
+      throw error;
+    }
+  }
+
+  async deleteGlobalEvent(eventId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(this.firestore, 'events', eventId));
+    } catch (error) {
+      console.error('Error deleting global event:', error);
+      throw error;
+    }
+  }
+
+  async joinGlobalEvent(eventId: string, userId: string): Promise<void> {
+    try {
+      const ref = doc(this.firestore, 'events', eventId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const attendees: string[] = snap.data()['attendees'] || [];
+        if (!attendees.includes(userId)) {
+          await updateDoc(ref, { attendees: [...attendees, userId] });
+        }
+      }
+    } catch (error) {
+      console.error('Error joining event:', error);
+      throw error;
+    }
+  }
+
+  async leaveGlobalEvent(eventId: string, userId: string): Promise<void> {
+    try {
+      const ref = doc(this.firestore, 'events', eventId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const attendees = (snap.data()['attendees'] || []).filter((id: string) => id !== userId);
+        await updateDoc(ref, { attendees });
+      }
+    } catch (error) {
+      console.error('Error leaving event:', error);
+      throw error;
     }
   }
 
@@ -1147,6 +1336,202 @@ export class AuthService {
       console.error('Error toggling wall like:', error);
       throw error;
     }
+  }
+
+  // ==================== QR ATTENDANCE ====================
+
+  async generateEventQRToken(eventId: string): Promise<string> {
+    const token = this.generateSecureToken();
+    await updateDoc(doc(this.firestore, 'events', eventId), {
+      qrToken: token,
+      qrGeneratedAt: new Date()
+    });
+    return token;
+  }
+
+  async verifyAndRecordAttendance(
+    eventId: string,
+    scannedToken: string,
+    userId: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const eventSnap = await getDoc(doc(this.firestore, 'events', eventId));
+      if (!eventSnap.exists()) return { success: false, message: 'Event not found.' };
+      const event = eventSnap.data();
+
+      if (!event['qrToken'] || event['qrToken'] !== scannedToken) {
+        return { success: false, message: 'Invalid QR code. Please scan the correct code at the venue.' };
+      }
+
+      if (event['date']) {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        if (event['date'] !== today) {
+          return { success: false, message: `This QR is for ${event['date']}. Attendance can only be recorded on the event day.` };
+        }
+      }
+
+      const attendees: string[] = event['attendees'] || [];
+      if (!attendees.includes(userId)) {
+        return { success: false, message: 'You must join this event before scanning the QR code.' };
+      }
+
+      const attendanceRef = doc(this.firestore, 'events', eventId, 'attendance', userId);
+      const existing = await getDoc(attendanceRef);
+      if (existing.exists()) {
+        return { success: false, message: 'Your attendance has already been recorded for this event.' };
+      }
+
+      const profile = await this.getUserProfile(userId);
+      await setDoc(attendanceRef, {
+        userId,
+        userName: `${profile?.['firstName'] || ''} ${profile?.['lastName'] || ''}`.trim() || 'Unknown',
+        userEmail: profile?.['email'] || '',
+        userType: profile?.['userType'] || 'user',
+        scannedAt: new Date(),
+        status: 'attended'
+      });
+
+      await updateDoc(doc(this.firestore, 'events', eventId), {
+        attendanceCount: increment(1)
+      });
+
+      // Award points based on event category
+      const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
+      await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
+
+      return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
+    } catch (error) {
+      console.error('QR verification error:', error);
+      return { success: false, message: 'An error occurred. Please try again.' };
+    }
+  }
+
+  async getEventAttendance(eventId: string): Promise<any[]> {
+    try {
+      const snap = await getDocs(collection(this.firestore, 'events', eventId, 'attendance'));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const aTime = a.scannedAt?.toMillis ? a.scannedAt.toMillis() : new Date(a.scannedAt || 0).getTime();
+          const bTime = b.scannedAt?.toMillis ? b.scannedAt.toMillis() : new Date(b.scannedAt || 0).getTime();
+          return bTime - aTime;
+        });
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      return [];
+    }
+  }
+
+  // ==================== POINTS & REWARDS ====================
+
+  private readonly POINTS_MAP: { [key: string]: number } = {
+    regular: 10, special: 20, volunteer: 30,
+  };
+
+  getDefaultPoints(category: string): number {
+    return this.POINTS_MAP[category] || 10;
+  }
+
+  getUserLevel(points: number): { level: string; label: string; next: number; color: string; icon: string } {
+    if (points >= 300) return { level: 'platinum', label: 'Platinum', next: -1,  color: '#8b5cf6', icon: 'diamond'      };
+    if (points >= 150) return { level: 'gold',     label: 'Gold',     next: 300, color: '#f59e0b', icon: 'trophy'       };
+    if (points >= 50)  return { level: 'silver',   label: 'Silver',   next: 150, color: '#6b7280', icon: 'medal'        };
+    return               { level: 'bronze',   label: 'Bronze',   next: 50,  color: '#b45309', icon: 'ribbon'       };
+  }
+
+  computeBadges(totalPoints: number, eventCount: number): string[] {
+    const badges: string[] = [];
+    if (eventCount >= 1)    badges.push('first_event');
+    if (eventCount >= 5)    badges.push('active_alumni');
+    if (totalPoints >= 50)  badges.push('event_supporter');
+    if (totalPoints >= 100) badges.push('community_champion');
+    if (totalPoints >= 300) badges.push('top_contributor');
+    return badges;
+  }
+
+  async awardEventPoints(userId: string, eventId: string, eventTitle: string, points: number, category: string): Promise<void> {
+    try {
+      const historyRef = doc(this.firestore, 'users', userId, 'pointsHistory', eventId);
+      if ((await getDoc(historyRef)).exists()) return; // already awarded
+
+      await setDoc(historyRef, {
+        eventId, eventTitle, points, category,
+        type: 'event_attendance',
+        awardedAt: new Date(),
+      });
+      await updateDoc(doc(this.firestore, 'users', userId), { totalPoints: increment(points) });
+
+      // Refresh badges
+      const profile = await this.getUserProfile(userId);
+      const newTotal = (profile?.['totalPoints'] || 0) + points;
+      const histSnap = await getDocs(collection(this.firestore, 'users', userId, 'pointsHistory'));
+      const eventAttendanceCount = histSnap.docs.filter(d => d.data()['type'] === 'event_attendance').length;
+      await updateDoc(doc(this.firestore, 'users', userId), {
+        badges: this.computeBadges(newTotal, eventAttendanceCount),
+      });
+    } catch (err) {
+      console.error('Error awarding points:', err);
+    }
+  }
+
+  async getUserPointsHistory(userId: string): Promise<any[]> {
+    try {
+      const snap = await getDocs(collection(this.firestore, 'users', userId, 'pointsHistory'));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const aT = a.awardedAt?.toMillis?.() ?? new Date(a.awardedAt || 0).getTime();
+          const bT = b.awardedAt?.toMillis?.() ?? new Date(b.awardedAt || 0).getTime();
+          return bT - aT;
+        });
+    } catch (err) {
+      console.error('Error fetching points history:', err);
+      return [];
+    }
+  }
+
+  async adminAdjustPoints(userId: string, amount: number, reason: string): Promise<void> {
+    const ref = doc(collection(this.firestore, 'users', userId, 'pointsHistory'));
+    await setDoc(ref, {
+      eventId: '', eventTitle: reason, points: amount,
+      category: 'admin_adjustment', type: 'admin_adjustment',
+      reason, awardedAt: new Date(),
+    });
+    await updateDoc(doc(this.firestore, 'users', userId), { totalPoints: increment(amount) });
+  }
+
+  async getLeaderboard(limitCount: number = 10): Promise<any[]> {
+    try {
+      const snap = await getDocs(query(
+        collection(this.firestore, 'users'),
+        orderBy('totalPoints', 'desc'),
+        limit(limitCount)
+      ));
+      return snap.docs
+        .map((d, i) => {
+          const u: any = { id: d.id, ...d.data() };
+          return {
+            rank: i + 1,
+            id: u.id,
+            name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || 'Unknown',
+            initials: ((u.firstName?.charAt(0) || '') + (u.lastName?.charAt(0) || '')).toUpperCase() || 'U',
+            totalPoints: u.totalPoints || 0,
+            level: this.getUserLevel(u.totalPoints || 0),
+            userType: u.userType || '',
+            photoUrl: u.photoUrl || '',
+          };
+        })
+        .filter((u: any) => u.totalPoints > 0);
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      return [];
+    }
+  }
+
+  private generateSecureToken(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
   // Auto-approve user if email domain is @usj.edu.ph

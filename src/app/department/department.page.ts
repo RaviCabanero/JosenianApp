@@ -59,6 +59,7 @@ export class DepartmentPage implements OnInit {
   currentUserType = '';
   currentUserRole = '';
   currentUserName = '';
+  currentUserDepartmentId = '';
 
   selectedDepartment: Department | null = null;
   isLoading = false;
@@ -89,7 +90,8 @@ export class DepartmentPage implements OnInit {
   ];
 
   get isHOD(): boolean {
-    return this.currentUserRole === 'hod' || this.currentUserRole === 'HOD';
+    if (this.currentUserRole !== 'hod') return false;
+    return !!this.selectedDepartment && this.selectedDepartment.id === this.currentUserDepartmentId;
   }
 
   get filteredEvents(): DeptEvent[] {
@@ -127,6 +129,7 @@ export class DepartmentPage implements OnInit {
       this.currentUserType = profile['userType'] || '';
       this.currentUserRole = (profile['role'] || 'user').toLowerCase();
       this.currentUserName = `${profile['firstName'] || ''} ${profile['lastName'] || ''}`.trim();
+      this.currentUserDepartmentId = profile['department'] || '';
     }
   }
 

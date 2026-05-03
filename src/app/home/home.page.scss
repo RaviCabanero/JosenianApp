@@ -122,6 +122,79 @@
   }
 }
 
+// Quick Actions
+.quick-actions {
+  margin: 12px 0 4px;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    border-color: #10b981;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.quick-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.quick-action-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-action-title {
+  color: #1a1a1a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.quick-action-subtitle {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.quick-action-arrow {
+  flex-shrink: 0;
+  color: #9ca3af;
+  font-size: 18px;
+}
+
 // Section Title
 .section-title {
   margin: 24px 0 16px 0;

@@ -4,14 +4,17 @@ service cloud.firestore {
     // Allow all read/write for development
     match /users/{userId} {
       allow read, write;
-      
-      // Posts subcollection - allow all for development
+
       match /posts/{postId} {
         allow read, write;
       }
-      
-      // Notifications subcollection
+
       match /notifications/{notificationId} {
+        allow read, write;
+      }
+
+      // Points history subcollection
+      match /pointsHistory/{historyId} {
         allow read, write;
       }
     }
@@ -34,6 +37,11 @@ service cloud.firestore {
     // Events collection (top-level)
     match /events/{eventId} {
       allow read, write;
+
+      // Attendance subcollection
+      match /attendance/{userId} {
+        allow read, write;
+      }
     }
 
     // Alumni collection

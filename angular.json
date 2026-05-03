@@ -32,7 +32,8 @@
               }
             ],
             "styles": ["src/global.scss", "src/theme/variables.scss"],
-            "scripts": []
+            "scripts": [],
+            "allowedCommonJsDependencies": ["qrcode", "jsqr"]
           },
           "configurations": {
             "production": {
@@ -44,8 +45,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "30kb",
-                  "maximumError": "100kb"
+                  "maximumWarning": "80kb",
+                  "maximumError": "200kb"
                 }
               ],
               "fileReplacements": [

@@ -69,38 +69,6 @@
       Edit Profile
     </ion-button>
 
-    <!-- ── Contact Info Strip ─────────────── -->
-    <div class="info-strip" *ngIf="userProfile.email || userProfile.gender || userProfile.address || userProfile.contactNumber">
-      <div class="strip-item" *ngIf="userProfile.email">
-        <div class="strip-icon mail"><ion-icon name="mail"></ion-icon></div>
-        <div class="strip-text">
-          <span class="strip-label">Email</span>
-          <span class="strip-value">{{ userProfile.email }}</span>
-        </div>
-      </div>
-      <div class="strip-item" *ngIf="userProfile.gender">
-        <div class="strip-icon person"><ion-icon name="person"></ion-icon></div>
-        <div class="strip-text">
-          <span class="strip-label">Sex</span>
-          <span class="strip-value">{{ userProfile.gender }}</span>
-        </div>
-      </div>
-      <div class="strip-item" *ngIf="userProfile.address">
-        <div class="strip-icon location"><ion-icon name="location"></ion-icon></div>
-        <div class="strip-text">
-          <span class="strip-label">Address</span>
-          <span class="strip-value">{{ userProfile.address }}</span>
-        </div>
-      </div>
-      <div class="strip-item" *ngIf="userProfile.contactNumber">
-        <div class="strip-icon call"><ion-icon name="call"></ion-icon></div>
-        <div class="strip-text">
-          <span class="strip-label">Contact</span>
-          <span class="strip-value">{{ userProfile.contactNumber }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- ── Personal Information Card ─────── -->
     <div class="section-card">
       <div class="section-header">
@@ -112,18 +80,10 @@
       </div>
       <div class="field-grid">
 
-        <div class="field-item">
-          <span class="field-label">
-            <ion-icon name="business-outline"></ion-icon>
-            Department
-          </span>
-          <span class="field-value">{{ userProfile.department || '—' }}</span>
-        </div>
-
-        <div class="field-item" *ngIf="userProfile.userType === 'student'">
+        <div class="field-item" *ngIf="userProfile.course">
           <span class="field-label">
             <ion-icon name="book-outline"></ion-icon>
-            Course
+            Bachelor / Course
           </span>
           <span class="field-value">{{ userProfile.course || '—' }}</span>
         </div>
@@ -166,6 +126,14 @@
             Contact Number
           </span>
           <span class="field-value">{{ userProfile.contactNumber || '—' }}</span>
+        </div>
+
+        <div class="field-item">
+          <span class="field-label">
+            <ion-icon name="male-female-outline"></ion-icon>
+            Sex
+          </span>
+          <span class="field-value">{{ userProfile.gender || '—' }}</span>
         </div>
 
       </div>
@@ -229,6 +197,87 @@
       </div>
 
     </div>
+
+    <!-- ── Points & Rewards ──────────────── -->
+    <div class="section-card pts-card">
+      <div class="section-header">
+        <div class="section-header-icon pts-icon"><ion-icon name="star-outline"></ion-icon></div>
+        <div>
+          <h2 class="section-title">Points & Rewards</h2>
+          <p class="section-subtitle">Your participation score</p>
+        </div>
+      </div>
+
+      <div class="pts-loading" *ngIf="isLoadingPoints">
+        <ion-spinner color="primary"></ion-spinner>
+      </div>
+
+      <ng-container *ngIf="!isLoadingPoints">
+
+        <!-- Level + Total -->
+        <div class="pts-hero">
+          <div class="pts-total-wrap">
+            <span class="pts-total">{{ pointsData.total }}</span>
+            <span class="pts-label">total points</span>
+          </div>
+          <div class="pts-level-wrap">
+            <div class="pts-level-badge" [style.background]="pointsData.level.color + '22'" [style.color]="pointsData.level.color">
+              <ion-icon [name]="pointsData.level.icon"></ion-icon>
+              {{ pointsData.level.label }}
+            </div>
+            <p class="pts-next" *ngIf="pointsData.level.next !== -1">
+              {{ pointsData.level.next - pointsData.total }} pts to {{ pointsData.level.level === 'bronze' ? 'Silver' : pointsData.level.level === 'silver' ? 'Gold' : 'Platinum' }}
+            </p>
+            <p class="pts-next" *ngIf="pointsData.level.next === -1">Maximum level reached!</p>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="pts-progress-track">
+          <div class="pts-progress-fill" [style.width.%]="levelProgressPct" [style.background]="pointsData.level.color"></div>
+        </div>
+
+        <!-- Badges -->
+        <div class="pts-badges-wrap" *ngIf="pointsData.badges.length > 0">
+          <p class="pts-badges-title">Badges Earned</p>
+          <div class="pts-badges-list">
+            <div class="pts-badge-chip" *ngFor="let b of pointsData.badges">
+              <ion-icon [name]="getBadgeIcon(b)"></ion-icon>
+              {{ getBadgeLabel(b) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Points History -->
+        <div class="pts-history" *ngIf="pointsHistory.length > 0">
+          <p class="pts-history-title">Recent History</p>
+          <div class="pts-history-row" *ngFor="let h of pointsHistory | slice:0:5">
+            <div class="pts-history-icon" [class.pts-adj]="h.type === 'admin_adjustment'">
+              <ion-icon [name]="h.type === 'admin_adjustment' ? 'settings-outline' : 'calendar-check-outline'"></ion-icon>
+            </div>
+            <div class="pts-history-info">
+              <span class="pts-history-title-text">{{ h.eventTitle }}</span>
+              <span class="pts-history-date">{{ formatPointsDate(h.awardedAt) }}</span>
+            </div>
+            <span class="pts-history-pts" [class.pts-neg]="h.points < 0">
+              {{ h.points > 0 ? '+' : '' }}{{ h.points }} pts
+            </span>
+          </div>
+        </div>
+
+        <p class="pts-empty" *ngIf="pointsData.total === 0">
+          <ion-icon name="calendar-outline"></ion-icon>
+          Attend events to start earning points!
+        </p>
+
+      </ng-container>
+    </div>
+
+    <!-- ── Logout Button ─────────────────── -->
+    <ion-button expand="block" fill="outline" color="danger" class="logout-btn" (click)="logout()">
+      <ion-icon slot="start" name="log-out-outline"></ion-icon>
+      Logout
+    </ion-button>
 
   </div>
 </ion-content>

@@ -130,4 +130,8 @@ export class HomePage implements OnInit {
   goToNotifications() {
     this.router.navigate(['/notifications']);
   }
+
+  goToScanner() {
+    this.router.navigate(['/qr-scanner']);
+  }
 }

@@ -1,0 +1,98 @@
+<ion-header class="scanner-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" class="back-btn">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Scan QR Code</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="scanner-content">
+
+  <!-- ── Camera View ───────────────────────────── -->
+  <div class="scanner-wrapper" *ngIf="scanStatus === 'scanning'">
+    <video #videoEl autoplay playsinline muted class="camera-video"></video>
+    <canvas #canvasEl class="canvas-hidden"></canvas>
+
+    <div class="scanner-ui">
+      <div class="scanner-event-badge" *ngIf="eventTitle">
+        <ion-icon name="calendar-outline"></ion-icon>
+        {{ eventTitle }}
+      </div>
+
+      <div class="viewfinder">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+        <div class="scan-line"></div>
+      </div>
+
+      <p class="scanner-hint">Align the QR code within the frame</p>
+    </div>
+  </div>
+
+  <!-- ── Verifying ────────────────────────────── -->
+  <div class="result-screen verifying-screen" *ngIf="scanStatus === 'verifying'">
+    <div class="result-icon-wrap spin-icon">
+      <ion-spinner name="crescent" class="verify-spinner"></ion-spinner>
+    </div>
+    <h2>Verifying…</h2>
+    <p>Please wait while we confirm your attendance.</p>
+  </div>
+
+  <!-- ── Success ──────────────────────────────── -->
+  <div class="result-screen success-screen" *ngIf="scanStatus === 'success'">
+    <div class="result-icon-wrap success-icon-wrap">
+      <ion-icon name="checkmark-circle" class="result-icon success-icon"></ion-icon>
+    </div>
+    <h2>Attendance Recorded!</h2>
+    <p class="result-msg">{{ resultMessage }}</p>
+    <div class="scan-time-chip" *ngIf="scannedAt">
+      <ion-icon name="time-outline"></ion-icon>
+      Scanned at {{ scannedAt }}
+    </div>
+    <ion-button expand="block" class="done-btn" (click)="goBack()">
+      Done
+    </ion-button>
+  </div>
+
+  <!-- ── Error ────────────────────────────────── -->
+  <div class="result-screen error-screen" *ngIf="scanStatus === 'error'">
+    <div class="result-icon-wrap error-icon-wrap">
+      <ion-icon name="close-circle" class="result-icon error-icon"></ion-icon>
+    </div>
+    <h2>Scan Failed</h2>
+    <p class="result-msg">{{ resultMessage }}</p>
+    <div class="error-actions">
+      <ion-button expand="block" class="retry-btn" (click)="retryScanning()">
+        <ion-icon slot="start" name="qr-code-outline"></ion-icon>
+        Try Again
+      </ion-button>
+      <ion-button expand="block" fill="outline" class="back-action-btn" (click)="goBack()">
+        Go Back
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- ── Camera Error ─────────────────────────── -->
+  <div class="result-screen camera-error-screen" *ngIf="scanStatus === 'camera-error'">
+    <div class="result-icon-wrap camera-error-icon-wrap">
+      <ion-icon name="camera-outline" class="result-icon camera-error-icon"></ion-icon>
+    </div>
+    <h2>Camera Unavailable</h2>
+    <p class="result-msg">{{ cameraErrorMsg }}</p>
+    <div class="error-actions">
+      <ion-button expand="block" class="retry-btn" (click)="retryScanning()">
+        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+        Try Again
+      </ion-button>
+      <ion-button expand="block" fill="outline" class="back-action-btn" (click)="goBack()">
+        Go Back
+      </ion-button>
+    </div>
+  </div>
+
+</ion-content>

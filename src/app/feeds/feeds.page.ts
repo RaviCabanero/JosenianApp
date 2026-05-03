@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc, deleteDoc, writeBatch } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
+import { AuthService } from '../services/auth.service';
 
 interface Post {
   id?: string;
@@ -47,7 +48,10 @@ export class FeedsPage implements OnInit {
     newToday: 7,
   };
 
-  constructor(private router: Router, private firestore: Firestore, private auth: Auth) {}
+  globalEvents: any[] = [];
+  joiningEventId: string | null = null;
+
+  constructor(private router: Router, private firestore: Firestore, private auth: Auth, private authService: AuthService) {}
 
   ngOnInit() {
     authState(this.auth).subscribe(async user => {
@@ -59,6 +63,7 @@ export class FeedsPage implements OnInit {
       await this.initializeCurrentUser();
       this.loadPostsFromFirestore();
       await this.loadSuggestedFriends();
+      await this.loadGlobalEvents();
     });
   }
 
@@ -194,6 +199,72 @@ export class FeedsPage implements OnInit {
     } catch (error) {
       console.error('Error loading suggested friends:', error);
     }
+  }
+
+  async loadGlobalEvents() {
+    try {
+      this.globalEvents = await this.authService.getGlobalEvents();
+    } catch (error) {
+      console.error('Error loading global events:', error);
+    }
+  }
+
+  isAttending(event: any): boolean {
+    return (event.attendees || []).includes(this.currentUserUid);
+  }
+
+  isFull(event: any): boolean {
+    if (!event.maxParticipants) return false;
+    return (event.attendees?.length || 0) >= event.maxParticipants;
+  }
+
+  async toggleJoinEvent(event: any) {
+    if (!this.currentUserUid) return;
+    this.joiningEventId = event.id;
+    try {
+      if (this.isAttending(event)) {
+        await this.authService.leaveGlobalEvent(event.id, this.currentUserUid);
+        event.attendees = (event.attendees || []).filter((id: string) => id !== this.currentUserUid);
+      } else {
+        if (this.isFull(event)) return;
+        await this.authService.joinGlobalEvent(event.id, this.currentUserUid);
+        event.attendees = [...(event.attendees || []), this.currentUserUid];
+      }
+    } catch (error) {
+      console.error('Error toggling event join:', error);
+    } finally {
+      this.joiningEventId = null;
+    }
+  }
+
+  isEventToday(event: any): boolean {
+    if (!event.date) return false;
+    return event.date === new Date().toISOString().split('T')[0];
+  }
+
+  navigateToScanner(event: any) {
+    this.router.navigate(['/qr-scanner'], {
+      queryParams: { eventId: event.id, eventTitle: event.title }
+    });
+  }
+
+  getEventCoverUrl(event: any): string {
+    return event.coverImageBase64 ? `data:image/jpeg;base64,${event.coverImageBase64}` : '';
+  }
+
+  formatEventDate(event: any): string {
+    if (!event.date) return 'TBD';
+    const d = new Date(`${event.date}T${event.time || '00:00'}`);
+    return isNaN(d.getTime()) ? event.date : d.toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+  }
+
+  formatEventTime(event: any): string {
+    if (!event.time) return '';
+    const [h, m] = event.time.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   goBack() {

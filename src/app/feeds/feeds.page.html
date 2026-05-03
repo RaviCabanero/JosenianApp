@@ -68,6 +68,66 @@
       </ion-card-content>
     </ion-card>
 
+    <!-- Global Events Section -->
+    <div *ngIf="globalEvents.length > 0" class="events-section">
+      <div class="section-header">
+        <h2>Upcoming Events</h2>
+        <span class="events-badge">{{ globalEvents.length }}</span>
+      </div>
+
+      <div class="events-scroll">
+        <div class="feed-event-card" *ngFor="let ev of globalEvents">
+          <!-- Cover -->
+          <div class="feed-event-cover">
+            <img [src]="getEventCoverUrl(ev)" *ngIf="ev.coverImageBase64" alt="" class="feed-event-cover-img" />
+            <div class="feed-event-cover-placeholder" *ngIf="!ev.coverImageBase64">
+              <ion-icon name="calendar"></ion-icon>
+            </div>
+            <span class="feed-event-type">{{ ev.eventType || 'Global' }}</span>
+          </div>
+
+          <!-- Info -->
+          <div class="feed-event-info">
+            <h4 class="feed-event-title">{{ ev.title }}</h4>
+            <p class="feed-event-meta">
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ formatEventDate(ev) }}<span *ngIf="ev.time"> · {{ formatEventTime(ev) }}</span>
+            </p>
+            <p class="feed-event-meta" *ngIf="ev.location">
+              <ion-icon name="location-outline"></ion-icon>
+              {{ ev.location }}
+            </p>
+            <p class="feed-event-desc">{{ ev.description }}</p>
+            <div class="feed-event-footer">
+              <span class="feed-event-attendees">
+                <ion-icon name="people-outline"></ion-icon>
+                {{ ev.attendees?.length || 0 }}
+                <span *ngIf="ev.maxParticipants"> / {{ ev.maxParticipants }}</span>
+              </span>
+              <div class="feed-event-btns">
+                <button class="feed-join-btn"
+                        [class.joined]="isAttending(ev)"
+                        [class.full]="isFull(ev) && !isAttending(ev)"
+                        (click)="toggleJoinEvent(ev)"
+                        [disabled]="joiningEventId === ev.id || (isFull(ev) && !isAttending(ev))">
+                  <ion-spinner name="crescent" *ngIf="joiningEventId === ev.id" style="width:14px;height:14px;"></ion-spinner>
+                  <span *ngIf="joiningEventId !== ev.id">
+                    {{ isAttending(ev) ? '✓ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
+                  </span>
+                </button>
+                <button class="feed-scan-btn"
+                        *ngIf="isAttending(ev) && isEventToday(ev)"
+                        (click)="navigateToScanner(ev)">
+                  <ion-icon name="qr-code-outline"></ion-icon>
+                  Scan QR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Suggested Friends Section (Always show if there are suggestions) -->
     <div *ngIf="suggestedUsers.length > 0">
       <div class="section-header">

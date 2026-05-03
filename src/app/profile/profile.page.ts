@@ -47,6 +47,10 @@ export class ProfilePage implements OnInit {
 
   workExperiences: WorkExperience[] = [];
 
+  pointsData = { total: 0, level: { level: 'bronze', label: 'Bronze', next: 50, color: '#b45309', icon: 'ribbon' }, badges: [] as string[] };
+  pointsHistory: any[] = [];
+  isLoadingPoints = false;
+
   editFormData = {
     bio: '',
     gender: '',
@@ -93,6 +97,7 @@ export class ProfilePage implements OnInit {
 
   async ngOnInit() {
     await this.loadUserProfile();
+    await this.loadPoints();
   }
 
   get displayUserType(): string {
@@ -350,5 +355,81 @@ export class ProfilePage implements OnInit {
 
   goBack() {
     this.router.navigate(['/home']);
+  }
+
+  // ── Points & Rewards ──────────────────────────────────────
+
+  async loadPoints() {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return;
+    this.isLoadingPoints = true;
+    try {
+      const profile = await this.authService.getUserProfile(currentUser.uid);
+      const total = profile?.['totalPoints'] || 0;
+      this.pointsData = {
+        total,
+        level: this.authService.getUserLevel(total),
+        badges: profile?.['badges'] || [],
+      };
+      this.pointsHistory = await this.authService.getUserPointsHistory(currentUser.uid);
+    } catch (err) {
+      console.error('Error loading points:', err);
+    } finally {
+      this.isLoadingPoints = false;
+    }
+  }
+
+  getBadgeLabel(badge: string): string {
+    const map: { [k: string]: string } = {
+      first_event:        'First Event',
+      active_alumni:      'Active Alumni',
+      event_supporter:    'Event Supporter',
+      community_champion: 'Community Champion',
+      top_contributor:    'Top Contributor',
+    };
+    return map[badge] || badge;
+  }
+
+  getBadgeIcon(badge: string): string {
+    const map: { [k: string]: string } = {
+      first_event:        'star-outline',
+      active_alumni:      'people-outline',
+      event_supporter:    'heart-outline',
+      community_champion: 'shield-checkmark-outline',
+      top_contributor:    'trophy-outline',
+    };
+    return map[badge] || 'ribbon-outline';
+  }
+
+  formatPointsDate(awardedAt: any): string {
+    if (!awardedAt) return '';
+    const d = awardedAt.toDate ? awardedAt.toDate() : new Date(awardedAt);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  get levelProgressPct(): number {
+    const { total, level } = this.pointsData;
+    if (level.next === -1) return 100;
+    const prevThreshold = level.level === 'bronze' ? 0 : level.level === 'silver' ? 50 : level.level === 'gold' ? 150 : 300;
+    return Math.min(100, Math.round(((total - prevThreshold) / (level.next - prevThreshold)) * 100));
+  }
+
+  async logout() {
+    const alert = await this.alertController.create({
+      header: 'Logout',
+      message: 'Are you sure you want to logout?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Logout',
+          role: 'destructive',
+          handler: async () => {
+            await this.authService.logout();
+            this.router.navigate(['/login']);
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 }

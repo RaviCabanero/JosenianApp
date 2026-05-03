@@ -210,62 +210,183 @@ $bg-field:     #f9fafb;
   margin: 4px 16px 0;
 }
 
-// ── Contact Info Strip ─────────────────────────────────────
-.info-strip {
-  margin: 0 16px;
-  background: $bg-card;
-  border: 1px solid $border;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+.logout-btn {
+  --border-radius: 12px;
+  --color: #{$red};
+  --border-color: #{$red};
+  font-weight: 600;
+  margin: 8px 16px 24px;
 }
 
-.strip-item {
+// ── Points & Rewards ───────────────────────────────────────
+.pts-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); ion-icon { color: #f59e0b; } }
+
+.pts-loading { display: flex; justify-content: center; padding: 24px; }
+
+.pts-hero {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
+  justify-content: space-between;
+  padding: 16px 0 12px;
   border-bottom: 1px solid $border;
+  margin-bottom: 14px;
+}
+
+.pts-total-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pts-total {
+  font-size: 48px;
+  font-weight: 900;
+  color: $text-1;
+  line-height: 1;
+}
+
+.pts-label {
+  font-size: 11px;
+  color: $text-3;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pts-level-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.pts-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  ion-icon { font-size: 16px; }
+}
+
+.pts-next {
+  font-size: 11px;
+  color: $text-3;
+  margin: 0;
+  text-align: right;
+}
+
+.pts-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.pts-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+  min-width: 4px;
+}
+
+.pts-badges-title, .pts-history-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: $text-3;
+  margin: 0 0 10px 0;
+}
+
+.pts-badges-wrap { margin-bottom: 16px; }
+
+.pts-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pts-badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: #f0fdf4;
+  color: #059669;
+  border: 1px solid #d1fae5;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  ion-icon { font-size: 14px; }
+}
+
+.pts-history { margin-top: 4px; }
+
+.pts-history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
   &:last-child { border-bottom: none; }
 }
 
-.strip-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.pts-history-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f0fdf4;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  ion-icon { font-size: 18px; }
-
-  &.mail     { background: #eff6ff; ion-icon { color: #3b82f6; } }
-  &.person   { background: #fdf4ff; ion-icon { color: #a855f7; } }
-  &.location { background: #fff7ed; ion-icon { color: #f97316; } }
-  &.call     { background: #f0fdf4; ion-icon { color: $green; } }
+  ion-icon { font-size: 16px; color: $green; }
+  &.pts-adj { background: #eff6ff; ion-icon { color: #3b82f6; } }
 }
 
-.strip-text {
+.pts-history-info {
   flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
 }
 
-.strip-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: $text-3;
-  text-transform: uppercase;
-  letter-spacing: .5px;
+.pts-history-title-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.strip-value {
+.pts-history-date { font-size: 11px; color: $text-3; }
+
+.pts-history-pts {
   font-size: 14px;
-  font-weight: 500;
-  color: $text-2;
-  overflow-wrap: anywhere;
+  font-weight: 800;
+  color: $green;
+  white-space: nowrap;
+  &.pts-neg { color: #ef4444; }
+}
+
+.pts-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: $text-3;
+  font-size: 13px;
+  margin: 0;
+  ion-icon { font-size: 18px; }
 }
 
 // ── Section Cards ──────────────────────────────────────────
@@ -717,7 +838,7 @@ $bg-field:     #f9fafb;
 
   .field-grid { grid-template-columns: 1fr; }
 
-  .section-card, .info-strip, .edit-profile-btn {
+  .section-card, .edit-profile-btn {
     margin-left: 12px;
     margin-right: 12px;
   }

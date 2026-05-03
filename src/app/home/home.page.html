@@ -39,6 +39,20 @@
       </ion-card-content>
     </ion-card>
 
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button class="quick-action scan-action" (click)="goToScanner()">
+        <span class="quick-action-icon">
+          <ion-icon name="qr-code-outline"></ion-icon>
+        </span>
+        <span class="quick-action-text">
+          <span class="quick-action-title">Scan QR</span>
+          <span class="quick-action-subtitle">Record event attendance</span>
+        </span>
+        <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+      </button>
+    </div>
+
     <!-- Dashboard Section Title -->
     <div class="section-title">
       <h2>Dashboard</h2>
