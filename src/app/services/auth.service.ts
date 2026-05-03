@@ -446,21 +446,21 @@ export class AuthService {
 
   // ==================== ALUMNI MANAGEMENT ====================
 
-  // Get all alumni from Firestore
+  // Get alumni and student records for the admin management list
   async getAlumni(): Promise<any[]> {
     try {
       const alumniList: any[] = [];
       
-      // Fetch registered alumni users from the users collection
-      const q = query(
-        collection(this.firestore, 'users'),
-        where('userType', '==', 'alumni')
-      );
+      // Fetch registered student and alumni users from the users collection
+      const q = query(collection(this.firestore, 'users'));
       
       const querySnapshot = await getDocs(q);
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        const userType = data['userType'];
+        if (userType !== 'student' && userType !== 'alumni') return;
+
         alumniList.push({
           id: doc.id,
           studentNumber: data['studentNumber'] || '',
@@ -469,7 +469,7 @@ export class AuthService {
           department: data['department'] || '',
           course: data['course'] || '',
           batch: data['graduationYear'] || '',
-          userType: data['userType'],
+          userType,
           status: data['status'],
           role: data['role'] || 'user',
           createdAt: data['createdAt'],

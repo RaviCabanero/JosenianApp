@@ -13,6 +13,14 @@
       <nav class="sidebar-nav">
         <button
           class="nav-item"
+          [class.active]="activeTab === 'dashboard'"
+          (click)="selectTab('dashboard')"
+        >
+          <ion-icon name="speedometer"></ion-icon>
+          <span>Admin Dashboard</span>
+        </button>
+        <button
+          class="nav-item"
           [class.active]="activeTab === 'approval'"
           (click)="selectTab('approval')"
         >
@@ -60,11 +68,94 @@
     <main class="main-content">
       <!-- Top Bar -->
       <header class="top-bar">
-        <h2 class="page-title">{{ activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : 'Alumni ID Verification' }}</h2>
+        <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : 'Alumni ID Verification' }}</h2>
       </header>
 
       <!-- Content Area -->
       <div class="content-area">
+        <!-- Admin Dashboard Tab -->
+        <section class="tab-content admin-dashboard-tab" *ngIf="activeTab === 'dashboard'">
+          <div class="summary-cards dashboard-summary">
+            <div class="stat-card">
+              <div class="stat-icon total">
+                <ion-icon name="people"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Total Users</p>
+                <h3 class="stat-value">{{ totalUsersCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon students">
+                <ion-icon name="school"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Students</p>
+                <h3 class="stat-value">{{ totalStudentsCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon alumni">
+                <ion-icon name="briefcase"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Alumni</p>
+                <h3 class="stat-value">{{ totalAlumniCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon departments">
+                <ion-icon name="grid"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Departments</p>
+                <h3 class="stat-value">{{ departments.length }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon courses">
+                <ion-icon name="library"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Courses</p>
+                <h3 class="stat-value">{{ getTotalCourses() }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h3>Recent Approved / Registered Users</h3>
+              <span class="panel-count">{{ recentUsers.length }}</span>
+            </div>
+
+            <div class="recent-user-list" *ngIf="recentUsers.length > 0">
+              <div class="recent-user-row" *ngFor="let user of recentUsers">
+                <div class="recent-user-avatar">
+                  {{ (user.firstName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase() }}
+                </div>
+                <div class="recent-user-main">
+                  <h4>{{ user.firstName }} {{ user.lastName }}</h4>
+                  <p>{{ user.email }}</p>
+                </div>
+                <span class="type-badge" [class.alumni]="user.userType === 'alumni'" [class.student]="user.userType === 'student'">
+                  {{ user.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                </span>
+                <span class="recent-status" [class.approved]="user.status === 'approved'" [class.pending]="user.status !== 'approved'">
+                  {{ user.status === 'approved' ? 'Approved' : 'Registered' }}
+                </span>
+                <span class="recent-user-date">{{ formatUserDate(user) }}</span>
+              </div>
+            </div>
+
+            <div class="empty-state compact" *ngIf="recentUsers.length === 0">
+              <ion-icon name="person-add" class="empty-icon"></ion-icon>
+              <h4>No Recent Users Yet</h4>
+              <p>Recent student and alumni accounts will appear here.</p>
+            </div>
+          </div>
+        </section>
+
         <!-- Account Approval Tab -->
         <section class="tab-content approval-tab" *ngIf="activeTab === 'approval'">
           <!-- Summary Cards -->
@@ -136,7 +227,7 @@
                     <option value="">All Roles</option>
                     <option value="student">Student</option>
                     <option value="alumni">Alumni</option>
-                    <option value="faculty">Faculty</option>
+                   <!-- // <option value="faculty">Faculty</option> -->
                   </select>
                 </div>
               </div>
@@ -539,7 +630,7 @@
               <select [(ngModel)]="alumniSearchFilters.department" (change)="filterAlumni()" class="form-input filter-input">
                 <option value="">All Departments</option>
                 <option *ngFor="let dept of getUniqueDepartmentsForAlumni()" [value]="dept">
-                  {{ dept }}
+                  {{ getDepartmentName(dept) }}
                 </option>
               </select>
             </div>
@@ -586,7 +677,7 @@
                     <td>{{ alumnus.studentNumber }}</td>
                     <td>{{ alumnus.name }}</td>
                     <td>{{ alumnus.email }}</td>
-                    <td>{{ alumnus.department }}</td>
+                    <td>{{ getDepartmentName(alumnus.department) }}</td>
                     <td>{{ alumnus.course }}</td>
                     <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '—' }}</td>
                     <td>
@@ -616,7 +707,7 @@
             </div>
 
             <!-- Alumni Detail Panel -->
-            <div class="detail-panel" *ngIf="selectedAlumni">
+            <div class="detail-panel alumni-detail-panel" *ngIf="selectedAlumni">
               <div class="detail-header">
                 <h3>Alumni Details</h3>
                 <button class="close-btn" (click)="closeAlumniDetail()">
@@ -650,7 +741,7 @@
                   </div>
                   <div class="info-item">
                     <label>Department</label>
-                    <p>{{ selectedAlumni.department || 'N/A' }}</p>
+                    <p>{{ getDepartmentName(selectedAlumni.department) }}</p>
                   </div>
                   <div class="info-item">
                     <label>Course</label>

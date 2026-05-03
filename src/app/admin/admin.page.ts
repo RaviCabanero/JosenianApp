@@ -13,7 +13,7 @@ import { SafeUrl } from '@angular/platform-browser';
 })
 export class AdminPage implements OnInit {
   isLoggedIn: boolean = false;
-  activeTab: string = 'approval';
+  activeTab: string = 'dashboard';
 
   pendingUsers: any[] = [];
   selectedUser: any = null;
@@ -22,6 +22,9 @@ export class AdminPage implements OnInit {
   totalApprovedCount: number = 0;
   totalRejectedCount: number = 0;
   totalUsersCount: number = 0;
+  totalStudentsCount: number = 0;
+  totalAlumniCount: number = 0;
+  recentUsers: any[] = [];
 
   adminNotes: string = '';
 
@@ -148,13 +151,34 @@ export class AdminPage implements OnInit {
   async calculateStats() {
     try {
       const allUsers = await this.authService.getAllUsers();
-      this.totalUsersCount = allUsers.length;
-      this.totalPendingCount = allUsers.filter((u: any) => u.status === 'pending').length;
-      this.totalApprovedCount = allUsers.filter((u: any) => u.status === 'approved').length;
-      this.totalRejectedCount = allUsers.filter((u: any) => u.status === 'rejected').length;
+      const appUsers = allUsers.filter((u: any) => u.userType === 'student' || u.userType === 'alumni');
+      this.totalUsersCount = appUsers.length;
+      this.totalStudentsCount = appUsers.filter((u: any) => u.userType === 'student').length;
+      this.totalAlumniCount = appUsers.filter((u: any) => u.userType === 'alumni').length;
+      this.totalPendingCount = appUsers.filter((u: any) => u.status === 'pending').length;
+      this.totalApprovedCount = appUsers.filter((u: any) => u.status === 'approved').length;
+      this.totalRejectedCount = appUsers.filter((u: any) => u.status === 'rejected').length;
+      this.recentUsers = appUsers
+        .filter((u: any) => u.status !== 'rejected')
+        .sort((a: any, b: any) => this.getDateTime(b.createdAt || b.joinDate) - this.getDateTime(a.createdAt || a.joinDate))
+        .slice(0, 5);
     } catch (error) {
       console.error('Error calculating stats:', error);
     }
+  }
+
+  private getDateTime(value: any): number {
+    if (!value) return 0;
+    if (value.toMillis) return value.toMillis();
+    if (value.toDate) return value.toDate().getTime();
+    return new Date(value).getTime() || 0;
+  }
+
+  formatUserDate(user: any): string {
+    const value = user?.createdAt || user?.joinDate;
+    if (!value) return 'Recently';
+    const date = value.toDate ? value.toDate() : new Date(value);
+    return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
   }
 
   filterAndPaginateUsers() {
@@ -403,7 +427,7 @@ export class AdminPage implements OnInit {
 
   filterAlumni() {
     this.filteredAlumni = this.alumni.filter(a => {
-      // Registered alumni must be approved to appear in the management tab
+      // Registered student/alumni users must be approved to appear in the management tab
       if (a.source === 'registered' && a.status !== 'approved') return false;
       const nameMatch = a.name.toLowerCase().includes(this.alumniSearchFilters.name.toLowerCase());
       const deptMatch = this.alumniSearchFilters.department === '' || a.department === this.alumniSearchFilters.department;
@@ -544,7 +568,7 @@ export class AdminPage implements OnInit {
     try {
       await this.authService.logout();
       this.isLoggedIn = false;
-      this.activeTab = 'approval';
+      this.activeTab = 'dashboard';
       this.pendingUsers = [];
       this.departments = [];
       this.alumni = [];
