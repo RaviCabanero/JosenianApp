@@ -1423,6 +1423,135 @@ export class AuthService {
     }
   }
 
+  async generateDepartmentEventQRToken(departmentId: string, eventId: string): Promise<string> {
+    const token = this.generateSecureToken();
+    await updateDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId), {
+      qrToken: token,
+      qrGeneratedAt: new Date()
+    });
+    return token;
+  }
+
+  async verifyAndRecordDeptAttendance(
+    departmentId: string,
+    eventId: string,
+    scannedToken: string,
+    userId: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const eventSnap = await getDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId));
+      if (!eventSnap.exists()) return { success: false, message: 'Event not found.' };
+      const event = eventSnap.data();
+
+      if (!event['qrToken'] || event['qrToken'] !== scannedToken) {
+        return { success: false, message: 'Invalid QR code. Please scan the correct code at the venue.' };
+      }
+
+      if (event['date']) {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        if (event['date'] !== today) {
+          return { success: false, message: `This QR is for ${event['date']}. Attendance can only be recorded on the event day.` };
+        }
+      }
+
+      const attendees: string[] = event['attendees'] || [];
+      if (!attendees.includes(userId)) {
+        return { success: false, message: 'You must join this event before scanning the QR code.' };
+      }
+
+      const attendanceRef = doc(this.firestore, `departments/${departmentId}/events/${eventId}/attendance`, userId);
+      const existing = await getDoc(attendanceRef);
+      if (existing.exists()) {
+        return { success: false, message: 'Your attendance has already been recorded for this event.' };
+      }
+
+      const profile = await this.getUserProfile(userId);
+      await setDoc(attendanceRef, {
+        userId,
+        userName: `${profile?.['firstName'] || ''} ${profile?.['lastName'] || ''}`.trim() || 'Unknown',
+        userEmail: profile?.['email'] || '',
+        userType: profile?.['userType'] || 'user',
+        scannedAt: new Date(),
+        status: 'attended'
+      });
+
+      await updateDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId), {
+        attendanceCount: increment(1)
+      });
+
+      const pointValue = event['pointValue'] ?? 10;
+      await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
+
+      return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
+    } catch (error) {
+      console.error('Dept QR verification error:', error);
+      return { success: false, message: 'An error occurred. Please try again.' };
+    }
+  }
+
+  async getDeptEventAttendance(departmentId: string, eventId: string): Promise<any[]> {
+    try {
+      const snap = await getDocs(collection(this.firestore, `departments/${departmentId}/events/${eventId}/attendance`));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const aTime = a.scannedAt?.toMillis ? a.scannedAt.toMillis() : new Date(a.scannedAt || 0).getTime();
+          const bTime = b.scannedAt?.toMillis ? b.scannedAt.toMillis() : new Date(b.scannedAt || 0).getTime();
+          return bTime - aTime;
+        });
+    } catch (error) {
+      console.error('Error fetching dept attendance:', error);
+      return [];
+    }
+  }
+
+  async getUserDeptEventStats(userId: string, departmentId: string): Promise<{
+    totalEvents: number; eventsJoined: number; eventsAttended: number; attendanceRate: number;
+  }> {
+    try {
+      const eventsSnap = await getDocs(collection(this.firestore, `departments/${departmentId}/events`));
+      const events = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      const joined = events.filter(e => (e.attendees || []).includes(userId));
+      let attended = 0;
+      for (const e of joined) {
+        const attSnap = await getDoc(doc(this.firestore, `departments/${departmentId}/events/${e.id}/attendance`, userId));
+        if (attSnap.exists()) attended++;
+      }
+      return {
+        totalEvents: events.length,
+        eventsJoined: joined.length,
+        eventsAttended: attended,
+        attendanceRate: joined.length > 0 ? Math.round((attended / joined.length) * 100) : 0
+      };
+    } catch {
+      return { totalEvents: 0, eventsJoined: 0, eventsAttended: 0, attendanceRate: 0 };
+    }
+  }
+
+  async getDeptOverallStats(departmentId: string): Promise<{
+    totalEvents: number; totalAttendances: number; totalRegistrations: number;
+    avgAttendanceRate: number; eventsByType: { type: string; count: number }[];
+  }> {
+    try {
+      const eventsSnap = await getDocs(collection(this.firestore, `departments/${departmentId}/events`));
+      const events = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      const totalEvents = events.length;
+      const totalAttendances = events.reduce((s, e) => s + (e.attendanceCount || 0), 0);
+      const totalRegistrations = events.reduce((s, e) => s + (e.attendees?.length || 0), 0);
+      const avgAttendanceRate = totalRegistrations > 0
+        ? Math.round((totalAttendances / totalRegistrations) * 100) : 0;
+      const typeMap: Record<string, number> = {};
+      events.forEach(e => { const t = e.type || 'other'; typeMap[t] = (typeMap[t] || 0) + 1; });
+      const eventsByType = Object.entries(typeMap)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count);
+      return { totalEvents, totalAttendances, totalRegistrations, avgAttendanceRate, eventsByType };
+    } catch {
+      return { totalEvents: 0, totalAttendances: 0, totalRegistrations: 0, avgAttendanceRate: 0, eventsByType: [] };
+    }
+  }
+
   // ==================== POINTS & REWARDS ====================
 
   private readonly POINTS_MAP: { [key: string]: number } = {

@@ -17,6 +17,7 @@ export class QrScannerPage implements OnDestroy {
 
   eventId = '';
   eventTitle = '';
+  departmentId = '';
   scanStatus: ScanStatus = 'scanning';
   resultMessage = '';
   cameraErrorMsg = '';
@@ -38,6 +39,7 @@ export class QrScannerPage implements OnDestroy {
   ionViewDidEnter() {
     this.eventId = this.route.snapshot.queryParamMap.get('eventId') || '';
     this.eventTitle = this.route.snapshot.queryParamMap.get('eventTitle') || 'Event';
+    this.departmentId = this.route.snapshot.queryParamMap.get('departmentId') || '';
     this.scanStatus = 'scanning';
     this.cdr.detectChanges(); // force *ngIf to render the video element before accessing ViewChild
     this.startCamera();
@@ -123,40 +125,67 @@ export class QrScannerPage implements OnDestroy {
   }
 
   private async handleScannedData(raw: string) {
-    // Expected: josenianlink::EVENTID::TOKEN
     const parts = raw.split('::');
-    if (parts.length !== 3 || parts[0] !== 'josenianlink') {
-      this.scanStatus = 'error';
-      this.resultMessage = 'Invalid QR code. Please scan the JosenianLink event QR code displayed at the venue.';
+    const isDept = this.departmentId && parts[0] === 'josenianlink-dept';
+    const isGlobal = !this.departmentId && parts[0] === 'josenianlink';
+
+    if (isDept) {
+      // Expected: josenianlink-dept::DEPTID::EVENTID::TOKEN
+      if (parts.length !== 4) {
+        this.scanStatus = 'error';
+        this.resultMessage = 'Invalid QR code. Please scan the JosenianLink event QR code displayed at the venue.';
+        return;
+      }
+      const [, scannedDeptId, scannedEventId, token] = parts;
+      if (this.departmentId && scannedDeptId !== this.departmentId) {
+        this.scanStatus = 'error';
+        this.resultMessage = 'This QR code belongs to a different department event.';
+        return;
+      }
+      if (this.eventId && scannedEventId !== this.eventId) {
+        this.scanStatus = 'error';
+        this.resultMessage = 'This QR code belongs to a different event. Please scan the correct QR code.';
+        return;
+      }
+      this.scanStatus = 'verifying';
+      const user = this.authService.getCurrentUser();
+      if (!user) { this.scanStatus = 'error'; this.resultMessage = 'You must be logged in to record attendance.'; return; }
+      const result = await this.authService.verifyAndRecordDeptAttendance(scannedDeptId, scannedEventId, token, user.uid);
+      this.scanStatus = result.success ? 'success' : 'error';
+      this.resultMessage = result.message;
+      if (result.success) {
+        this.scannedAt = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      }
       return;
     }
 
-    const [, scannedEventId, token] = parts;
-
-    if (this.eventId && scannedEventId !== this.eventId) {
-      this.scanStatus = 'error';
-      this.resultMessage = 'This QR code belongs to a different event. Please scan the correct QR code.';
+    if (isGlobal) {
+      // Expected: josenianlink::EVENTID::TOKEN
+      if (parts.length !== 3) {
+        this.scanStatus = 'error';
+        this.resultMessage = 'Invalid QR code. Please scan the JosenianLink event QR code displayed at the venue.';
+        return;
+      }
+      const [, scannedEventId, token] = parts;
+      if (this.eventId && scannedEventId !== this.eventId) {
+        this.scanStatus = 'error';
+        this.resultMessage = 'This QR code belongs to a different event. Please scan the correct QR code.';
+        return;
+      }
+      this.scanStatus = 'verifying';
+      const user = this.authService.getCurrentUser();
+      if (!user) { this.scanStatus = 'error'; this.resultMessage = 'You must be logged in to record attendance.'; return; }
+      const result = await this.authService.verifyAndRecordAttendance(scannedEventId, token, user.uid);
+      this.scanStatus = result.success ? 'success' : 'error';
+      this.resultMessage = result.message;
+      if (result.success) {
+        this.scannedAt = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      }
       return;
     }
 
-    this.scanStatus = 'verifying';
-
-    const user = this.authService.getCurrentUser();
-    if (!user) {
-      this.scanStatus = 'error';
-      this.resultMessage = 'You must be logged in to record attendance.';
-      return;
-    }
-
-    const result = await this.authService.verifyAndRecordAttendance(scannedEventId, token, user.uid);
-    this.scanStatus = result.success ? 'success' : 'error';
-    this.resultMessage = result.message;
-
-    if (result.success) {
-      this.scannedAt = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit', minute: '2-digit', hour12: true
-      });
-    }
+    this.scanStatus = 'error';
+    this.resultMessage = 'Invalid QR code. Please scan the JosenianLink event QR code displayed at the venue.';
   }
 
   retryScanning() {

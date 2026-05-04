@@ -111,6 +111,106 @@
         </ion-card-content>
       </ion-card>
 
+      <!-- ── My Event Participation ─────────────────── -->
+      <ng-container *ngIf="userDeptId">
+
+        <div class="section-title">
+          <h2>My Event Participation</h2>
+        </div>
+
+        <ion-card class="participation-card">
+          <ion-card-content>
+            <div class="parti-stats-row">
+              <div class="parti-stat">
+                <span class="parti-num">{{ userEventStats.totalEvents }}</span>
+                <span class="parti-lbl">Total Events</span>
+              </div>
+              <div class="parti-divider"></div>
+              <div class="parti-stat">
+                <span class="parti-num">{{ userEventStats.eventsJoined }}</span>
+                <span class="parti-lbl">Joined</span>
+              </div>
+              <div class="parti-divider"></div>
+              <div class="parti-stat">
+                <span class="parti-num">{{ userEventStats.eventsAttended }}</span>
+                <span class="parti-lbl">Attended</span>
+              </div>
+              <div class="parti-divider"></div>
+              <div class="parti-stat">
+                <span class="parti-num rate">{{ userEventStats.attendanceRate }}%</span>
+                <span class="parti-lbl">Rate</span>
+              </div>
+            </div>
+
+            <div class="parti-bar-wrap" *ngIf="userEventStats.eventsJoined > 0">
+              <div class="parti-bar-track">
+                <div class="parti-bar-fill" [style.width.%]="userEventStats.attendanceRate"></div>
+              </div>
+              <span class="parti-bar-label">
+                {{ userEventStats.eventsAttended }} of {{ userEventStats.eventsJoined }} joined events attended
+              </span>
+            </div>
+
+            <div class="no-data-note" *ngIf="userEventStats.eventsJoined === 0">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <p>You haven't joined any department events yet.</p>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- ── Department Cooperation ──────────────── -->
+        <div class="section-title">
+          <h2>Department Cooperation</h2>
+        </div>
+
+        <ion-card class="summary-card">
+          <ion-card-header>
+            <ion-card-title>Event Activity Overview</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="summary-item">
+              <span>Total Dept Events</span>
+              <span class="value">{{ deptEventStats.totalEvents }}</span>
+            </div>
+            <div class="summary-item">
+              <span>Total Registrations</span>
+              <span class="value">{{ deptEventStats.totalRegistrations }}</span>
+            </div>
+            <div class="summary-item">
+              <span>Total Attendances</span>
+              <span class="value">{{ deptEventStats.totalAttendances }}</span>
+            </div>
+            <div class="summary-item">
+              <span>Avg Attendance Rate</span>
+              <span class="value positive">{{ deptEventStats.avgAttendanceRate }}%</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card class="chart-card" *ngIf="deptEventStats.eventsByType.length > 0">
+          <ion-card-header>
+            <ion-card-title>Events by Type</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="chart-container">
+              <div class="chart-bars type-bars">
+                <div *ngFor="let t of deptEventStats.eventsByType" class="bar-container">
+                  <span class="bar-value">{{ t.count }}</span>
+                  <div class="bar type-bar" [style.height]="getTypeBarHeight(t.count)"></div>
+                  <span class="bar-label">{{ t.type | titlecase }}</span>
+                </div>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <div class="no-data-note dept-no-data" *ngIf="deptEventStats.totalEvents === 0">
+          <ion-icon name="bar-chart-outline"></ion-icon>
+          <p>No department events have been created yet.</p>
+        </div>
+
+      </ng-container>
+
     </ng-container>
   </div>
 </ion-content>

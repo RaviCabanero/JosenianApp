@@ -27,6 +27,19 @@ export class StatisticsPage implements OnInit {
   // Department distribution
   departments: { name: string; value: number; color: string }[] = [];
 
+  // Current user dept
+  userDeptId = '';
+  userDeptName = '';
+
+  // Personal event participation
+  userEventStats = { totalEvents: 0, eventsJoined: 0, eventsAttended: 0, attendanceRate: 0 };
+
+  // Department cooperation stats
+  deptEventStats = {
+    totalEvents: 0, totalAttendances: 0, totalRegistrations: 0,
+    avgAttendanceRate: 0, eventsByType: [] as { type: string; count: number }[]
+  };
+
   private readonly chartColors = ['primary', 'secondary', 'tertiary', 'success', 'warning', 'danger'];
 
   constructor(private router: Router, private authService: AuthService) {}
@@ -38,7 +51,11 @@ export class StatisticsPage implements OnInit {
   async loadStats() {
     this.isLoading = true;
     try {
-      const allUsers = await this.authService.getAllUsers();
+      const user = this.authService.getCurrentUser();
+      const [allUsers, profile] = await Promise.all([
+        this.authService.getAllUsers(),
+        user ? this.authService.getUserProfile(user.uid) : Promise.resolve(null)
+      ]);
       const nonAdmin = allUsers.filter((u: any) => u.role !== 'admin');
 
       this.stats.totalUsers    = nonAdmin.length;
@@ -52,6 +69,20 @@ export class StatisticsPage implements OnInit {
 
       this.buildMonthlyData(nonAdmin);
       this.buildDepartmentData(nonAdmin);
+
+      // Load event participation stats if user has a primary department
+      if (user && profile?.['department']) {
+        this.userDeptId = profile['department'];
+        const deptMatch = nonAdmin.find((u: any) => u.id === user.uid);
+        this.userDeptName = deptMatch?.['departmentName'] || this.userDeptId;
+
+        const [userStats, deptStats] = await Promise.all([
+          this.authService.getUserDeptEventStats(user.uid, this.userDeptId),
+          this.authService.getDeptOverallStats(this.userDeptId)
+        ]);
+        this.userEventStats = userStats;
+        this.deptEventStats = deptStats;
+      }
     } catch (error) {
       console.error('Error loading statistics:', error);
     } finally {
@@ -90,6 +121,11 @@ export class StatisticsPage implements OnInit {
   getChartHeight(value: number): string {
     const max = Math.max(...this.monthlyData.map(m => m.value), 1);
     return `${Math.round((value / max) * 150)}px`;
+  }
+
+  getTypeBarHeight(value: number): string {
+    const max = Math.max(...this.deptEventStats.eventsByType.map(t => t.count), 1);
+    return `${Math.round((value / max) * 90)}px`;
   }
 
   goBack() {

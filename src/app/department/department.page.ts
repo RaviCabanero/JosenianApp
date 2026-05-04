@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController, IonModal } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
+import * as QRCode from 'qrcode';
 
 interface Department {
   id: string;
@@ -31,6 +32,10 @@ interface DeptEvent {
   createdByName?: string;
   attendees?: string[];
   status?: string;
+  maxParticipants?: number;
+  isPinned?: boolean;
+  qrToken?: string;
+  attendanceCount?: number;
 }
 
 interface DeptWallPost {
@@ -74,13 +79,29 @@ export class DepartmentPage implements OnInit {
   eventForm: DeptEvent = this.emptyEventForm();
 
   eventFilter: 'upcoming' | 'past' = 'upcoming';
+  eventTypeFilter = 'all';
   expandedEventId: string | null = null;
   attendeeNames: Record<string, string[]> = {};
+
+  readonly eventTypes = ['all', 'academic', 'seminar', 'workshop', 'social', 'sports', 'other'];
 
   wallPosts: DeptWallPost[] = [];
   isLoadingWall = false;
   wallInput = '';
   isPostingWall = false;
+
+  showQRModal = false;
+  qrModalEvent: DeptEvent | null = null;
+  qrCodeDataUrl = '';
+  deptAttendanceList: any[] = [];
+  isLoadingDeptAttendance = false;
+  isGeneratingDeptQR = false;
+  showAttendanceInModal = false;
+
+  // Event participation stats
+  userDeptStats: { totalEvents: number; eventsJoined: number; eventsAttended: number; attendanceRate: number } | null = null;
+  hodDeptStats: { totalEvents: number; totalAttendances: number; totalRegistrations: number; avgAttendanceRate: number; eventsByType: { type: string; count: number }[] } | null = null;
+  isLoadingStats = false;
 
   readonly tabs = ['overview', 'members', 'events', 'wall'];
 
@@ -96,9 +117,12 @@ export class DepartmentPage implements OnInit {
 
   get filteredEvents(): DeptEvent[] {
     const today = new Date().toISOString().split('T')[0];
-    return this.eventFilter === 'upcoming'
+    let events = this.eventFilter === 'upcoming'
       ? this.departmentEvents.filter(e => !e.date || e.date >= today)
       : this.departmentEvents.filter(e => !!e.date && e.date < today);
+    if (this.eventTypeFilter !== 'all')
+      events = events.filter(e => e.type === this.eventTypeFilter);
+    return events.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
   }
 
   get totalMembers(): number {
@@ -231,6 +255,8 @@ export class DepartmentPage implements OnInit {
     this.attendeeNames = {};
     this.wallPosts = [];
     this.wallInput = '';
+    this.userDeptStats = null;
+    this.hodDeptStats = null;
     await this.detailModal.present();
   }
 
@@ -239,15 +265,19 @@ export class DepartmentPage implements OnInit {
     this.selectedDepartment = null;
     this.departmentEvents = [];
     this.showEventForm = false;
+    this.userDeptStats = null;
+    this.hodDeptStats = null;
   }
 
   switchTab(tab: string) {
     this.activeTab = tab;
     if (tab === 'events') {
       this.eventFilter = 'upcoming';
+      this.eventTypeFilter = 'all';
       this.expandedEventId = null;
       this.attendeeNames = {};
       this.loadDepartmentEvents();
+      this.loadEventStats();
     }
     if (tab === 'wall') {
       this.wallInput = '';
@@ -323,6 +353,32 @@ export class DepartmentPage implements OnInit {
     } catch (error) {
       console.error('Error saving event:', error);
     }
+  }
+
+  formatEventDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  isEventFull(event: DeptEvent): boolean {
+    if (!event.maxParticipants) return false;
+    return (event.attendees?.length || 0) >= event.maxParticipants;
+  }
+
+  getCapacityClass(event: DeptEvent): string {
+    if (!event.maxParticipants) return '';
+    const ratio = (event.attendees?.length || 0) / event.maxParticipants;
+    if (ratio >= 1) return 'capacity-full';
+    if (ratio >= 0.75) return 'capacity-near';
+    return '';
+  }
+
+  async togglePinEvent(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id) return;
+    const newPinned = !event.isPinned;
+    await this.authService.updateDepartmentEvent(this.selectedDepartment.id, event.id, { isPinned: newPinned });
+    event.isPinned = newPinned;
   }
 
   async deleteEvent(event: DeptEvent) {
@@ -484,6 +540,125 @@ export class DepartmentPage implements OnInit {
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  // ── Event Stats ────────────────────────────────────────────
+
+  async loadEventStats() {
+    if (!this.selectedDepartment) return;
+    this.isLoadingStats = true;
+    try {
+      if (this.isHOD) {
+        this.hodDeptStats = await this.authService.getDeptOverallStats(this.selectedDepartment.id);
+      }
+      if (this.currentUserId) {
+        this.userDeptStats = await this.authService.getUserDeptEventStats(this.currentUserId, this.selectedDepartment.id);
+      }
+    } catch {
+      // ignore
+    } finally {
+      this.isLoadingStats = false;
+    }
+  }
+
+  // ── QR Attendance ──────────────────────────────────────────
+
+  async showEventQR(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id) return;
+    this.isGeneratingDeptQR = true;
+    this.qrModalEvent = event;
+    this.showQRModal = true;
+    this.deptAttendanceList = [];
+    this.showAttendanceInModal = false;
+    this.qrCodeDataUrl = '';
+    try {
+      let token = event.qrToken;
+      if (!token) {
+        token = await this.authService.generateDepartmentEventQRToken(this.selectedDepartment.id, event.id);
+        event.qrToken = token;
+        this.qrModalEvent = { ...event };
+      }
+      await this.renderDeptQRCode(this.selectedDepartment.id, event.id, token);
+      await this.loadDeptEventAttendance(this.selectedDepartment.id, event.id);
+    } catch {
+      this.closeQRModal();
+    } finally {
+      this.isGeneratingDeptQR = false;
+    }
+  }
+
+  async refreshQRCode() {
+    if (!this.selectedDepartment || !this.qrModalEvent?.id) return;
+    this.isGeneratingDeptQR = true;
+    this.qrCodeDataUrl = '';
+    try {
+      const token = await this.authService.generateDepartmentEventQRToken(this.selectedDepartment.id, this.qrModalEvent.id);
+      this.qrModalEvent.qrToken = token;
+      await this.renderDeptQRCode(this.selectedDepartment.id, this.qrModalEvent.id, token);
+    } catch {
+      // ignore
+    } finally {
+      this.isGeneratingDeptQR = false;
+    }
+  }
+
+  private async renderDeptQRCode(deptId: string, eventId: string, token: string) {
+    const payload = `josenianlink-dept::${deptId}::${eventId}::${token}`;
+    this.qrCodeDataUrl = await QRCode.toDataURL(payload, {
+      width: 260,
+      margin: 2,
+      color: { dark: '#111827', light: '#ffffff' },
+      errorCorrectionLevel: 'M'
+    });
+  }
+
+  async loadDeptEventAttendance(deptId: string, eventId: string) {
+    this.isLoadingDeptAttendance = true;
+    try {
+      this.deptAttendanceList = await this.authService.getDeptEventAttendance(deptId, eventId);
+    } catch {
+      this.deptAttendanceList = [];
+    } finally {
+      this.isLoadingDeptAttendance = false;
+    }
+  }
+
+  toggleAttendanceList() {
+    this.showAttendanceInModal = !this.showAttendanceInModal;
+    if (this.showAttendanceInModal && this.selectedDepartment && this.qrModalEvent?.id) {
+      this.loadDeptEventAttendance(this.selectedDepartment.id, this.qrModalEvent.id);
+    }
+  }
+
+  closeQRModal() {
+    this.showQRModal = false;
+    this.qrModalEvent = null;
+    this.qrCodeDataUrl = '';
+    this.deptAttendanceList = [];
+    this.showAttendanceInModal = false;
+  }
+
+  scanEventQR(event: DeptEvent) {
+    if (!this.selectedDepartment || !event.id) return;
+    this.router.navigate(['/qr-scanner'], {
+      queryParams: {
+        eventId: event.id,
+        eventTitle: event.title,
+        departmentId: this.selectedDepartment.id
+      }
+    });
+  }
+
+  formatAttendanceTime(scannedAt: any): string {
+    if (!scannedAt) return '';
+    const d = scannedAt.toDate ? scannedAt.toDate() : new Date(scannedAt);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  isEventToday(event: DeptEvent): boolean {
+    if (!event.date) return false;
+    const today = new Date().toISOString().split('T')[0];
+    return event.date === today;
   }
 
   goBack() { this.router.navigate(['/home']); }
