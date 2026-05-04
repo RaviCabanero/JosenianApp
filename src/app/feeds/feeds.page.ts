@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc, deleteDoc, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { AuthService } from '../services/auth.service';
@@ -95,21 +95,39 @@ export class FeedsPage implements OnInit {
     if (!this.currentUserUid) return;
 
     try {
-      // Load posts for the current user from Firestore
-      const postsRef = collection(this.firestore, `users/${this.currentUserUid}/posts`);
-      const q = query(postsRef);
-      const snapshot = await getDocs(q);
-      
+      // Load own posts
+      const ownPostsSnap = await getDocs(collection(this.firestore, `users/${this.currentUserUid}/posts`));
       if (this.currentUser) {
-        this.currentUser.posts = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp'])
-          } as Post;
+        this.currentUser.posts = ownPostsSnap.docs.map(d => {
+          const data = d.data();
+          return { id: d.id, ...data, timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
         });
       }
+
+      // Load friend UIDs
+      const userDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
+      const friendUids: string[] = userDoc.exists() ? userDoc.data()['friends'] || [] : [];
+
+      // Load each friend's profile + posts in parallel
+      const friendUsers: User[] = await Promise.all(
+        friendUids.map(async (uid, index) => {
+          const friendDoc = await getDoc(doc(this.firestore, 'users', uid));
+          const fd = friendDoc.exists() ? friendDoc.data() : {};
+          const firstName = fd['firstName'] || '';
+          const lastName = fd['lastName'] || '';
+          const name = `${firstName} ${lastName}`.trim() || fd['email'] || 'User';
+
+          const friendPostsSnap = await getDocs(collection(this.firestore, `users/${uid}/posts`));
+          const posts: Post[] = friendPostsSnap.docs.map(d => {
+            const data = d.data();
+            return { id: d.id, ...data, timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
+          });
+
+          return { id: index + 1, uid, name, avatar: firstName.charAt(0).toUpperCase() || 'U', posts } as User;
+        })
+      );
+
+      this.friends = [this.currentUser!, ...friendUsers];
     } catch (error) {
       console.error('Error loading posts from Firestore:', error);
     }
@@ -168,6 +186,9 @@ export class FeedsPage implements OnInit {
     try {
       const currentUserDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
       const currentDept = currentUserDoc.exists() ? currentUserDoc.data()['department'] : '';
+      const friends: string[] = currentUserDoc.exists() ? currentUserDoc.data()['friends'] || [] : [];
+      const sentRequests: string[] = currentUserDoc.exists() ? currentUserDoc.data()['sentRequests'] || [] : [];
+      const excludeSet = new Set([...friends, ...sentRequests, this.currentUserUid]);
 
       const q = query(
         collection(this.firestore, 'users'),
@@ -176,10 +197,9 @@ export class FeedsPage implements OnInit {
       );
       const snapshot = await getDocs(q);
 
-      const friendUids = new Set(this.friends.map(f => f.uid));
       let counter = 1;
       this.suggestedUsers = snapshot.docs
-        .filter(d => d.id !== this.currentUserUid && !friendUids.has(d.id))
+        .filter(d => !excludeSet.has(d.id))
         .map(d => {
           const data = d.data();
           const firstName = data['firstName'] || '';
@@ -267,6 +287,10 @@ export class FeedsPage implements OnInit {
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
+  viewProfile(uid: string) {
+    this.router.navigate(['/user-profile', uid]);
+  }
+
   goBack() {
     this.router.navigate(['/home']);
   }
@@ -290,11 +314,12 @@ export class FeedsPage implements OnInit {
     }
   }
 
-  addFriend(userUid: string) {
-    const user = this.suggestedUsers.find(u => u.uid === userUid);
-    if (user) {
-      this.friends.push(user);
+  async addFriend(userUid: string) {
+    try {
+      await this.authService.sendFriendRequest(userUid);
       this.suggestedUsers = this.suggestedUsers.filter(u => u.uid !== userUid);
+    } catch (error) {
+      console.error('Error sending friend request:', error);
     }
   }
 

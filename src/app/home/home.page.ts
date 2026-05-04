@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { Auth, authState } from '@angular/fire/auth';
+import { Firestore, collection, query, where, onSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../services/auth.service';
+import { ChatService } from '../services/chat.service';
 
 @Component({
   selector: 'app-home',
@@ -8,7 +11,7 @@ import { AuthService } from '../services/auth.service';
   styleUrls: ['home.page.scss'],
   standalone: false,
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   user = {
     name: 'User',
     initials: 'U',
@@ -20,6 +23,8 @@ export class HomePage implements OnInit {
 
   notifications = 0;
   unreadChats = 0;
+  private notifUnsubscribe: (() => void) | null = null;
+  private chatUnsubscribe: (() => void) | null = null;
 
   dashboardCards = [
     { id: 1, title: 'My Department', icon: 'business',  value: '—', description: 'Members',     color: 'primary'   },
@@ -31,12 +36,42 @@ export class HomePage implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private auth: Auth,
+    private firestore: Firestore,
+    private chatService: ChatService
   ) {}
 
   async ngOnInit() {
     await this.loadUserProfile();
     await this.loadDashboardStats();
+    this.subscribeToUnreadCounts();
+  }
+
+  ngOnDestroy() {
+    this.notifUnsubscribe?.();
+    this.chatUnsubscribe?.();
+  }
+
+  private subscribeToUnreadCounts() {
+    authState(this.auth).subscribe(user => {
+      if (!user) return;
+
+      // Notification badge
+      const notifQ = query(
+        collection(this.firestore, 'users', user.uid, 'notifications'),
+        where('read', '==', false)
+      );
+      this.notifUnsubscribe = onSnapshot(notifQ, snapshot => {
+        this.notifications = snapshot.size;
+      });
+
+      // Chat badge
+      this.chatUnsubscribe = this.chatService.subscribeToUnreadChatCount(
+        user.uid,
+        count => { this.unreadChats = count; }
+      );
+    });
   }
 
   async loadUserProfile() {
@@ -54,9 +89,6 @@ export class HomePage implements OnInit {
         this.user.initials =
           (this.user.firstName.charAt(0) + this.user.lastName.charAt(0)).toUpperCase() || 'U';
       }
-
-      const notifs = await this.authService.getNotifications(currentUser.uid);
-      this.notifications = notifs.filter((n: any) => !n.read).length;
     } catch (error) {
       console.error('Error loading user profile:', error);
     }

@@ -1,0 +1,292 @@
+$green:    #10b981;
+$green-dk: #059669;
+$text-1:   #111827;
+$text-2:   #374151;
+$text-3:   #6b7280;
+$border:   #e5e7eb;
+$bg:       #f3f4f6;
+
+.up-header ion-toolbar {
+  --background: #fff;
+  --color: #{$text-1};
+  --border-color: #{$border};
+  ion-title { font-weight: 700; }
+}
+
+.up-content { --background: #{$bg}; }
+
+.up-loading {
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+// ── Hero ────────────────────────────────────────────────────
+.up-hero {
+  background: #fff;
+  padding: 32px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid $border;
+  margin-bottom: 16px;
+}
+
+.up-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $green, $green-dk);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, .3);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.up-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: $text-1;
+  margin: 0;
+  text-align: center;
+}
+
+.up-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-3;
+  ion-icon { font-size: 15px; }
+}
+
+// ── Action Buttons ───────────────────────────────────────────
+.up-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-connect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: $green;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .2s;
+  ion-icon { font-size: 16px; }
+  &:hover { background: $green-dk; }
+  &:disabled { opacity: .6; cursor: not-allowed; }
+}
+
+.btn-pending {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: $text-3;
+  border: 1px solid $border;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .2s;
+  ion-icon { font-size: 16px; }
+  &:hover { background: #fee2e2; color: #ef4444; border-color: #fee2e2; }
+  &:disabled { opacity: .6; }
+}
+
+.friend-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $green;
+  background: #f0fdf4;
+  border-radius: 10px;
+  ion-icon { font-size: 16px; }
+}
+
+.btn-remove {
+  padding: 9px 11px;
+  background: #fff0f0;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s;
+  ion-icon { font-size: 18px; }
+  &:hover { background: #fee2e2; }
+  &:disabled { opacity: .6; }
+}
+
+// ── Private Gate ─────────────────────────────────────────────
+.private-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  background: #fff;
+  border-radius: 14px;
+  margin: 0 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+
+  ion-icon { font-size: 48px; color: #d1d5db; }
+  h3 { font-size: 16px; font-weight: 700; color: $text-2; margin: 0; }
+  p { font-size: 13px; color: $text-3; margin: 0; max-width: 260px; }
+}
+
+// ── Cards ────────────────────────────────────────────────────
+.up-card {
+  background: #fff;
+  border-radius: 14px;
+  margin: 0 16px 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+
+.up-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: $text-2;
+  margin-bottom: 12px;
+  ion-icon { font-size: 17px; color: $green; }
+}
+
+.up-bio {
+  font-size: 14px;
+  color: $text-2;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+// ── Info List ────────────────────────────────────────────────
+.up-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.up-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  > ion-icon {
+    font-size: 18px;
+    color: $text-3;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-3;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: $text-1;
+  font-weight: 500;
+}
+
+// ── Work Experience ───────────────────────────────────────────
+.work-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.work-item {
+  display: flex;
+  gap: 12px;
+}
+
+.work-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: $green;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.work-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.work-position {
+  font-size: 14px;
+  font-weight: 700;
+  color: $text-1;
+  margin: 0 0 2px;
+}
+
+.work-company {
+  font-size: 13px;
+  font-weight: 600;
+  color: $green;
+  margin: 0 0 2px;
+}
+
+.work-years {
+  font-size: 12px;
+  color: $text-3;
+  margin: 0 0 4px;
+}
+
+.work-desc {
+  font-size: 13px;
+  color: $text-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ── Responsive ───────────────────────────────────────────────
+@media (max-width: 480px) {
+  .up-avatar { width: 72px; height: 72px; font-size: 26px; }
+  .up-name { font-size: 19px; }
+}

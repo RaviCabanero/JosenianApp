@@ -115,6 +115,21 @@ export class DepartmentPage implements OnInit {
     return !!this.selectedDepartment && this.selectedDepartment.id === this.currentUserDepartmentId;
   }
 
+  get isFollowing(): boolean {
+    if (!this.selectedDepartment) return false;
+    return this.userDepartments.some(
+      ud => ud.departmentId === this.selectedDepartment!.id && ud.status === 'following'
+    );
+  }
+
+  get visibleTabs(): string[] {
+    if (!this.selectedDepartment) return ['overview'];
+    const deptId = this.selectedDepartment.id;
+    if (this.isHOD || this.isPrimaryDepartment(deptId)) return this.tabs;
+    if (this.isFollowing) return ['overview', 'events', 'wall'];
+    return ['overview'];
+  }
+
   get filteredEvents(): DeptEvent[] {
     const today = new Date().toISOString().split('T')[0];
     let events = this.eventFilter === 'upcoming'

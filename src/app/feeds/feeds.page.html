@@ -138,7 +138,7 @@
         <div class="suggested-users-horizontal">
           <div class="user-card" *ngFor="let user of suggestedUsers">
             <div class="card-content">
-              <div class="user-avatar-large">{{ user.avatar }}</div>
+              <div class="user-avatar-large" (click)="viewProfile(user.uid)" style="cursor:pointer">{{ user.avatar }}</div>
               <h5>{{ user.name }}</h5>
               <p class="mutual-friends">{{ user.mutualFriends || 0 }} mutual friends</p>
               <button class="add-btn" (click)="addFriend(user.uid)">
@@ -163,7 +163,7 @@
           <!-- Post Header -->
           <div class="post-header">
             <div class="author-info">
-              <div class="author-avatar">
+              <div class="author-avatar" (click)="viewProfile(item.user.uid); $event.stopPropagation()" style="cursor:pointer">
                 {{ item.user.avatar }}
               </div>
               <div>

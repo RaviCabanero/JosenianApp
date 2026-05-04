@@ -173,7 +173,7 @@
       <!-- Tabs -->
       <div class="modal-tabs">
         <button
-          *ngFor="let tab of tabs"
+          *ngFor="let tab of visibleTabs"
           class="modal-tab"
           [class.active]="activeTab === tab"
           (click)="switchTab(tab)"
@@ -197,6 +197,20 @@
             <ion-icon [name]="isPrimaryDepartment(selectedDepartment.id) ? 'checkmark-circle' : 'star'"></ion-icon>
             {{ isPrimaryDepartment(selectedDepartment.id) ? 'Primary Department' : 'Following' }}
           </span>
+        </div>
+
+        <!-- Follower access notice -->
+        <div class="follower-access-banner" *ngIf="isFollowing">
+          <div class="fab-row">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <strong>Follower Access</strong>
+          </div>
+          <div class="fab-items">
+            <span class="fab-item allowed"><ion-icon name="checkmark-circle-outline"></ion-icon> View events &amp; join them</span>
+            <span class="fab-item allowed"><ion-icon name="checkmark-circle-outline"></ion-icon> Read the department wall</span>
+            <span class="fab-item blocked"><ion-icon name="close-circle-outline"></ion-icon> View member list</span>
+            <span class="fab-item blocked"><ion-icon name="close-circle-outline"></ion-icon> Post on the wall</span>
+          </div>
         </div>
 
         <div class="info-section" *ngIf="selectedDepartment.courses && selectedDepartment.courses.length > 0">
@@ -459,8 +473,14 @@
       <!-- ── Wall Tab ──────────────────────────────── -->
       <div *ngIf="activeTab === 'wall'" class="tab-body wall-tab">
 
-        <!-- Compose box -->
-        <div class="wall-compose" *ngIf="isUserInDepartment(selectedDepartment.id)">
+        <!-- Follower read-only notice -->
+        <div class="wall-follower-notice" *ngIf="isFollowing">
+          <ion-icon name="eye-outline"></ion-icon>
+          <span>You're following this department. Register as a member to post on the wall.</span>
+        </div>
+
+        <!-- Compose box (members + HOD only) -->
+        <div class="wall-compose" *ngIf="isPrimaryDepartment(selectedDepartment.id) || isHOD">
           <div class="wall-compose-avatar">{{ currentUserName.charAt(0).toUpperCase() || 'M' }}</div>
           <div class="wall-compose-input-wrap">
             <textarea

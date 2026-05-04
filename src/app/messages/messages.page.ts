@@ -1,16 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Auth, authState } from '@angular/fire/auth';
 import { AuthService } from '../services/auth.service';
-
-interface Conversation {
-  uid: string;
-  name: string;
-  avatar: string;
-  role: string;
-  department: string;
-  online: boolean;
-}
+import { ChatService, ConversationItem } from '../services/chat.service';
 
 @Component({
   selector: 'app-messages',
@@ -18,71 +10,130 @@ interface Conversation {
   styleUrls: ['./messages.page.scss'],
   standalone: false,
 })
-export class MessagesPage implements OnInit {
+export class MessagesPage implements OnInit, OnDestroy {
   searchQuery = '';
-  conversations: Conversation[] = [];
-  filteredConversations: Conversation[] = [];
-  isLoading = false;
+  allItems: ConversationItem[] = [];
+  filteredItems: ConversationItem[] = [];
+  isLoading = true;
   private currentUserUid: string | null = null;
+  private convUnsubscribe: (() => void) | null = null;
 
   constructor(
     private router: Router,
     private auth: Auth,
-    private authService: AuthService
+    private authService: AuthService,
+    private chatService: ChatService
   ) {}
 
   ngOnInit() {
     authState(this.auth).subscribe(async user => {
-      if (!user) {
-        this.router.navigate(['/login']);
-        return;
-      }
+      if (!user) { this.router.navigate(['/login']); return; }
       this.currentUserUid = user.uid;
-      await this.loadConversations();
+      await this.loadFriends();
     });
   }
 
-  async loadConversations() {
+  ngOnDestroy() {
+    this.convUnsubscribe?.();
+  }
+
+  private async loadFriends() {
+    if (!this.currentUserUid) return;
     this.isLoading = true;
     try {
+      // Get current user doc to read friends array
+      const profile = await this.authService.getUserProfile(this.currentUserUid);
+      const friendUids: string[] = profile?.['friends'] || [];
+
+      // Get profiles of all friends
       const allUsers = await this.authService.getAllUsers();
-      this.conversations = allUsers
-        .filter((u: any) => u.status === 'approved' && u.role !== 'admin' && u.id !== this.currentUserUid)
-        .map((u: any) => {
-          const firstName = u.firstName || '';
-          const lastName = u.lastName || '';
-          const name = `${firstName} ${lastName}`.trim() || u.email || 'Unknown';
-          return {
-            uid: u.id,
-            name,
-            avatar: firstName.charAt(0).toUpperCase() || '?',
-            role: u.userType === 'alumni' ? 'Alumni' : 'Student',
-            department: u.department || 'No Department',
-            online: false
-          };
-        });
-      this.filteredConversations = this.conversations;
-    } catch (error) {
-      console.error('Error loading conversations:', error);
+      const friendProfiles = allUsers.filter((u: any) => friendUids.includes(u.id));
+
+      // Build base items from friend profiles (no conversation data yet)
+      this.allItems = friendProfiles.map((u: any) => {
+        const firstName = u.firstName || '';
+        const lastName = u.lastName || '';
+        return {
+          id: this.chatService.getConversationId(this.currentUserUid!, u.id),
+          otherUid: u.id,
+          otherName: `${firstName} ${lastName}`.trim() || u.email || 'User',
+          otherAvatar: firstName.charAt(0).toUpperCase() || '?',
+          lastMessage: '',
+          lastMessageAt: null,
+          unreadCount: 0,
+          hasConversation: false
+        } as ConversationItem;
+      });
+
+      this.applyFilter();
+      this.subscribeToConversations();
+    } catch (err) {
+      console.error('Error loading friends:', err);
     } finally {
       this.isLoading = false;
     }
   }
 
-  goBack() {
-    this.router.navigate(['/home']);
+  private subscribeToConversations() {
+    if (!this.currentUserUid) return;
+    this.convUnsubscribe = this.chatService.subscribeToConversations(
+      this.currentUserUid,
+      (rawConvs: any[]) => {
+        // Merge real-time conversation data into allItems
+        this.allItems = this.allItems.map(item => {
+          const conv = rawConvs.find(c => c.id === item.id);
+          if (!conv) return item;
+          return {
+            ...item,
+            lastMessage: conv.lastMessage || '',
+            lastMessageAt: conv.lastMessageAt?.toDate?.() ?? null,
+            unreadCount: conv.unreadCount?.[this.currentUserUid!] ?? 0,
+            hasConversation: !!(conv.lastMessage)
+          };
+        });
+
+        // Sort: conversations with messages first (newest first), then friends without
+        this.allItems.sort((a, b) => {
+          if (a.lastMessageAt && b.lastMessageAt) {
+            return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+          }
+          if (a.lastMessageAt) return -1;
+          if (b.lastMessageAt) return 1;
+          return a.otherName.localeCompare(b.otherName);
+        });
+
+        this.applyFilter();
+      }
+    );
   }
 
-  openChat(uid: string) {
-    console.log('Opening chat with:', uid);
+  private applyFilter() {
+    const q = this.searchQuery.toLowerCase();
+    this.filteredItems = q
+      ? this.allItems.filter(i => i.otherName.toLowerCase().includes(q))
+      : [...this.allItems];
   }
 
   onSearchChange(event: any) {
-    const query = (event.detail.value || '').toLowerCase();
-    this.filteredConversations = this.conversations.filter(c =>
-      c.name.toLowerCase().includes(query) ||
-      c.role.toLowerCase().includes(query) ||
-      c.department.toLowerCase().includes(query)
-    );
+    this.searchQuery = event.detail.value || '';
+    this.applyFilter();
+  }
+
+  openChat(otherUid: string) {
+    this.router.navigate(['/chat', otherUid]);
+  }
+
+  formatTime(date: Date | null): string {
+    if (!date) return '';
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
+    if (diffDays === 0) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  goBack() {
+    this.router.navigate(['/home']);
   }
 }

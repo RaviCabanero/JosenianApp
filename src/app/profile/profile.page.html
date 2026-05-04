@@ -69,6 +69,61 @@
       Edit Profile
     </ion-button>
 
+    <!-- ── Privacy Settings Card ───────────── -->
+    <div class="section-card privacy-card">
+      <div class="section-header">
+        <div class="section-header-icon privacy-icon">
+          <ion-icon [name]="isPrivate ? 'lock-closed' : 'globe-outline'"></ion-icon>
+        </div>
+        <div>
+          <h2 class="section-title">Privacy Settings</h2>
+          <p class="section-subtitle">Control who sees your profile</p>
+        </div>
+      </div>
+
+      <div class="privacy-toggle-row">
+        <div class="privacy-toggle-info">
+          <p class="privacy-mode-label" [class.private-mode]="isPrivate">
+            <ion-icon [name]="isPrivate ? 'lock-closed' : 'globe-outline'"></ion-icon>
+            {{ isPrivate ? 'Private Account' : 'Public Account' }}
+          </p>
+          <p class="privacy-mode-desc">
+            {{ isPrivate ? 'Only friends can view your full profile.' : 'Your profile is visible to everyone.' }}
+          </p>
+        </div>
+        <ion-toggle
+          [checked]="isPrivate"
+          (ionChange)="onPrivacyChange($event)"
+          color="primary">
+        </ion-toggle>
+      </div>
+
+      <div class="privacy-options">
+        <div class="privacy-option" [class.option-active]="!isPrivate">
+          <div class="option-icon public"><ion-icon name="globe-outline"></ion-icon></div>
+          <div class="option-body">
+            <strong>Public</strong>
+            <p>Full profile visible to all users. Appears in search and suggestions.</p>
+          </div>
+          <ion-icon name="checkmark-circle" class="option-check" *ngIf="!isPrivate" color="success"></ion-icon>
+        </div>
+
+        <div class="privacy-option" [class.option-active]="isPrivate">
+          <div class="option-icon private"><ion-icon name="lock-closed-outline"></ion-icon></div>
+          <div class="option-body">
+            <strong>Private</strong>
+            <p>Non-friends see only your name and course. Send a friend request to unlock.</p>
+          </div>
+          <ion-icon name="checkmark-circle" class="option-check" *ngIf="isPrivate" color="primary"></ion-icon>
+        </div>
+      </div>
+
+      <p class="privacy-note">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        Privacy does not affect events, QR scanning, or points.
+      </p>
+    </div>
+
     <!-- ── Personal Information Card ─────── -->
     <div class="section-card">
       <div class="section-header">

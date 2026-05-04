@@ -71,6 +71,7 @@ export class ProfilePage implements OnInit {
   isEditingWork = false;
   editingWorkId = '';
   isSaving = false;
+  isPrivate = false;
 
   genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
   yearOptions: string[] = [];
@@ -150,6 +151,8 @@ export class ProfilePage implements OnInit {
             }
           }
 
+          this.isPrivate = profile.isPrivate === true;
+
           if (profile.userType === 'alumni') {
             this.workExperiences = ((profile.workExperiences as WorkExperience[]) || []).slice().sort(this.sortWork);
           }
@@ -161,6 +164,20 @@ export class ProfilePage implements OnInit {
       console.error('Error loading profile:', error);
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  // ── Privacy ────────────────────────────────────────
+
+  async onPrivacyChange(event: any) {
+    const newValue: boolean = event.detail.checked;
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return;
+    this.isPrivate = newValue;
+    try {
+      await this.authService.updateUserProfile(currentUser.uid, { isPrivate: newValue });
+    } catch {
+      this.isPrivate = !newValue;
     }
   }
 

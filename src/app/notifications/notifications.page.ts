@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Auth, authState } from '@angular/fire/auth';
+import { Firestore, collection, query, orderBy, onSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../services/auth.service';
+import { PushNotificationService } from '../services/push-notification.service';
 
 interface Notification {
   id: string;
@@ -13,6 +15,7 @@ interface Notification {
   read: boolean;
   icon: string;
   createdAt?: string;
+  redirectLink?: string;
 }
 
 @Component({
@@ -21,42 +24,65 @@ interface Notification {
   styleUrls: ['./notifications.page.scss'],
   standalone: false,
 })
-export class NotificationsPage implements OnInit {
+export class NotificationsPage implements OnInit, OnDestroy {
   selectedFilter = 'all';
   notifications: Notification[] = [];
   filteredNotifications: Notification[] = [];
-  isLoading = false;
+  isLoading = true;
   private currentUserUid: string | null = null;
+  private notifUnsubscribe: (() => void) | null = null;
 
   constructor(
     private router: Router,
     private auth: Auth,
-    private authService: AuthService
+    private firestore: Firestore,
+    private authService: AuthService,
+    private pushSvc: PushNotificationService
   ) {}
 
   ngOnInit() {
-    authState(this.auth).subscribe(async user => {
+    authState(this.auth).subscribe(user => {
       if (!user) {
         this.router.navigate(['/login']);
         return;
       }
       this.currentUserUid = user.uid;
-      await this.loadNotifications();
+      this.subscribeToNotifications();
     });
   }
 
-  async loadNotifications() {
+  ngOnDestroy() {
+    this.notifUnsubscribe?.();
+  }
+
+  private subscribeToNotifications() {
     if (!this.currentUserUid) return;
-    this.isLoading = true;
-    try {
-      const raw = await this.authService.getNotifications(this.currentUserUid);
-      this.notifications = raw.map(n => this.mapToNotification(n));
+
+    const ref = collection(this.firestore, 'users', this.currentUserUid, 'notifications');
+    const q = query(ref, orderBy('createdAt', 'desc'));
+
+    this.notifUnsubscribe = onSnapshot(q, snapshot => {
+      const incoming = snapshot.docs.map(d =>
+        this.mapToNotification({ id: d.id, ...d.data() })
+      );
+
+      const prevUnreadCount = this.notifications.filter(n => !n.read).length;
+      this.notifications = incoming;
       this.filterNotifications();
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    } finally {
       this.isLoading = false;
-    }
+
+      const newUnreadCount = this.notifications.filter(n => !n.read).length;
+      if (newUnreadCount > prevUnreadCount) {
+        const newest = this.notifications.find(n => !n.read);
+        this.pushSvc.showNotification(
+          newest?.title || 'New notification',
+          newest?.message || ''
+        );
+      }
+    }, error => {
+      console.error('Error listening to notifications:', error);
+      this.isLoading = false;
+    });
   }
 
   private mapToNotification(raw: any): Notification {
@@ -69,7 +95,8 @@ export class NotificationsPage implements OnInit {
       timestamp: this.getTimeAgo(raw.createdAt),
       read: raw.read || false,
       icon: this.getIcon(raw.type),
-      createdAt: raw.createdAt
+      createdAt: raw.createdAt,
+      redirectLink: raw.redirectLink || null
     };
   }
 
@@ -79,6 +106,7 @@ export class NotificationsPage implements OnInit {
       error: 'close-circle',
       warning: 'alert-circle',
       info: 'information-circle',
+      system: 'megaphone',
       mention: 'at',
       comment: 'chatbox',
       like: 'heart',
@@ -86,6 +114,7 @@ export class NotificationsPage implements OnInit {
       event: 'calendar',
       message: 'mail',
       achievement: 'trophy',
+      points: 'star',
       update: 'document-text'
     };
     return icons[type] || 'notifications';
@@ -156,6 +185,10 @@ export class NotificationsPage implements OnInit {
 
   openNotification(notificationId: string) {
     this.markAsRead(notificationId);
+    const notification = this.notifications.find(n => n.id === notificationId);
+    if (notification?.redirectLink) {
+      this.router.navigate([notification.redirectLink]);
+    }
   }
 
   getUnreadCount(): number {
@@ -168,6 +201,7 @@ export class NotificationsPage implements OnInit {
       error: 'danger',
       warning: 'warning',
       info: 'primary',
+      system: 'tertiary',
       mention: 'primary',
       comment: 'secondary',
       like: 'danger',
@@ -175,6 +209,7 @@ export class NotificationsPage implements OnInit {
       event: 'warning',
       message: 'tertiary',
       achievement: 'success',
+      points: 'warning',
       update: 'primary'
     };
     return colors[type] || 'primary';

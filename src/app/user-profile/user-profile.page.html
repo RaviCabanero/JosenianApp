@@ -1,0 +1,145 @@
+<ion-header class="up-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Profile</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="up-content">
+
+  <!-- Loading -->
+  <div class="up-loading" *ngIf="isLoading">
+    <ion-spinner color="primary"></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+
+    <!-- Hero -->
+    <div class="up-hero">
+      <div class="up-avatar" [class.up-avatar-photo]="profile.photoUrl">
+        <img *ngIf="profile.photoUrl" [src]="profile.photoUrl" alt="Profile photo" />
+        <span *ngIf="!profile.photoUrl">{{ profile.initials }}</span>
+      </div>
+
+      <h1 class="up-name">{{ displayName }}</h1>
+
+      <div class="up-badge">
+        <ion-icon [name]="userTypeIcon"></ion-icon>
+        <span>{{ displayUserType }}</span>
+      </div>
+
+      <!-- Friend action buttons -->
+      <div class="up-actions" *ngIf="friendStatus === 'none'">
+        <button class="btn-connect" (click)="sendRequest()" [disabled]="isProcessing">
+          <ion-icon name="person-add-outline"></ion-icon>
+          {{ isPrivate ? 'Request to Connect' : 'Add Friend' }}
+        </button>
+      </div>
+      <div class="up-actions" *ngIf="friendStatus === 'pending'">
+        <button class="btn-pending" (click)="cancelRequest()" [disabled]="isProcessing">
+          <ion-icon name="time-outline"></ion-icon>
+          Request Sent
+        </button>
+      </div>
+      <div class="up-actions" *ngIf="friendStatus === 'friend'">
+        <div class="friend-chip">
+          <ion-icon name="checkmark-circle"></ion-icon>
+          Friends
+        </div>
+        <button class="btn-remove" (click)="removeFriend()" [disabled]="isProcessing">
+          <ion-icon name="person-remove-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Private Gate -->
+    <div class="private-gate" *ngIf="isPrivate && friendStatus !== 'friend'">
+      <ion-icon name="lock-closed"></ion-icon>
+      <h3>This account is private</h3>
+      <p>Send a friend request to see {{ profile.firstName || 'this user' }}'s full profile.</p>
+    </div>
+
+    <!-- Full Profile (public or friend) -->
+    <ng-container *ngIf="canSeeFullProfile">
+
+      <!-- Bio -->
+      <div class="up-card" *ngIf="profile.bio">
+        <div class="up-card-header">
+          <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+          <span>About</span>
+        </div>
+        <p class="up-bio">{{ profile.bio }}</p>
+      </div>
+
+      <!-- Info -->
+      <div class="up-card">
+        <div class="up-card-header">
+          <ion-icon name="person-outline"></ion-icon>
+          <span>Information</span>
+        </div>
+        <div class="up-info-list">
+          <div class="up-info-row" *ngIf="profile.department">
+            <ion-icon name="school-outline"></ion-icon>
+            <div>
+              <span class="info-label">Department</span>
+              <span class="info-value">{{ profile.department }}</span>
+            </div>
+          </div>
+          <div class="up-info-row" *ngIf="profile.course">
+            <ion-icon name="book-outline"></ion-icon>
+            <div>
+              <span class="info-label">Course</span>
+              <span class="info-value">{{ profile.course }}</span>
+            </div>
+          </div>
+          <div class="up-info-row" *ngIf="profile.studentNumber">
+            <ion-icon name="card-outline"></ion-icon>
+            <div>
+              <span class="info-label">Student No.</span>
+              <span class="info-value">{{ profile.studentNumber }}</span>
+            </div>
+          </div>
+          <div class="up-info-row" *ngIf="profile.userType === 'alumni' && profile.graduationYear">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <div>
+              <span class="info-label">Graduation</span>
+              <span class="info-value">{{ profile.graduationYear }}</span>
+            </div>
+          </div>
+          <div class="up-info-row" *ngIf="profile.gender">
+            <ion-icon name="male-female-outline"></ion-icon>
+            <div>
+              <span class="info-label">Gender</span>
+              <span class="info-value">{{ profile.gender }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Work Experience (alumni only) -->
+      <div class="up-card" *ngIf="profile.userType === 'alumni' && workExperiences.length > 0">
+        <div class="up-card-header">
+          <ion-icon name="briefcase-outline"></ion-icon>
+          <span>Work Experience</span>
+        </div>
+        <div class="work-list">
+          <div class="work-item" *ngFor="let work of workExperiences">
+            <div class="work-dot"></div>
+            <div class="work-info">
+              <p class="work-position">{{ work.position }}</p>
+              <p class="work-company">{{ work.company }}</p>
+              <p class="work-years">{{ work.startYear }} – {{ work.isCurrent ? 'Present' : work.endYear }}</p>
+              <p class="work-desc" *ngIf="work.description">{{ work.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+
+  </ng-container>
+</ion-content>

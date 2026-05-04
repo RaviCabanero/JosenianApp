@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
 import { environment } from '../../environments/environment';
-import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, increment, orderBy, limit } from 'firebase/firestore';
+import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, increment, orderBy, limit, writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -1001,20 +1001,40 @@ export class AuthService {
   }
 
   // Create notification for user
-  async createNotification(userId: string, title: string, message: string, type: 'success' | 'error' | 'info' | 'warning'): Promise<void> {
+  async createNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'event' | 'connection' | 'points' | 'system',
+    redirectLink?: string
+  ): Promise<void> {
     try {
       const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
-      await addDoc(notificationsRef, {
-        title: title,
-        message: message,
-        type: type,
-        createdAt: new Date().toISOString(),
-        read: false
-      });
-      console.log('Notification created for user:', userId);
+      const data: any = { title, message, type, createdAt: new Date().toISOString(), read: false };
+      if (redirectLink) data['redirectLink'] = redirectLink;
+      await addDoc(notificationsRef, data);
     } catch (error) {
       console.error('Error creating notification:', error);
     }
+  }
+
+  private async notifyAllApprovedUsers(title: string, message: string, type: string, redirectLink?: string): Promise<void> {
+    try {
+      const snap = await getDocs(query(
+        collection(this.firestore, 'users'),
+        where('status', '==', 'approved'),
+        where('role', '==', 'user')
+      ));
+      await Promise.all(snap.docs.map(d =>
+        this.createNotification(d.id, title, message, type as any, redirectLink)
+      ));
+    } catch (err) {
+      console.error('Error notifying all users:', err);
+    }
+  }
+
+  async sendAnnouncement(title: string, message: string): Promise<void> {
+    await this.notifyAllApprovedUsers(title, message, 'system', '/home');
   }
 
   // Get notifications for user
@@ -1119,6 +1139,12 @@ export class AuthService {
         createdAt: new Date(),
         updatedAt: new Date()
       });
+      this.notifyAllApprovedUsers(
+        `New Event: ${eventData.title}`,
+        `A new event "${eventData.title}" is happening on ${eventData.date} at ${eventData.location}. Check it out!`,
+        'event',
+        '/feeds'
+      );
       return { id: docRef.id, ...eventData, attendees: [] };
     } catch (error) {
       console.error('Error adding global event:', error);
@@ -1399,6 +1425,13 @@ export class AuthService {
       // Award points based on event category
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
+      await this.createNotification(
+        userId,
+        'Attendance Recorded',
+        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points!`,
+        'success',
+        '/history'
+      );
 
       return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
     } catch (error) {
@@ -1482,6 +1515,13 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? 10;
       await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
+      await this.createNotification(
+        userId,
+        'Attendance Recorded',
+        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points!`,
+        'success',
+        '/history'
+      );
 
       return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
     } catch (error) {
@@ -1628,6 +1668,14 @@ export class AuthService {
       reason, awardedAt: new Date(),
     });
     await updateDoc(doc(this.firestore, 'users', userId), { totalPoints: increment(amount) });
+    const sign = amount >= 0 ? `+${amount}` : `${amount}`;
+    await this.createNotification(
+      userId,
+      'Points Updated',
+      `Your points have been adjusted by ${sign}. Reason: ${reason}`,
+      'points',
+      '/statistics'
+    );
   }
 
   async getLeaderboard(limitCount: number = 10): Promise<any[]> {
@@ -1661,6 +1709,79 @@ export class AuthService {
   private generateSecureToken(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
+  // ── Friend System ─────────────────────────────────────────────
+
+  async sendFriendRequest(toUserId: string): Promise<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) throw new Error('Not authenticated');
+    const fromId = currentUser.uid;
+    const myProfile = await this.getUserProfile(fromId);
+    const fromName = `${myProfile?.['firstName'] || ''} ${myProfile?.['lastName'] || ''}`.trim();
+    const fromInitials = fromName.split(' ').filter(Boolean).map((w: string) => w[0].toUpperCase()).join('').slice(0, 2) || '?';
+    await setDoc(doc(this.firestore, 'users', toUserId, 'friendRequests', fromId), {
+      fromId, fromName, fromInitials, sentAt: new Date().toISOString()
+    });
+    await updateDoc(doc(this.firestore, 'users', fromId), { sentRequests: arrayUnion(toUserId) });
+    await this.createNotification(
+      toUserId,
+      'New Friend Request',
+      `${fromName || 'Someone'} sent you a friend request.`,
+      'connection',
+      '/network'
+    );
+  }
+
+  async cancelFriendRequest(toUserId: string): Promise<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) throw new Error('Not authenticated');
+    const fromId = currentUser.uid;
+    await deleteDoc(doc(this.firestore, 'users', toUserId, 'friendRequests', fromId));
+    await updateDoc(doc(this.firestore, 'users', fromId), { sentRequests: arrayRemove(toUserId) });
+  }
+
+  async getFriendRequests(userId: string): Promise<any[]> {
+    const snapshot = await getDocs(collection(this.firestore, 'users', userId, 'friendRequests'));
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async acceptFriendRequest(fromUserId: string): Promise<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) throw new Error('Not authenticated');
+    const myId = currentUser.uid;
+    const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'users', myId), { friends: arrayUnion(fromUserId) });
+    batch.update(doc(this.firestore, 'users', fromUserId), { friends: arrayUnion(myId), sentRequests: arrayRemove(myId) });
+    batch.delete(doc(this.firestore, 'users', myId, 'friendRequests', fromUserId));
+    await batch.commit();
+    const myProfile = await this.getUserProfile(myId);
+    const myName = `${myProfile?.['firstName'] || ''} ${myProfile?.['lastName'] || ''}`.trim() || 'Someone';
+    await this.createNotification(
+      fromUserId,
+      'Friend Request Accepted',
+      `${myName} accepted your friend request.`,
+      'connection',
+      '/network'
+    );
+  }
+
+  async declineFriendRequest(fromUserId: string): Promise<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) throw new Error('Not authenticated');
+    const myId = currentUser.uid;
+    await deleteDoc(doc(this.firestore, 'users', myId, 'friendRequests', fromUserId));
+    await updateDoc(doc(this.firestore, 'users', fromUserId), { sentRequests: arrayRemove(myId) });
+  }
+
+  async removeFriend(targetUserId: string): Promise<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) throw new Error('Not authenticated');
+    const myId = currentUser.uid;
+    const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'users', myId), { friends: arrayRemove(targetUserId) });
+    batch.update(doc(this.firestore, 'users', targetUserId), { friends: arrayRemove(myId) });
+    await batch.commit();
   }
 
   // Auto-approve user if email domain is @usj.edu.ph

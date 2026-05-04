@@ -919,6 +919,60 @@ select.ef-input { appearance: none; cursor: pointer; }
   }
 }
 
+// ── Follower access banner ─────────────────────────────────
+.follower-access-banner {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 12px;
+
+  .fab-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 10px;
+    ion-icon { font-size: 18px; color: #d97706; }
+  }
+
+  .fab-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fab-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    ion-icon { font-size: 15px; flex-shrink: 0; }
+
+    &.allowed { color: #059669; ion-icon { color: #10b981; } }
+    &.blocked  { color: #9ca3af; ion-icon { color: #d1d5db; } }
+  }
+}
+
+// ── Wall follower notice ────────────────────────────────────
+.wall-follower-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #92400e;
+
+  ion-icon { font-size: 18px; color: #d97706; flex-shrink: 0; }
+}
+
 // ── HOD summary card ───────────────────────────────────────
 .hod-summary-card {
   display: flex;
