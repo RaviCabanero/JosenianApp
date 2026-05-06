@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-history',
@@ -9,45 +10,102 @@ import { Router } from '@angular/router';
 })
 export class HistoryPage implements OnInit {
 
-  events = [
-    { id: 1, title: 'Engineering Seminar', date: '2024-04-20', type: 'seminar', attendees: 45 },
-    { id: 2, title: 'Networking Event', date: '2024-04-18', type: 'event', attendees: 120 },
-    { id: 3, title: 'Department Meeting', date: '2024-04-15', type: 'meeting', attendees: 28 },
-    { id: 4, title: 'Workshop: Python Basics', date: '2024-04-12', type: 'workshop', attendees: 65 },
-    { id: 5, title: 'Social Gathering', date: '2024-04-10', type: 'social', attendees: 89 },
-    { id: 6, title: 'Career Fair', date: '2024-04-05', type: 'fair', attendees: 300 },
-  ];
+  events: any[] = [];
+  filteredEvents: any[] = [];
+  activeFilter: 'all' | 'global' | 'department' = 'all';
+  isLoading = false;
+  departmentMap: Record<string, string> = {};
 
-  eventTypeColors: {[key: string]: string} = {
-    seminar: 'primary',
-    event: 'secondary',
-    meeting: 'tertiary',
-    workshop: 'success',
-    social: 'warning',
-    fair: 'danger'
-  };
+  constructor(private router: Router, private authService: AuthService) {}
 
-  constructor(private router: Router) {}
+  ngOnInit() {
+    this.loadEvents();
+  }
 
-  ngOnInit() {}
+  async loadEvents() {
+    this.isLoading = true;
+    try {
+      const user = this.authService.getCurrentUser();
+      if (!user) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Build department name map
+      const depts = await this.authService.getDepartments();
+      depts.forEach((d: any) => { this.departmentMap[d.id] = d.name; });
+
+      // Global past events the user joined
+      const allGlobal = await this.authService.getEvents();
+      const joinedGlobal = allGlobal
+        .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') < today)
+        .map(e => ({ ...e, source: 'global' }));
+
+      // Department past events the user joined
+      const profile = await this.authService.getUserProfile(user.uid);
+      const deptIds: string[] = [];
+      if (profile?.department) deptIds.push(profile.department);
+      (profile?.followedDepartments || []).forEach((id: string) => {
+        if (!deptIds.includes(id)) deptIds.push(id);
+      });
+
+      const deptEventArrays = await Promise.all(
+        deptIds.map(deptId =>
+          this.authService.getDepartmentEvents(deptId).then(evts =>
+            evts
+              .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') < today)
+              .map(e => ({ ...e, source: 'department', departmentId: deptId }))
+          )
+        )
+      );
+
+      this.events = [...joinedGlobal, ...deptEventArrays.flat()]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      this.applyFilter();
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  applyFilter() {
+    this.filteredEvents = this.activeFilter === 'all'
+      ? this.events
+      : this.events.filter(e => e.source === this.activeFilter);
+  }
+
+  setFilter(filter: 'all' | 'global' | 'department') {
+    this.activeFilter = filter;
+    this.applyFilter();
+  }
+
+  get globalCount(): number { return this.events.filter(e => e.source === 'global').length; }
+  get deptCount(): number   { return this.events.filter(e => e.source === 'department').length; }
+
+  getDeptName(id: string): string {
+    return this.departmentMap[id] || 'Department';
+  }
+
+  getEventIcon(event: any): string {
+    const icons: Record<string, string> = {
+      academic: 'school-outline', seminar: 'mic-outline', workshop: 'construct-outline',
+      social: 'people-outline', sports: 'football-outline', meeting: 'people-outline',
+      fair: 'briefcase-outline', other: 'calendar-outline'
+    };
+    return icons[event.type] || 'calendar-outline';
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
 
   goBack() {
     this.router.navigate(['/home']);
-  }
-
-  getEventIcon(type: string): string {
-    const icons: {[key: string]: string} = {
-      seminar: 'school',
-      event: 'calendar',
-      meeting: 'people',
-      workshop: 'laptop',
-      social: 'beer',
-      fair: 'briefcase'
-    };
-    return icons[type] || 'calendar';
-  }
-
-  viewEventDetails(eventId: number) {
-    console.log('View event details:', eventId);
   }
 }

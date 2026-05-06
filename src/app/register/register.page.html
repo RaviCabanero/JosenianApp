@@ -42,6 +42,7 @@
             <ion-icon name="person" class="input-icon"></ion-icon>
             <ion-input
               [(ngModel)]="firstName"
+              (input)="onFirstNameInput($event)"
               placeholder="Enter your first name"
               type="text"
               class="form-input"
@@ -56,6 +57,7 @@
             <ion-icon name="person" class="input-icon"></ion-icon>
             <ion-input
               [(ngModel)]="lastName"
+              (input)="onLastNameInput($event)"
               placeholder="Enter your last name"
               type="text"
               class="form-input"
@@ -84,6 +86,7 @@
             [(ngModel)]="department"
             (ionChange)="onDepartmentChange($event)"
             placeholder="Select your department"
+            interface="popover"
             class="form-select"
           >
             <ion-select-option *ngFor="let dept of departments" [value]="dept.id">
@@ -92,26 +95,31 @@
           </ion-select>
         </div>
 
-        <!-- Student Number Field (Student Only) -->
-        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
-          <label class="form-label">Student Number</label>
+        <!-- Student Number Field (Student and Alumni) -->
+        <div class="form-group" *ngIf="userType === 'student' || userType === 'alumni'" [@slideIn]>
+          <label class="form-label">Student Number (10 digits)</label>
           <div class="input-wrapper">
             <ion-icon name="card" class="input-icon"></ion-icon>
             <ion-input
               [(ngModel)]="studentNumber"
-              placeholder="Enter your student number"
-              type="text"
+              (input)="onStudentNumberInput($event)"
+              placeholder="Enter 10-digit student number"
+              type="tel"
+              inputmode="numeric"
+              maxlength="10"
+              pattern="\d{10}"
               class="form-input"
             ></ion-input>
           </div>
         </div>
 
-        <!-- Course Field (Student Only) - Dynamic from Department -->
-        <div class="form-group" *ngIf="userType === 'student'" [@slideIn]>
+        <!-- Course Field (Student and Alumni) - Dynamic from Department -->
+        <div class="form-group" *ngIf="userType === 'student' || userType === 'alumni'" [@slideIn]>
           <label class="form-label">Course</label>
           <ion-select
             [(ngModel)]="course"
             placeholder="Select your course"
+            interface="popover"
             class="form-select"
           >
             <ion-select-option *ngFor="let c of courses" [value]="c">
@@ -131,6 +139,84 @@
               type="number"
               class="form-input"
             ></ion-input>
+          </div>
+        </div>
+
+        <!-- Alumni ID Section (Alumni Only) -->
+        <div class="form-group alumni-id-section" *ngIf="userType === 'alumni'" [@slideIn]>
+          <label class="form-label">Do you have an Alumni ID?</label>
+          <div class="alumni-id-toggle">
+            <button
+              class="alumni-id-btn"
+              [class.selected]="hasAlumniId === true"
+              (click)="hasAlumniId = true; alumniIdFile = null; alumniIdFileName = ''"
+            >
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              Yes, I have one
+            </button>
+            <button
+              class="alumni-id-btn"
+              [class.selected]="hasAlumniId === false"
+              (click)="hasAlumniId = false; alumniIdFile = null; alumniIdFileName = ''"
+            >
+              <ion-icon name="close-circle-outline"></ion-icon>
+              No, I don't
+            </button>
+          </div>
+
+          <!-- Upload field shown only when YES -->
+          <div *ngIf="hasAlumniId === true" class="alumni-id-upload-wrap">
+            <p class="alumni-id-hint">
+              <ion-icon name="information-circle-outline"></ion-icon>
+              Upload a clear photo of your Alumni ID. Your account will be marked <strong>Pending Verification</strong> until the admin reviews it.
+            </p>
+
+            <!-- Alumni ID photo -->
+            <p class="upload-section-label">Alumni ID Photo</p>
+            <input #alumniIdInput id="alumniIdInput" type="file" accept=".jpg,.jpeg,.png"
+              (change)="onAlumniIdFileSelected($event)" class="file-input-hidden" />
+            <ion-button expand="block" fill="outline" class="file-upload-button" (click)="alumniIdInput.click()">
+              <ion-icon name="id-card-outline" slot="start"></ion-icon>
+              {{ alumniIdFile ? 'Change Alumni ID Photo' : 'Upload Alumni ID Photo' }}
+            </ion-button>
+            <div class="file-preview" *ngIf="alumniIdFile">
+              <ion-icon name="image-outline" class="file-icon"></ion-icon>
+              <div class="file-details">
+                <p class="file-name">{{ alumniIdFileName }}</p>
+                <p class="file-size">{{ alumniIdFileSize }}</p>
+              </div>
+              <ion-button fill="clear" class="remove-file-button" (click)="removeAlumniIdFile()">
+                <ion-icon name="close" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+
+            <!-- Graduation / formal photo -->
+            <p class="upload-section-label" style="margin-top: 12px;">
+              Graduation / Formal Photo
+              <span class="upload-section-sub">This will appear on your Digital Alumni ID</span>
+            </p>
+            <input #gradPhotoInput id="gradPhotoInput" type="file" accept=".jpg,.jpeg,.png"
+              (change)="onGradPhotoSelected($event)" class="file-input-hidden" />
+            <ion-button expand="block" fill="outline" class="file-upload-button grad-photo-btn" (click)="gradPhotoInput.click()">
+              <ion-icon name="person-circle-outline" slot="start"></ion-icon>
+              {{ gradPhotoFile ? 'Change Graduation Photo' : 'Upload Graduation Photo' }}
+            </ion-button>
+            <div class="file-preview" *ngIf="gradPhotoFile">
+              <ion-icon name="image-outline" class="file-icon"></ion-icon>
+              <div class="file-details">
+                <p class="file-name">{{ gradPhotoFileName }}</p>
+                <p class="file-size">{{ gradPhotoFileSize }}</p>
+              </div>
+              <ion-button fill="clear" class="remove-file-button" (click)="removeGradPhoto()">
+                <ion-icon name="close" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+
+          <!-- No ID notice -->
+          <div *ngIf="hasAlumniId === false" class="alumni-no-id-notice">
+            <ion-icon name="shield-outline"></ion-icon>
+            <p>You can still register and request verification later from your profile once you have your Alumni ID.</p>
           </div>
         </div>
 

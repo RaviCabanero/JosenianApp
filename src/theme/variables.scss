@@ -1,2 +1,18 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+// USJ-R Brand Colors — applied globally to Ionic components
+:root {
+  --ion-color-primary:             #1E5128;
+  --ion-color-primary-rgb:         30, 81, 40;
+  --ion-color-primary-contrast:    #ffffff;
+  --ion-color-primary-shade:       #143C1C;
+  --ion-color-primary-tint:        #276836;
+
+  --ion-color-secondary:           #F5B800;
+  --ion-color-secondary-rgb:       245, 184, 0;
+  --ion-color-secondary-contrast:  #1a1a1a;
+  --ion-color-secondary-shade:     #C49500;
+  --ion-color-secondary-tint:      #F7C633;
+
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ion-background-color: #f3f4f6;
+  --ion-text-color: #111827;
+}

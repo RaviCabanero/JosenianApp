@@ -11,64 +11,287 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Feed Stats -->
-    <ion-card class="stats-card">
+    <!-- Create Post Section -->
+    <ion-card class="create-post-card" *ngIf="currentUser">
       <ion-card-content>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <p class="stat-label">Total Posts</p>
-            <p class="stat-value">{{ feedStats.totalPosts }}</p>
+        <div class="create-post-header">
+          <div class="user-avatar-sm" [class.has-photo]="currentUser.photoUrl" [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : 'none'">
+            <span *ngIf="!currentUser.photoUrl">{{ currentUser.avatar }}</span>
           </div>
-          <div class="stat-item">
-            <p class="stat-label">New Today</p>
-            <p class="stat-value">{{ feedStats.newToday }}</p>
+          <input
+            type="text"
+            placeholder="What's on your mind, {{ currentUser.name }}?"
+            class="post-input"
+            (click)="togglePostForm()"
+            readonly
+          />
+          <button class="camera-btn" (click)="togglePostForm()">
+            <ion-icon name="image"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Post Form -->
+        <div class="post-form" *ngIf="showPostForm">
+          <textarea
+            [(ngModel)]="newPostContent"
+            placeholder="Share your thoughts..."
+            class="post-textarea"
+          ></textarea>
+
+          <!-- Image Preview -->
+          <div class="image-preview" *ngIf="newPostImage">
+            <img [src]="newPostImage" alt="preview" />
+            <button class="remove-img-btn" (click)="removeImage()">
+              <ion-icon name="close"></ion-icon>
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <!-- Image Upload Input -->
+            <label class="image-upload-label">
+              <ion-icon name="image"></ion-icon>
+              <input
+                type="file"
+                accept="image/*"
+                (change)="onImageSelected($event)"
+                style="display: none"
+              />
+            </label>
+
+            <!-- Privacy Toggle -->
+            <button class="privacy-toggle-btn" [class.private]="newPostPrivacy === 'private'"
+                    (click)="newPostPrivacy = newPostPrivacy === 'public' ? 'private' : 'public'">
+              <ion-icon [name]="newPostPrivacy === 'private' ? 'lock-closed' : 'globe-outline'"></ion-icon>
+              {{ newPostPrivacy === 'private' ? 'Friends only' : 'Public' }}
+            </button>
+
+            <div class="button-group">
+              <button class="btn-cancel" (click)="togglePostForm()">Cancel</button>
+              <button class="btn-post" (click)="createPost()" [disabled]="!newPostContent.trim() && !newPostImage">
+                <ion-icon name="checkmark" slot="start"></ion-icon>
+                Post
+              </button>
+            </div>
           </div>
         </div>
       </ion-card-content>
     </ion-card>
 
-    <!-- Feed Section -->
-    <div class="section-header">
-      <h2>Posts</h2>
-    </div>
+    <!-- Global Events Section -->
+    <div *ngIf="globalEvents.length > 0" class="events-section">
+      <div class="section-header">
+        <h2>Upcoming Events</h2>
+        <span class="events-badge">{{ globalEvents.length }}</span>
+      </div>
 
-    <!-- Posts List -->
-    <div class="posts-list">
-      <ion-card class="post-card" *ngFor="let post of posts" (click)="viewPost(post.id)">
-        <!-- Post Header -->
-        <div class="post-header">
-          <div class="author-info">
-            <div class="author-avatar">
-              {{ post.avatar }}
+      <div class="events-scroll">
+        <div class="feed-event-card" *ngFor="let ev of globalEvents">
+          <!-- Cover -->
+          <div class="feed-event-cover">
+            <img [src]="getEventCoverUrl(ev)" *ngIf="ev.coverImageBase64" alt="" class="feed-event-cover-img" />
+            <div class="feed-event-cover-placeholder" *ngIf="!ev.coverImageBase64">
+              <ion-icon name="calendar"></ion-icon>
             </div>
-            <div>
-              <h4>{{ post.author }}</h4>
-              <p class="timestamp">{{ getTimeAgo(post.timestamp) }}</p>
+            <span class="feed-event-type">{{ ev.eventType || 'Global' }}</span>
+          </div>
+
+          <!-- Info -->
+          <div class="feed-event-info">
+            <h4 class="feed-event-title">{{ ev.title }}</h4>
+            <p class="feed-event-meta">
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ formatEventDate(ev) }}<span *ngIf="ev.time"> · {{ formatEventTime(ev) }}</span>
+            </p>
+            <p class="feed-event-meta" *ngIf="ev.location">
+              <ion-icon name="location-outline"></ion-icon>
+              {{ ev.location }}
+            </p>
+            <p class="feed-event-desc">{{ ev.description }}</p>
+            <div class="feed-event-footer">
+              <span class="feed-event-attendees">
+                <ion-icon name="people-outline"></ion-icon>
+                {{ ev.attendees?.length || 0 }}
+                <span *ngIf="ev.maxParticipants"> / {{ ev.maxParticipants }}</span>
+              </span>
+              <div class="feed-event-btns">
+                <button class="feed-join-btn"
+                        [class.joined]="isAttending(ev)"
+                        [class.full]="isFull(ev) && !isAttending(ev)"
+                        (click)="toggleJoinEvent(ev)"
+                        [disabled]="joiningEventId === ev.id || (isFull(ev) && !isAttending(ev))">
+                  <ion-spinner name="crescent" *ngIf="joiningEventId === ev.id" style="width:14px;height:14px;"></ion-spinner>
+                  <span *ngIf="joiningEventId !== ev.id">
+                    {{ isAttending(ev) ? '✓ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
+                  </span>
+                </button>
+                <button class="feed-scan-btn"
+                        *ngIf="isAttending(ev) && isEventToday(ev)"
+                        (click)="navigateToScanner(ev)">
+                  <ion-icon name="qr-code-outline"></ion-icon>
+                  Scan QR
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Post Content -->
-        <div class="post-content">
-          <p>{{ post.content }}</p>
-        </div>
+    <!-- Suggested Friends Section (Always show if there are suggestions) -->
+    <div *ngIf="suggestedUsers.length > 0">
+      <div class="section-header">
+        <h2>Suggested Friends</h2>
+      </div>
 
-        <!-- Post Actions -->
-        <div class="post-actions">
-          <button class="action-btn" (click)="toggleLike(post.id)">
-            <ion-icon [name]="post.liked ? 'heart' : 'heart-outline'" [color]="post.liked ? 'danger' : 'medium'"></ion-icon>
-            <span>{{ post.likes }}</span>
-          </button>
-          <button class="action-btn">
-            <ion-icon name="chatbubble-outline" color="medium"></ion-icon>
-            <span>{{ post.comments }}</span>
-          </button>
-          <button class="action-btn">
-            <ion-icon name="share-social-outline" color="medium"></ion-icon>
-            <span>{{ post.shares }}</span>
-          </button>
+      <div class="suggestion-container">
+        <div class="suggested-users-horizontal">
+          <div class="user-card" *ngFor="let user of suggestedUsers">
+            <div class="card-content">
+              <div class="user-avatar-large" (click)="viewProfile(user.uid)" style="cursor:pointer"
+                   [class.has-photo]="user.photoUrl" [style.backgroundImage]="user.photoUrl ? 'url(' + user.photoUrl + ')' : 'none'">
+                <span *ngIf="!user.photoUrl">{{ user.avatar }}</span>
+              </div>
+              <h5>{{ user.name }}</h5>
+              <p class="mutual-friends">{{ user.mutualFriends || 0 }} mutual friends</p>
+              <button class="add-btn" (click)="addFriend(user.uid)">
+                <ion-icon name="person-add"></ion-icon>
+                Add Friend
+              </button>
+            </div>
+          </div>
         </div>
-      </ion-card>
+      </div>
+    </div>
+
+    <!-- Feed Section -->
+    <div *ngIf="allPosts.length > 0">
+      <div class="section-header">
+        <h2>Posts</h2>
+      </div>
+
+      <!-- Posts List -->
+      <div class="posts-list">
+        <ion-card class="post-card" *ngFor="let item of allPosts; trackBy: trackByPostId" (click)="item.post.id && viewPost(item.post.id)">
+          <!-- Post Header -->
+          <div class="post-header">
+            <div class="author-info">
+              <div class="author-avatar" (click)="viewProfile(item.user.uid); $event.stopPropagation()" style="cursor:pointer"
+                   [class.has-photo]="item.user.photoUrl" [style.backgroundImage]="item.user.photoUrl ? 'url(' + item.user.photoUrl + ')' : 'none'">
+                <span *ngIf="!item.user.photoUrl">{{ item.user.avatar }}</span>
+              </div>
+              <div>
+                <h4>{{ item.user.name }}</h4>
+                <div class="post-meta-row">
+                  <p class="timestamp">{{ getTimeAgo(item.post.timestamp) }}</p>
+                  <span class="post-privacy-badge" [class.private]="item.post.privacy === 'private'">
+                    <ion-icon [name]="item.post.privacy === 'private' ? 'lock-closed' : 'globe-outline'"></ion-icon>
+                    {{ item.post.privacy === 'private' ? 'Friends' : 'Public' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="post-owner-actions" *ngIf="item.user.uid === currentUserUid" (click)="$event.stopPropagation()">
+              <button class="post-action-icon-btn" (click)="startEditPost(item.post, $event)" title="Edit">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="post-action-icon-btn delete" (click)="deletePost(item.post, $event)" title="Delete">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Post Image -->
+          <div class="post-image" *ngIf="item.post.image">
+            <img [src]="item.post.image" alt="post image" />
+          </div>
+
+          <!-- Post Content -->
+          <div class="post-content" *ngIf="editingPostId !== item.post.id">
+            <p>{{ item.post.content }}</p>
+          </div>
+
+          <!-- Inline Edit Form -->
+          <div class="post-edit-form" *ngIf="editingPostId === item.post.id" (click)="$event.stopPropagation()">
+            <textarea class="post-edit-textarea" [(ngModel)]="editingContent" rows="3" autofocus></textarea>
+            <div class="post-edit-actions">
+              <button class="privacy-toggle-btn" [class.private]="editingPrivacy === 'private'"
+                      (click)="editingPrivacy = editingPrivacy === 'public' ? 'private' : 'public'">
+                <ion-icon [name]="editingPrivacy === 'private' ? 'lock-closed' : 'globe-outline'"></ion-icon>
+                {{ editingPrivacy === 'private' ? 'Friends only' : 'Public' }}
+              </button>
+              <div class="button-group">
+                <button class="btn-cancel" (click)="cancelEditPost($event)">Cancel</button>
+                <button class="btn-post" (click)="saveEditPost(item.post, $event)" [disabled]="!editingContent.trim()">
+                  <ion-icon name="checkmark"></ion-icon>
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Actions -->
+          <div class="post-actions">
+            <button class="action-btn" (click)="item.post.id && toggleLike(item.post.id); $event.stopPropagation()">
+              <ion-icon [name]="item.post.liked ? 'heart' : 'heart-outline'" [color]="item.post.liked ? 'danger' : 'medium'"></ion-icon>
+              <span>{{ item.post.likes }}</span>
+            </button>
+            <button class="action-btn" [class.active-comment]="expandedPostId === item.post.id"
+                    (click)="item.post.id && toggleComments(item.post, item.user.uid, $event)">
+              <ion-icon name="chatbubble-outline"></ion-icon>
+              <span>{{ item.post.comments }}</span>
+            </button>
+          </div>
+
+          <!-- Comments Section -->
+          <div class="comments-section" *ngIf="expandedPostId === item.post.id" (click)="$event.stopPropagation()">
+
+            <!-- Loading -->
+            <div class="comments-loading" *ngIf="loadingComments === item.post.id">
+              <ion-spinner name="crescent" style="width:18px;height:18px;"></ion-spinner>
+              <span>Loading comments…</span>
+            </div>
+
+            <!-- Comment list -->
+            <ng-container *ngIf="loadingComments !== item.post.id">
+              <div class="comment-item" *ngFor="let c of postComments[item.post.id!] || []">
+                <div class="comment-avatar">{{ c.authorAvatar }}</div>
+                <div class="comment-body">
+                  <div class="comment-meta">
+                    <span class="comment-author">{{ c.authorName }}</span>
+                    <span class="comment-time">{{ getTimeAgo(c.timestamp) }}</span>
+                  </div>
+                  <p class="comment-text">{{ c.content }}</p>
+                </div>
+              </div>
+
+              <p class="comments-empty" *ngIf="(postComments[item.post.id!] || []).length === 0">
+                No comments yet. Be the first!
+              </p>
+            </ng-container>
+
+            <!-- Comment input -->
+            <div class="comment-input-row" *ngIf="currentUser">
+              <div class="comment-input-avatar" [class.has-photo]="currentUser.photoUrl"
+                   [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : 'none'">
+                <span *ngIf="!currentUser.photoUrl">{{ currentUser.avatar }}</span>
+              </div>
+              <input
+                type="text"
+                class="comment-input"
+                placeholder="Write a comment…"
+                [(ngModel)]="commentInputs[item.post.id!]"
+                (keyup.enter)="submitComment(item.post, item.user.uid, $event)"
+              />
+              <button class="comment-submit-btn"
+                      (click)="submitComment(item.post, item.user.uid, $event)"
+                      [disabled]="!commentInputs[item.post.id!]?.trim() || submittingComment === item.post.id">
+                <ion-spinner name="crescent" *ngIf="submittingComment === item.post.id" style="width:14px;height:14px;"></ion-spinner>
+                <ion-icon name="send" *ngIf="submittingComment !== item.post.id"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </ion-card>
+      </div>
     </div>
   </div>
 </ion-content>

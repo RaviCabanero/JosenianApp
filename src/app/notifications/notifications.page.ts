@@ -1,5 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { Auth, authState } from '@angular/fire/auth';
+import { Firestore, collection, query, orderBy, onSnapshot } from '@angular/fire/firestore';
+import { AuthService } from '../services/auth.service';
+import { PushNotificationService } from '../services/push-notification.service';
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  avatar: string;
+  timestamp: string;
+  read: boolean;
+  icon: string;
+  createdAt?: string;
+  redirectLink?: string;
+}
 
 @Component({
   selector: 'app-notifications',
@@ -7,98 +24,112 @@ import { Router } from '@angular/router';
   styleUrls: ['./notifications.page.scss'],
   standalone: false,
 })
-export class NotificationsPage implements OnInit {
-  selectedFilter = 'all'; // all, unread, mentions
+export class NotificationsPage implements OnInit, OnDestroy {
+  selectedFilter = 'all';
+  notifications: Notification[] = [];
+  filteredNotifications: Notification[] = [];
+  isLoading = true;
+  private currentUserUid: string | null = null;
+  private notifUnsubscribe: (() => void) | null = null;
 
-  notifications = [
-    {
-      id: 1,
-      type: 'mention',
-      title: 'You were mentioned in a post',
-      message: 'Sarah Johnson mentioned you in "Project Kickoff Discussion"',
-      avatar: 'SJ',
-      timestamp: '5 minutes ago',
-      read: false,
-      icon: 'at',
-    },
-    {
-      id: 2,
-      type: 'comment',
-      title: 'New comment on your post',
-      message: 'Mike Chen commented: "Great presentation, thanks for sharing!"',
-      avatar: 'MC',
-      timestamp: '30 minutes ago',
-      read: false,
-      icon: 'chatbox',
-    },
-    {
-      id: 3,
-      type: 'like',
-      title: 'Your post got a like',
-      message: '5 people liked your department update',
-      avatar: 'DP',
-      timestamp: '1 hour ago',
-      read: false,
-      icon: 'heart',
-    },
-    {
-      id: 4,
-      type: 'connection',
-      title: 'New connection request',
-      message: 'Emily Rodriguez sent you a connection request',
-      avatar: 'ER',
-      timestamp: '2 hours ago',
-      read: true,
-      icon: 'person-add',
-    },
-    {
-      id: 5,
-      type: 'event',
-      title: 'Upcoming event reminder',
-      message: 'Annual Networking Conference starts tomorrow at 9 AM',
-      avatar: 'EV',
-      timestamp: '5 hours ago',
-      read: true,
-      icon: 'calendar',
-    },
-    {
-      id: 6,
-      type: 'message',
-      title: 'New message from John Doe',
-      message: 'John: "Can we schedule a meeting to discuss the proposal?"',
-      avatar: 'JD',
-      timestamp: 'Yesterday',
-      read: true,
-      icon: 'mail',
-    },
-    {
-      id: 7,
-      type: 'achievement',
-      title: 'Achievement unlocked',
-      message: 'You\'ve reached 100 connections! 🎉',
-      avatar: 'AC',
-      timestamp: '2 days ago',
-      read: true,
-      icon: 'trophy',
-    },
-    {
-      id: 8,
-      type: 'update',
-      title: 'Department update',
-      message: 'Your department has shared a new policy document',
-      avatar: 'DU',
-      timestamp: '3 days ago',
-      read: true,
-      icon: 'document-text',
-    },
-  ];
-
-  filteredNotifications = this.notifications;
-
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: Auth,
+    private firestore: Firestore,
+    private authService: AuthService,
+    private pushSvc: PushNotificationService
+  ) {}
 
   ngOnInit() {
-    this.filterNotifications();
+    authState(this.auth).subscribe(user => {
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
+      this.currentUserUid = user.uid;
+      this.subscribeToNotifications();
+    });
+  }
+
+  ngOnDestroy() {
+    this.notifUnsubscribe?.();
+  }
+
+  private subscribeToNotifications() {
+    if (!this.currentUserUid) return;
+
+    const ref = collection(this.firestore, 'users', this.currentUserUid, 'notifications');
+    const q = query(ref, orderBy('createdAt', 'desc'));
+
+    this.notifUnsubscribe = onSnapshot(q, snapshot => {
+      const incoming = snapshot.docs.map(d =>
+        this.mapToNotification({ id: d.id, ...d.data() })
+      );
+
+      const prevUnreadCount = this.notifications.filter(n => !n.read).length;
+      this.notifications = incoming;
+      this.filterNotifications();
+      this.isLoading = false;
+
+      const newUnreadCount = this.notifications.filter(n => !n.read).length;
+      if (newUnreadCount > prevUnreadCount) {
+        const newest = this.notifications.find(n => !n.read);
+        this.pushSvc.showNotification(
+          newest?.title || 'New notification',
+          newest?.message || ''
+        );
+      }
+    }, error => {
+      console.error('Error listening to notifications:', error);
+      this.isLoading = false;
+    });
+  }
+
+  private mapToNotification(raw: any): Notification {
+    return {
+      id: raw.id,
+      type: raw.type || 'info',
+      title: raw.title || 'Notification',
+      message: raw.message || '',
+      avatar: (raw.title || 'N').charAt(0).toUpperCase(),
+      timestamp: this.getTimeAgo(raw.createdAt),
+      read: raw.read || false,
+      icon: this.getIcon(raw.type),
+      createdAt: raw.createdAt,
+      redirectLink: raw.redirectLink || null
+    };
+  }
+
+  private getIcon(type: string): string {
+    const icons: { [key: string]: string } = {
+      success: 'checkmark-circle',
+      error: 'close-circle',
+      warning: 'alert-circle',
+      info: 'information-circle',
+      system: 'megaphone',
+      mention: 'at',
+      comment: 'chatbox',
+      like: 'heart',
+      connection: 'person-add',
+      event: 'calendar',
+      message: 'mail',
+      achievement: 'trophy',
+      points: 'star',
+      update: 'document-text'
+    };
+    return icons[type] || 'notifications';
+  }
+
+  private getTimeAgo(createdAt: string): string {
+    if (!createdAt) return 'Recently';
+    const now = new Date();
+    const date = new Date(createdAt);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
   }
 
   goBack() {
@@ -122,33 +153,42 @@ export class NotificationsPage implements OnInit {
 
   onSegmentChange(event: any) {
     const value = event.detail.value;
-    if (value) {
-      this.onFilterChange(value);
-    }
+    if (value) this.onFilterChange(value);
   }
 
-  markAsRead(notificationId: number) {
+  async markAsRead(notificationId: string) {
     const notification = this.notifications.find(n => n.id === notificationId);
-    if (notification) {
+    if (notification && !notification.read) {
       notification.read = true;
       this.filterNotifications();
+      if (this.currentUserUid) {
+        await this.authService.markNotificationAsRead(this.currentUserUid, notificationId);
+      }
     }
   }
 
-  markAllAsRead() {
+  async markAllAsRead() {
     this.notifications.forEach(n => n.read = true);
     this.filterNotifications();
+    if (this.currentUserUid) {
+      await this.authService.markAllNotificationsAsRead(this.currentUserUid);
+    }
   }
 
-  deleteNotification(notificationId: number) {
+  async deleteNotification(notificationId: string) {
     this.notifications = this.notifications.filter(n => n.id !== notificationId);
     this.filterNotifications();
+    if (this.currentUserUid) {
+      await this.authService.deleteNotification(this.currentUserUid, notificationId);
+    }
   }
 
-  openNotification(notificationId: number) {
+  openNotification(notificationId: string) {
     this.markAsRead(notificationId);
-    // Navigate to notification detail or take appropriate action
-    console.log('Opening notification:', notificationId);
+    const notification = this.notifications.find(n => n.id === notificationId);
+    if (notification?.redirectLink) {
+      this.router.navigate([notification.redirectLink]);
+    }
   }
 
   getUnreadCount(): number {
@@ -156,7 +196,12 @@ export class NotificationsPage implements OnInit {
   }
 
   getNotificationColor(type: string): string {
-    const colors: {[key: string]: string} = {
+    const colors: { [key: string]: string } = {
+      success: 'success',
+      error: 'danger',
+      warning: 'warning',
+      info: 'primary',
+      system: 'tertiary',
       mention: 'primary',
       comment: 'secondary',
       like: 'danger',
@@ -164,7 +209,8 @@ export class NotificationsPage implements OnInit {
       event: 'warning',
       message: 'tertiary',
       achievement: 'success',
-      update: 'primary',
+      points: 'warning',
+      update: 'primary'
     };
     return colors[type] || 'primary';
   }

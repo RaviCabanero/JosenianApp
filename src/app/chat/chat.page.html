@@ -1,0 +1,76 @@
+<ion-header [translucent]="true">
+  <ion-toolbar class="chat-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" class="back-btn">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <div class="chat-header-content" (click)="viewProfile()" style="cursor:pointer">
+      <div class="header-avatar">{{ otherUser.avatar }}</div>
+      <div class="header-info">
+        <h3 class="header-name">{{ otherUser.name }}</h3>
+        <p class="header-sub">Tap to view profile</p>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="chat-content">
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-list" #messagesList *ngIf="!isLoading">
+
+    <!-- Empty state -->
+    <div class="empty-chat" *ngIf="messages.length === 0">
+      <div class="empty-avatar">{{ otherUser.avatar }}</div>
+      <h3>{{ otherUser.name }}</h3>
+      <p>Send a message to start the conversation</p>
+    </div>
+
+    <ng-container *ngFor="let message of messages; let i = index">
+      <!-- Date separator -->
+      <div
+        class="date-separator"
+        *ngIf="i === 0 || !isSameDay(messages[i - 1].createdAt, message.createdAt)">
+        <span>{{ formatDate(message.createdAt) }}</span>
+      </div>
+
+      <!-- Message bubble -->
+      <div
+        class="message-row"
+        [class.sent]="message.senderId === currentUid"
+        [class.received]="message.senderId !== currentUid">
+        <div class="bubble">
+          <p class="bubble-text">{{ message.text }}</p>
+          <span class="bubble-time">{{ formatTime(message.createdAt) }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Spacer so last message isn't hidden behind input bar -->
+    <div class="bottom-spacer"></div>
+  </div>
+</ion-content>
+
+<!-- Input bar — fixed at bottom -->
+<div class="input-bar">
+  <textarea
+    [(ngModel)]="newMessage"
+    placeholder="Type a message…"
+    class="message-input"
+    rows="1"
+    (keydown)="handleEnter($event)"
+    (input)="$any($event.target).style.height = 'auto'; $any($event.target).style.height = $any($event.target).scrollHeight + 'px'">
+  </textarea>
+  <button
+    class="send-btn"
+    (click)="sendMessage()"
+    [disabled]="!newMessage.trim() || isSending">
+    <ion-icon name="send"></ion-icon>
+  </button>
+</div>

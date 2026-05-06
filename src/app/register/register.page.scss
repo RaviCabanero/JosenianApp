@@ -1,5 +1,13 @@
+// USJ-R Brand
+$green:      #1E5128;
+$green-dark: #143C1C;
+$gold:       #F5B800;
+$text-dark:  #111827;
+$text-light: #6b7280;
+$border:     #e5e7eb;
+
 .register-content {
-  --background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  --background: #f1f8f2;
 }
 
 .register-container {
@@ -7,7 +15,7 @@
   flex-direction: column;
   min-height: 100vh;
   padding: 16px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: linear-gradient(160deg, #143C1C 0%, #1E5128 40%, #276836 100%);
 }
 
 // Header
@@ -15,267 +23,177 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   margin-top: 8px;
 }
 
 .back-button {
-  --color: #10b981;
+  --color: rgba(255,255,255,.85);
   font-size: 24px;
   padding: 0;
 }
 
 .register-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #10b981;
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
   margin: 0;
   flex: 1;
   text-align: center;
+  letter-spacing: 0.3px;
 }
 
-.header-spacer {
-  width: 40px; // Match back button space
-}
+.header-spacer { width: 40px; }
 
 // Register Card
 .register-card {
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
   animation: slideInUp 0.6s ease-out;
+  background: #ffffff;
 
-  ion-card-content {
-    padding: 24px;
-  }
+  ion-card-content { padding: 24px 20px; }
+}
+
+// Gold top accent
+.register-card::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg, $gold, #C49500);
+  border-radius: 20px 20px 0 0;
 }
 
 // Error Message
 .error-message {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   color: #dc2626;
   font-size: 13px;
 
-  ion-icon {
-    font-size: 18px;
-  }
-}
-
-// User Type Section
-.user-type-section {
-  margin-bottom: 24px;
-}
-
-.user-type-segment {
-  --background: transparent;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  display: flex;
-  gap: 0;
-
-  ion-segment-button {
-    --color: #6b7280;
-    --color-checked: #ffffff;
-    --background-checked: #10b981;
-    --border-radius: 8px;
-    border-radius: 8px;
-    flex: 1;
-
-    &:first-child {
-      margin-right: 4px;
-    }
-  }
+  ion-icon { font-size: 18px; flex-shrink: 0; }
 }
 
 // Form Group
-.form-group {
-  margin-bottom: 18px;
-  animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+.form-group { margin-bottom: 16px; }
 
 .form-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-dark;
+  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 // Input Wrapper
 .input-wrapper {
   display: flex;
   align-items: center;
-  background: #f8f9fa;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0 12px;
-  transition: all 0.3s ease;
-  position: relative;
+  background: #f9fafb;
+  border: 1.5px solid $border;
+  border-radius: 12px;
+  padding: 0 14px;
+  transition: all 0.2s;
 
   &:focus-within {
-    border-color: #10b981;
-    background: #f0fdf4;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    border-color: $green;
+    background: #f1f8f2;
+    box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.1);
   }
 }
 
 .input-icon {
-  font-size: 20px;
-  color: #10b981;
-  margin-right: 8px;
+  font-size: 18px;
+  color: $green;
+  margin-right: 10px;
   flex-shrink: 0;
 }
 
 .form-input {
   --padding-start: 0;
   --padding-end: 0;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
+  --padding-top: 13px;
+  --padding-bottom: 13px;
   font-size: 15px;
   flex-grow: 1;
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-}
-
-// Form Select
-.form-select {
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  background: #f8f9fa;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 15px;
-  transition: all 0.3s ease;
-
-  &:focus,
-  &:focus-visible {
-    border-color: #10b981;
-    background: #f0fdf4;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-  }
+  --background: transparent;
 }
 
 .toggle-password {
   --padding-start: 4px;
   --padding-end: 0;
   margin: 0;
-  color: #10b981;
+  color: $text-light;
   font-size: 18px;
 }
 
+// Select
+.form-select {
+  width: 100%;
+  padding: 13px 14px;
+  background: #f9fafb;
+  border: 1.5px solid $border;
+  border-radius: 12px;
+  font-size: 15px;
+  color: $text-dark;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: all 0.2s;
+
+  &:focus {
+    border-color: $green;
+    background: #f1f8f2;
+    box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.1);
+  }
+}
+
 // Register Button
-.register-button {
-  --background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.register-submit-btn {
+  --background: linear-gradient(135deg, #{$green} 0%, #{$green-dark} 100%);
   --color: #ffffff;
-  --border-radius: 10px;
-  height: 48px;
-  font-size: 16px;
-  font-weight: 600;
-  margin: 24px 0 16px 0;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  --border-radius: 12px;
+  height: 50px;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 8px 0 0;
+  box-shadow: 0 6px 20px rgba(30, 81, 40, 0.35);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.3s ease;
+  letter-spacing: 1px;
 
-  &:hover:not([disabled]) {
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-    transform: translateY(-2px);
-  }
-
-  &[disabled] {
-    opacity: 0.7;
-  }
-
-  ion-spinner {
-    width: 20px;
-    height: 20px;
-  }
+  &[disabled] { opacity: 0.65; }
 }
 
-// Divider
-.divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20px 0;
+// Section Divider
+.section-divider {
+  margin: 20px 0 14px;
   font-size: 12px;
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-// Login Link Button
-.login-link-button {
-  --color: #10b981;
-  font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    opacity: 0.8;
-  }
+  letter-spacing: 1px;
+  color: $green;
+  padding-bottom: 6px;
+  border-bottom: 2px solid rgba(30, 81, 40, 0.15);
 }
 
-// Animations
 @keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-// Responsive
 @media (max-width: 480px) {
-  .register-container {
-    padding: 12px;
-  }
-
-  .register-card {
-    ion-card-content {
-      padding: 16px;
-    }
-  }
-
-  .register-title {
-    font-size: 20px;
-  }
-
-  .form-label {
-    font-size: 12px;
-  }
-
-  .form-input {
-    font-size: 14px;
-  }
+  .register-container { padding: 12px; }
+  .register-title { font-size: 19px; }
+  .register-card ion-card-content { padding: 20px 14px; }
 }

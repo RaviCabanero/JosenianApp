@@ -13,6 +13,14 @@
       <nav class="sidebar-nav">
         <button
           class="nav-item"
+          [class.active]="activeTab === 'dashboard'"
+          (click)="selectTab('dashboard')"
+        >
+          <ion-icon name="speedometer"></ion-icon>
+          <span>Admin Dashboard</span>
+        </button>
+        <button
+          class="nav-item"
           [class.active]="activeTab === 'approval'"
           (click)="selectTab('approval')"
         >
@@ -25,7 +33,42 @@
           (click)="selectTab('departments')"
         >
           <ion-icon name="grid"></ion-icon>
-          <span>Departments & Courses</span>
+          <span>Schools & Courses</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'alumni'"
+          (click)="selectTab('alumni')"
+        >
+          <ion-icon name="people"></ion-icon>
+          <span>Alumni Management</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'events'"
+          (click)="selectTab('events')"
+        >
+          <ion-icon name="calendar"></ion-icon>
+          <span>Manage Events</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'attendance'"
+          (click)="selectTab('attendance')"
+        >
+          <ion-icon name="scan-circle-outline"></ion-icon>
+          <span>Attendance Dashboard</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'alumni-verification'"
+          (click)="selectTab('alumni-verification')"
+        >
+          <ion-icon name="id-card"></ion-icon>
+          <span>Alumni ID Verification</span>
+          <span class="badge-count" *ngIf="pendingAlumniVerification.length > 0">
+            {{ pendingAlumniVerification.length }}
+          </span>
         </button>
       </nav>
 
@@ -41,111 +84,476 @@
     <main class="main-content">
       <!-- Top Bar -->
       <header class="top-bar">
-        <h2 class="page-title">{{ activeTab === 'approval' ? 'Account Approval' : 'Departments & Courses' }}</h2>
+        <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
+        <button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
+          <ion-icon name="refresh" [class.spinning]="isRefreshing"></ion-icon>
+        </button>
       </header>
 
       <!-- Content Area -->
       <div class="content-area">
-        <!-- Account Approval Tab -->
-        <section class="tab-content" *ngIf="activeTab === 'approval'">
-          <div class="section-header">
-            <h3>Pending User Approvals</h3>
-            <span class="badge">{{ pendingUsers.length }}</span>
-          </div>
-
-          <div class="users-grid" *ngIf="pendingUsers.length > 0">
-            <div class="user-card" *ngFor="let user of pendingUsers">
-              <div class="user-card-header">
-                <div class="user-avatar">{{ user.name.charAt(0) }}</div>
-                <div class="user-info">
-                  <h4 class="user-name">{{ user.name }}</h4>
-                  <p class="user-email">{{ user.email }}</p>
-                </div>
-                <span class="user-type" [class.student]="user.type === 'Student'" [class.alumni]="user.type === 'Alumni'">
-                  {{ user.type }}
-                </span>
+        <!-- Admin Dashboard Tab -->
+        <section class="tab-content admin-dashboard-tab" *ngIf="activeTab === 'dashboard'">
+          <div class="summary-cards dashboard-summary">
+            <div class="stat-card">
+              <div class="stat-icon total">
+                <ion-icon name="people"></ion-icon>
               </div>
-
-              <div class="user-card-body">
-                <div class="info-row">
-                  <span class="label">Department:</span>
-                  <span class="value">{{ user.department }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Join Date:</span>
-                  <span class="value">{{ user.joinDate }}</span>
-                </div>
+              <div class="stat-content">
+                <p class="stat-label">Total Users</p>
+                <h3 class="stat-value">{{ totalUsersCount }}</h3>
               </div>
-
-              <div class="user-card-actions">
-                <button class="btn btn-approve" (click)="approveUser(user.id)">
-                  <ion-icon name="checkmark"></ion-icon>
-                  Approve
-                </button>
-                <button class="btn btn-reject" (click)="rejectUser(user.id)">
-                  <ion-icon name="close"></ion-icon>
-                  Reject
-                </button>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon students">
+                <ion-icon name="school"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Students</p>
+                <h3 class="stat-value">{{ totalStudentsCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon alumni">
+                <ion-icon name="briefcase"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Alumni</p>
+                <h3 class="stat-value">{{ totalAlumniCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon departments">
+                <ion-icon name="grid"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Departments</p>
+                <h3 class="stat-value">{{ departments.length }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon courses">
+                <ion-icon name="library"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Courses</p>
+                <h3 class="stat-value">{{ getTotalCourses() }}</h3>
               </div>
             </div>
           </div>
 
-          <div class="empty-state" *ngIf="pendingUsers.length === 0">
-            <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
-            <h4>All Approvals Complete</h4>
-            <p>There are no pending user approvals at the moment.</p>
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h3>Recent Approved / Registered Users</h3>
+              <span class="panel-count">{{ recentUsers.length }}</span>
+            </div>
+
+            <div class="recent-user-list" *ngIf="recentUsers.length > 0">
+              <div class="recent-user-row" *ngFor="let user of recentUsers">
+                <div class="recent-user-avatar">
+                  {{ (user.firstName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase() }}
+                </div>
+                <div class="recent-user-main">
+                  <h4>{{ user.firstName }} {{ user.lastName }}</h4>
+                  <p>{{ user.email }}</p>
+                </div>
+                <span class="type-badge" [class.alumni]="user.userType === 'alumni'" [class.student]="user.userType === 'student'">
+                  {{ user.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                </span>
+                <span class="recent-status" [class.approved]="user.status === 'approved'" [class.pending]="user.status !== 'approved'">
+                  {{ user.status === 'approved' ? 'Approved' : 'Registered' }}
+                </span>
+                <span class="recent-user-date">{{ formatUserDate(user) }}</span>
+              </div>
+            </div>
+
+            <div class="empty-state compact" *ngIf="recentUsers.length === 0">
+              <ion-icon name="person-add" class="empty-icon"></ion-icon>
+              <h4>No Recent Users Yet</h4>
+              <p>Recent student and alumni accounts will appear here.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Account Approval Tab -->
+        <section class="tab-content approval-tab" *ngIf="activeTab === 'approval'">
+          <!-- Summary Cards -->
+          <div class="summary-cards">
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <ion-icon name="hourglass"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Pending</p>
+                <h3 class="stat-value">{{ totalPendingCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon approved">
+                <ion-icon name="checkmark-circle"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Approved</p>
+                <h3 class="stat-value">{{ totalApprovedCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon rejected">
+                <ion-icon name="close-circle"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Rejected</p>
+                <h3 class="stat-value">{{ totalRejectedCount }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon total">
+                <ion-icon name="people"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Total Users</p>
+                <h3 class="stat-value">{{ totalUsersCount }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Approval Layout (Two Columns) -->
+          <div class="approval-layout">
+            <!-- Left Panel: Request Table -->
+            <div class="requests-panel">
+              <div class="panel-header">
+                <h3>Pending Requests</h3>
+                <button class="btn btn-primary btn-sm" (click)="autoApproveEligibleUsers()" *ngIf="pendingUsers.length > 0">
+                  <ion-icon name="checkmark-done"></ion-icon>
+                  Auto-Approve
+                </button>
+              </div>
+
+              <!-- Search and Filter Bar -->
+              <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                  <ion-icon name="search"></ion-icon>
+                  <input
+                    type="text"
+                    [(ngModel)]="searchTerm"
+                    (input)="filterAndPaginateUsers()"
+                    placeholder="Search by name or email..."
+                    class="search-input"
+                  />
+                </div>
+                <div class="filter-dropdown">
+                  <select [(ngModel)]="filterByRole" (change)="filterAndPaginateUsers()" class="filter-select">
+                    <option value="">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="alumni">Alumni</option>
+                   <!-- // <option value="faculty">Faculty</option> -->
+                  </select>
+                </div>
+              </div>
+
+              <div class="requests-table-wrapper" *ngIf="paginatedUsers.length > 0">
+                <div class="requests-list">
+                  <!-- Table Header -->
+                  <div class="request-header">
+                    <div class="header-cell">Name</div>
+                    <div class="header-cell">Role</div>
+                    <div class="header-cell">Department</div>
+                    <div class="header-cell">Submitted</div>
+                    <div class="header-cell">Status</div>
+                  </div>
+                  
+                  <!-- Table Rows -->
+                  <div class="request-row" *ngFor="let user of paginatedUsers" 
+                       [class.active]="selectedUser?.id === user.id"
+                       (click)="selectUserForDetail(user)">
+                    <div class="row-name">
+                      {{ user.firstName }} {{ user.lastName }}
+                    </div>
+                    <div class="row-role">
+                      <span class="role-badge" [ngClass]="user.userType?.toLowerCase()">
+                        {{ user.userType === 'student' ? 'Student' : 'Alumni' }}
+                      </span>
+                    </div>
+                    <div class="row-department">
+                      {{ getDepartmentName(user.department) }}
+                    </div>
+                    <div class="row-submitted">
+                      {{ user.joinDate || user.createdAt | date: 'MMM dd, yyyy' }}
+                    </div>
+                    <div class="row-status">
+                      <span class="status-badge" [ngClass]="user.status?.toLowerCase() || 'pending'">
+                        {{ user.status || 'Pending' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-controls" *ngIf="totalPages > 1">
+                <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage === 1">
+                  <ion-icon name="chevron-back"></ion-icon>
+                  Previous
+                </button>
+                <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+                <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
+                  Next
+                  <ion-icon name="chevron-forward"></ion-icon>
+                </button>
+              </div>
+
+              <div class="empty-state" *ngIf="paginatedUsers.length === 0 && pendingUsers.length > 0">
+                <ion-icon name="search" class="empty-icon"></ion-icon>
+                <h4>No Results Found</h4>
+                <p>No users match your search criteria.</p>
+              </div>
+
+              <div class="empty-state" *ngIf="pendingUsers.length === 0">
+                <ion-icon name="checkmark-circle" class="empty-icon"></ion-icon>
+                <h4>All Approvals Complete</h4>
+                <p>No pending user approvals at the moment.</p>
+              </div>
+            </div>
+
+            <!-- Right Panel: User Detail -->
+            <div class="detail-panel" *ngIf="selectedUser">
+              <div class="detail-header">
+                <h3>User Details</h3>
+              </div>
+
+              <div class="detail-content">
+                <!-- Profile Section -->
+                <div class="profile-section profile-section-horizontal">
+                  <div class="profile-avatar-lg">
+                    {{ (selectedUser.firstName?.charAt(0) || 'U').toUpperCase() }}
+                  </div>
+                  <div class="profile-info">
+                    <h2>{{ selectedUser.firstName }} {{ selectedUser.lastName }}</h2>
+                    <p class="profile-email">{{ selectedUser.email }}</p>
+                    <div class="profile-role">
+                      <span class="badge" [ngClass]="selectedUser.userType?.toLowerCase()">
+                        {{ selectedUser.userType === 'student' ? 'Student' : selectedUser.userType === 'alumni' ? 'Alumni' : (selectedUser.userType || 'Unknown') }}
+                      </span>
+                      <span class="badge-status" [ngClass]="selectedUser.status?.toLowerCase() || 'pending'">
+                        {{ selectedUser.status === 'approved' ? 'Approved' : selectedUser.status === 'rejected' ? 'Rejected' : 'Pending' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="info-grid">
+                  <div class="info-item">
+                    <label>Department</label>
+                    <p>{{ getDepartmentName(selectedUser.department) }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Student/Alumni ID</label>
+                    <p>{{ selectedUser.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'student'">
+                    <label>Course</label>
+                    <p>{{ selectedUser.course || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'alumni'">
+                    <label>Graduation Year</label>
+                    <p>{{ selectedUser.graduationYear || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Submission Date</label>
+                    <p>{{ selectedUser.joinDate || selectedUser.createdAt | date: 'MMM dd, yyyy' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedUser.userType === 'alumni'">
+                    <label>ID Verification</label>
+                    <p>
+                      <span class="badge-status" [ngClass]="selectedUser.alumniIdVerificationStatus">
+                        {{ selectedUser.alumniIdVerificationStatus || 'pending' }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Alumni ID Preview -->
+                <div class="alumni-id-preview" *ngIf="selectedUser.userType === 'alumni' && selectedUser.alumniIdBase64">
+                  <label>Uploaded Alumni ID</label>
+                  <img 
+                    [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" 
+                    alt="Alumni ID"
+                    class="id-image"
+                    (click)="expandedAlumniId = expandedAlumniId === selectedUser.id ? null : selectedUser.id"
+                  />
+                  <p class="file-info" *ngIf="selectedUser.alumniIdFileName">
+                    {{ selectedUser.alumniIdFileName }}
+                  </p>
+                </div>
+
+                <!-- Admin Notes -->
+                <div class="notes-section">
+                  <label>Admin Notes</label>
+                  <textarea 
+                    [(ngModel)]="adminNotes" 
+                    placeholder="Add notes about this request..."
+                    class="notes-input">
+                  </textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                  <button class="btn btn-approve" (click)="approveUser(selectedUser.id)">
+                    <ion-icon name="checkmark-circle"></ion-icon>
+                    Approve User
+                  </button>
+                  <button class="btn btn-reject" (click)="rejectUser(selectedUser.id)">
+                    <ion-icon name="close-circle"></ion-icon>
+                    Reject
+                  </button>
+                  <button class="btn btn-download" (click)="downloadAlumniId(selectedUser)" *ngIf="selectedUser.alumniIdBase64">
+                    <ion-icon name="download"></ion-icon>
+                    Download ID
+                  </button>
+                </div>
+              </div>
+
+              <!-- Expanded Image View -->
+              <div class="expanded-view" *ngIf="expandedAlumniId === selectedUser.id" (click)="expandedAlumniId = null">
+                <div class="expanded-container" (click)="$event.stopPropagation()">
+                  <button class="close-btn" (click)="expandedAlumniId = null">
+                    <ion-icon name="close"></ion-icon>
+                  </button>
+                  <img [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" alt="Alumni ID - Full" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         <!-- Departments Tab -->
         <section class="tab-content" *ngIf="activeTab === 'departments'">
-          <div class="section-header">
-            <h3>Manage Departments & Courses</h3>
-            <button class="btn btn-primary" (click)="toggleDepartmentForm()">
-              <ion-icon name="add-circle"></ion-icon>
-              {{ showDepartmentForm ? 'Cancel' : 'Add Department' }}
+          <div class="departments-admin-hero">
+            <div>
+              <p class="admin-eyebrow">Academic structure</p>
+              <h3>Schools & Courses</h3>
+              <p>Maintain department records and organize the course options shown across the app.</p>
+            </div>
+            <button class="btn btn-primary btn-add-department" (click)="toggleDepartmentForm()">
+              <ion-icon [name]="showDepartmentForm ? 'close-circle' : 'add-circle'"></ion-icon>
+              {{ showDepartmentForm ? 'Close Form' : 'Add Department' }}
             </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="department-search-container">
+            <div class="search-input-wrapper">
+              <ion-icon name="search"></ion-icon>
+              <input
+                type="text"
+                [(ngModel)]="departmentSearchTerm"
+                placeholder="Search departments and courses..."
+                class="department-search-input"
+              />
+              <button
+                *ngIf="departmentSearchTerm"
+                class="clear-search-btn"
+                (click)="departmentSearchTerm = ''"
+                title="Clear search"
+              >
+                <ion-icon name="close-circle"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="department-admin-summary">
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="business-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ departments.length }}</p>
+                <span>Departments</span>
+              </div>
+            </div>
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="library-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ getTotalCourses() }}</p>
+                <span>Total Courses</span>
+              </div>
+            </div>
+            <div class="dept-summary-item">
+              <span class="summary-icon">
+                <ion-icon name="albums-outline"></ion-icon>
+              </span>
+              <div>
+                <p>{{ getDepartmentsWithCourses() }}</p>
+                <span>With Courses</span>
+              </div>
+            </div>
           </div>
 
           <!-- Add Department Form -->
-          <div class="form-card" *ngIf="showDepartmentForm">
-            <h4>New Department</h4>
-            <div class="form-group">
-              <input
-                type="text"
-                [(ngModel)]="newDepartmentName"
-                placeholder="Enter department name"
-                class="form-input"
-              />
+          <div class="form-card department-form-card" *ngIf="showDepartmentForm">
+            <div class="form-card-header">
+              <div class="form-card-icon">
+                <ion-icon name="add-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>New Department</h4>
+                <p>Create a department before adding course options.</p>
+              </div>
             </div>
-            <button class="btn btn-primary" (click)="addDepartment()">
-              <ion-icon name="checkmark"></ion-icon>
-              Add Department
-            </button>
+            <div class="form-row-inline">
+              <div class="form-group department-name-field">
+                <label>Department Name</label>
+                <input
+                  type="text"
+                  [(ngModel)]="newDepartmentName"
+                  placeholder="Example: College of Computer Studies"
+                  class="form-input"
+                />
+              </div>
+              <button class="btn btn-primary btn-create-dept" (click)="addDepartment()">
+                <ion-icon name="checkmark"></ion-icon>
+                Save
+              </button>
+            </div>
           </div>
 
           <!-- Departments List -->
-          <div class="departments-grid">
-            <div class="department-card" *ngFor="let dept of departments">
+          <div class="departments-grid admin-departments-grid">
+            <div class="department-card admin-department-card" *ngFor="let dept of filteredDepartments">
               <div class="dept-header">
-                <h4 class="dept-name">{{ dept.name }}</h4>
-                <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
-                  <ion-icon name="trash"></ion-icon>
-                </button>
-              </div>
-
-              <!-- Courses List -->
-              <div class="courses-section">
-                <div class="courses-header">
-                  <span class="courses-label">Courses ({{ dept.courses.length }})</span>
+                <div class="dept-title-wrap">
+                  <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
+                  <div>
+                    <h4 class="dept-name">{{ dept.name }}</h4>
+                    <p>{{ dept.courses.length }} {{ dept.courses.length === 1 ? 'course' : 'courses' }} listed</p>
+                  </div>
+                </div>
+                <div class="dept-actions">
                   <button
                     class="btn-icon btn-add"
                     (click)="toggleCourseForm(dept.id)"
                     title="Add course"
                     [class.active]="selectedDepartmentId === dept.id"
                   >
-                    <ion-icon name="add"></ion-icon>
+                    <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove' : 'add'"></ion-icon>
                   </button>
+                  <button class="btn-icon btn-edit" (click)="editDepartment(dept.id, dept.name)" title="Rename department">
+                    <ion-icon name="pencil"></ion-icon>
+                  </button>
+                  <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
+                    <ion-icon name="trash"></ion-icon>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Courses List -->
+              <div class="courses-section">
+                <div class="courses-header">
+                  <span class="courses-label">Courses</span>
+                  <span class="courses-count">{{ dept.courses.length }}</span>
                 </div>
 
                 <!-- Add Course Form -->
@@ -165,12 +573,21 @@
                 <!-- Courses List -->
                 <div class="courses-list">
                   <div class="course-item" *ngFor="let course of dept.courses; let i = index">
-                    <span class="course-name">{{ course }}</span>
-                    <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
-                      <ion-icon name="close"></ion-icon>
-                    </button>
+                    <span class="course-name">
+                      <ion-icon name="school-outline"></ion-icon>
+                      {{ course }}
+                    </span>
+                    <div class="course-item-actions">
+                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)" title="Rename course">
+                        <ion-icon name="pencil-outline"></ion-icon>
+                      </button>
+                      <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
+                        <ion-icon name="close"></ion-icon>
+                      </button>
+                    </div>
                   </div>
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
+                    <ion-icon name="library-outline"></ion-icon>
                     <p>No courses yet</p>
                   </div>
                 </div>
@@ -178,7 +595,1207 @@
             </div>
           </div>
         </section>
+
+        <!-- Alumni Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'alumni'">
+          <div class="section-header">
+            <h3>Alumni Management</h3>
+            <div class="header-actions">
+              <button class="btn btn-primary" (click)="toggleCreateUserForm()">
+                <ion-icon name="person-add"></ion-icon>
+                {{ showCreateUserForm ? 'Cancel' : 'Create Account' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Create Account Form (Admin-populated user) -->
+          <div class="form-card create-user-card" *ngIf="showCreateUserForm">
+            <div class="form-card-header">
+              <div class="form-card-icon">
+                <ion-icon name="person-add"></ion-icon>
+              </div>
+              <div>
+                <h4>Create User Account</h4>
+                <p>A password setup email will be sent to the provided address.</p>
+              </div>
+            </div>
+
+            <!-- User Type Toggle -->
+            <div class="form-group">
+              <label class="form-label">Account Type</label>
+              <div class="user-type-toggle">
+                <button class="type-btn" [class.active]="createUserData.userType === 'alumni'"
+                  (click)="createUserData.userType = 'alumni'">
+                  <ion-icon name="briefcase"></ion-icon> Alumni
+                </button>
+                <button class="type-btn" [class.active]="createUserData.userType === 'hod'"
+                  (click)="createUserData.userType = 'hod'">
+                  <ion-icon name="shield-checkmark"></ion-icon> HOD
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label class="form-label">First Name <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="createUserData.firstName" placeholder="First name" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last Name <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="createUserData.lastName" placeholder="Last name" class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email Address <span class="required">*</span></label>
+              <input type="email" [(ngModel)]="createUserData.email" placeholder="user@email.com" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Department <span class="required">*</span></label>
+              <select [(ngModel)]="createUserData.department" (change)="onCreateUserDeptChange()" class="form-input">
+                <option value="">Select department</option>
+                <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name }}</option>
+              </select>
+            </div>
+
+            <div class="form-row-inline">
+              <div class="form-group" *ngIf="createUserData.userType !== 'hod'">
+                <label class="form-label">Student Number <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="createUserData.studentNumber" placeholder="e.g. 2020-00001" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Course</label>
+                <select [(ngModel)]="createUserData.course" class="form-input" [disabled]="!createUserData.department">
+                  <option value="">Select course</option>
+                  <option *ngFor="let c of createUserCourses" [value]="c">{{ c }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" *ngIf="createUserData.userType === 'alumni'">
+              <label class="form-label">Graduation Year <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="createUserData.graduationYear" placeholder="e.g. 2023" class="form-input" />
+            </div>
+
+            <button class="btn btn-primary btn-create-submit" (click)="createUser()" [disabled]="isCreatingUser">
+              <ion-spinner name="crescent" *ngIf="isCreatingUser"></ion-spinner>
+              <ion-icon name="checkmark-circle" *ngIf="!isCreatingUser"></ion-icon>
+              {{ isCreatingUser ? 'Creating...' : 'Create Account & Send Email' }}
+            </button>
+          </div>
+
+          <!-- Add/Edit Alumni Form -->
+          <div class="form-card" *ngIf="showAlumniForm">
+            <h4>{{ editingAlumniId ? 'Edit Alumni' : 'New Alumni' }}</h4>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.studentNumber"
+                placeholder="Student Number"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.name"
+                placeholder="Full Name"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="email"
+                [(ngModel)]="newAlumni.email"
+                placeholder="Email Address"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.department"
+                placeholder="Department"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.course"
+                placeholder="Course"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="newAlumni.batch"
+                placeholder="Batch (e.g., 2023)"
+                class="form-input"
+              />
+            </div>
+            <button class="btn btn-primary" (click)="saveAlumni()">
+              <ion-icon name="checkmark"></ion-icon>
+              {{ editingAlumniId ? 'Update Alumni' : 'Add Alumni' }}
+            </button>
+          </div>
+
+          <!-- Alumni Search & Filter -->
+          <div class="filter-section">
+            <div class="filter-group">
+              <input
+                type="text"
+                [(ngModel)]="alumniSearchFilters.name"
+                (input)="filterAlumni()"
+                placeholder="Search by name..."
+                class="form-input filter-input"
+              />
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.department" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Departments</option>
+                <option *ngFor="let dept of getUniqueDepartmentsForAlumni()" [value]="dept">
+                  {{ getDepartmentName(dept) }}
+                </option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.batch" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Batches</option>
+                <option *ngFor="let batch of getUniqueBatches()" [value]="batch">
+                  {{ batch }}
+                </option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select [(ngModel)]="alumniSearchFilters.userType" (change)="filterAlumni()" class="form-input filter-input">
+                <option value="">All Types</option>
+                <option value="student">Student</option>
+                <option value="alumni">Alumni</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Export Bar -->
+          <div class="export-bar" *ngIf="filteredAlumni.length > 0">
+            <span class="export-label">
+              <ion-icon name="people"></ion-icon>
+              {{ filteredAlumni.length }} record{{ filteredAlumni.length !== 1 ? 's' : '' }}
+            </span>
+            <div class="export-actions">
+              <button class="btn btn-outline btn-export" (click)="exportCSV()">
+                <ion-icon name="document-text"></ion-icon>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Alumni Table & Detail Panel Container -->
+          <div class="table-and-detail-container" *ngIf="filteredAlumni.length > 0">
+            <!-- Alumni Table -->
+            <div class="table-wrapper">
+              <table class="alumni-table">
+                <thead>
+                  <tr>
+                    <th>Student Number</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Sex</th>
+                    <th>Address</th>
+                    <th>Department</th>
+                    <th>Course</th>
+                    <th>Batch</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let alumnus of filteredAlumni" 
+                      class="table-row" 
+                      [class.registered-user]="alumnus.source === 'registered'"
+                      [class.active]="selectedAlumni?.id === alumnus.id"
+                      (click)="selectAlumniForDetail(alumnus)">
+                    <td>{{ alumnus.studentNumber }}</td>
+                    <td>{{ alumnus.name }}</td>
+                    <td>{{ alumnus.email }}</td>
+                    <td>{{ alumnus.contactNumber || '—' }}</td>
+                    <td>{{ alumnus.gender || '—' }}</td>
+                    <td class="address-cell">{{ alumnus.address || '—' }}</td>
+                    <td>{{ getDepartmentName(alumnus.department) }}</td>
+                    <td>{{ alumnus.course }}</td>
+                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '—' }}</td>
+                    <td>
+                      <span class="type-badge" [class.alumni]="alumnus.userType === 'alumni'" [class.student]="alumnus.userType === 'student'">
+                        {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                      </span>
+                      <span class="source-badge" *ngIf="alumnus.source === 'registered'">Registered</span>
+                    </td>
+                    <td class="actions-cell" (click)="$event.stopPropagation()">
+                      <div class="action-group">
+                        <button class="btn-icon btn-edit" [disabled]="alumnus.source === 'registered'" (click)="editAlumni(alumnus.id)" [title]="alumnus.source === 'registered' ? 'Cannot edit registered users' : 'Edit alumni'">
+                          <ion-icon name="pencil"></ion-icon>
+                        </button>
+                        <button class="btn-icon btn-delete" (click)="deleteAlumni(alumnus.id)" title="Delete user">
+                          <ion-icon name="trash"></ion-icon>
+                        </button>
+                      </div>
+                      <div class="action-group action-group-role" *ngIf="alumnus.source === 'registered'">
+                        <button class="btn-icon btn-role" (click)="selectAlumniForDetail(alumnus)" title="Manage role">
+                          <ion-icon name="shield"></ion-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Alumni Detail Panel -->
+            <div class="detail-panel alumni-detail-panel" *ngIf="selectedAlumni">
+              <div class="detail-header">
+                <h3>Alumni Details</h3>
+                <button class="close-btn" (click)="closeAlumniDetail()">
+                  <ion-icon name="close"></ion-icon>
+                </button>
+              </div>
+
+              <div class="detail-content">
+                <!-- Profile Section -->
+                <div class="profile-section">
+                  <div class="profile-avatar-lg">
+                    {{ (selectedAlumni.name?.charAt(0) || 'A').toUpperCase() }}
+                  </div>
+                  <div class="profile-info">
+                    <h2>{{ selectedAlumni.name }}</h2>
+                    <p class="profile-email">{{ selectedAlumni.email }}</p>
+                    <div class="profile-role">
+                      <span class="badge" [ngClass]="selectedAlumni.userType?.toLowerCase()">
+                        {{ selectedAlumni.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                      </span>
+                      <span class="hod-badge" *ngIf="selectedAlumni.role === 'hod'">HOD</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="info-grid">
+                  <div class="info-item">
+                    <label>Student/Alumni ID</label>
+                    <p>{{ selectedAlumni.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Department</label>
+                    <p>{{ getDepartmentName(selectedAlumni.department) }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Course</label>
+                    <p>{{ selectedAlumni.course || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Batch/Graduation Year</label>
+                    <p>{{ selectedAlumni.batch || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Mobile Number</label>
+                    <p>{{ selectedAlumni.contactNumber || '—' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Sex</label>
+                    <p>{{ selectedAlumni.gender || '—' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Address</label>
+                    <p>{{ selectedAlumni.address || '—' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.source === 'registered'">
+                    <label>Status</label>
+                    <p>
+                      <span class="badge-status" [ngClass]="selectedAlumni.status || 'pending'">
+                        {{ selectedAlumni.status || 'Pending' }}
+                      </span>
+                    </p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.createdAt">
+                    <label>Member Since</label>
+                    <p>{{ selectedAlumni.createdAt | date: 'MMM dd, yyyy' }}</p>
+                  </div>
+                </div>
+
+                <!-- Work Experience -->
+                <div class="work-exp-section" *ngIf="selectedAlumni.workExperiences?.length > 0">
+                  <h4>
+                    <ion-icon name="briefcase-outline"></ion-icon>
+                    Work Experience
+                  </h4>
+                  <div class="work-exp-list">
+                    <div class="work-exp-item" *ngFor="let job of selectedAlumni.workExperiences">
+                      <div class="work-exp-header">
+                        <span class="work-position">{{ job.position }}</span>
+                        <span class="work-current-badge" *ngIf="job.isCurrent">Current</span>
+                      </div>
+                      <span class="work-company">{{ job.company }}</span>
+                      <span class="work-years">
+                        {{ job.startYear }}–{{ job.isCurrent ? 'Present' : job.endYear }}
+                      </span>
+                      <p class="work-desc" *ngIf="job.description">{{ job.description }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Role Assignment — inline, alumni only -->
+                <div class="role-management-section" *ngIf="selectedAlumni.source === 'registered' && selectedAlumni.userType === 'alumni'">
+                  <h4>
+                    <ion-icon name="shield-checkmark"></ion-icon>
+                    Role Assignment
+                  </h4>
+                  <p class="section-description">HOD grants department management permissions (create/manage events and activities).</p>
+                  <div class="role-options-inline">
+                    <label class="role-opt" [class.selected]="selectedAlumniRole === 'user'">
+                      <input type="radio" name="alumni-role" value="user" [(ngModel)]="selectedAlumniRole" />
+                      <span class="role-name">User</span>
+                      <span class="role-desc">View &amp; join events</span>
+                    </label>
+                    <label class="role-opt" [class.selected]="selectedAlumniRole === 'hod'">
+                      <input type="radio" name="alumni-role" value="hod" [(ngModel)]="selectedAlumniRole" />
+                      <span class="role-name">HOD</span>
+                      <span class="role-desc">Head of Department</span>
+                    </label>
+                  </div>
+                  <button class="btn btn-primary btn-sm" (click)="updateAlumniRole(selectedAlumniRole)">
+                    <ion-icon name="checkmark"></ion-icon>
+                    Save Role
+                  </button>
+                </div>
+
+                <!-- Points Management -->
+                <div class="points-mgmt-section" *ngIf="selectedAlumni.source === 'registered'">
+                  <h4 class="points-mgmt-title">
+                    <ion-icon name="star-outline"></ion-icon>
+                    Points Adjustment
+                  </h4>
+                  <p class="points-mgmt-current">Current: <strong>{{ selectedAlumni.totalPoints || 0 }} pts</strong></p>
+                  <div class="points-mgmt-form">
+                    <input type="number" [(ngModel)]="adjustPointsAmount" placeholder="Amount (e.g. -5 or +20)" class="form-input pts-input" />
+                    <input type="text" [(ngModel)]="adjustPointsReason" placeholder="Reason for adjustment" class="form-input pts-input" />
+                    <button class="btn btn-primary btn-sm" (click)="adjustUserPoints(selectedAlumni.id)">
+                      <ion-icon name="checkmark"></ion-icon>
+                      Apply
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                  <button class="btn btn-edit" *ngIf="selectedAlumni.source === 'manual'" (click)="editAlumni(selectedAlumni.id)">
+                    <ion-icon name="pencil"></ion-icon>
+                    Edit
+                  </button>
+                  <button
+                    class="btn btn-remind"
+                    *ngIf="hasIncompleteProfile(selectedAlumni)"
+                    (click)="remindUpdateProfile(selectedAlumni.id)"
+                    [disabled]="isReminding"
+                    title="Notify user to complete their profile"
+                  >
+                    <ion-icon name="notifications-outline"></ion-icon>
+                    Remind to Update
+                  </button>
+                  <button class="btn btn-delete" (click)="deleteAlumni(selectedAlumni.id)">
+                    <ion-icon name="trash"></ion-icon>
+                    Delete User
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="filteredAlumni.length === 0">
+            <ion-icon name="people" class="empty-icon"></ion-icon>
+            <h4>No Alumni Records</h4>
+            <p>{{ alumni.length === 0 ? 'No alumni added yet.' : 'No results matching your search criteria.' }}</p>
+          </div>
+
+        </section>
+
+        <!-- Manage Events Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'events'">
+
+          <!-- Header -->
+          <div class="section-header">
+            <h3>Manage Events</h3>
+            <button class="btn btn-primary" (click)="toggleEventForm()">
+              <ion-icon [name]="showEventForm ? 'close-circle' : 'add-circle'"></ion-icon>
+              {{ showEventForm ? 'Cancel' : 'Create Event' }}
+            </button>
+          </div>
+
+          <!-- Event Form -->
+          <div class="form-card event-form-card" *ngIf="showEventForm">
+            <div class="form-card-header">
+              <div class="form-card-icon">
+                <ion-icon name="calendar"></ion-icon>
+              </div>
+              <div>
+                <h4>{{ editingEventId ? 'Edit Event' : 'New Event' }}</h4>
+                <p>{{ editingEventId ? 'Update event details.' : 'Published instantly to the Feeds page.' }}</p>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-group">
+              <label class="form-label">Event Title <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="newEvent.title" placeholder="e.g. Alumni Homecoming 2025" class="form-input" />
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label class="form-label">Description <span class="required">*</span></label>
+              <textarea [(ngModel)]="newEvent.description" placeholder="Describe the event..." class="form-input event-textarea" rows="3"></textarea>
+            </div>
+
+            <!-- Date + Time -->
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label class="form-label">Date <span class="required">*</span></label>
+                <input type="date" [(ngModel)]="newEvent.date" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Time</label>
+                <input type="time" [(ngModel)]="newEvent.time" class="form-input" />
+              </div>
+            </div>
+
+            <!-- Location -->
+            <div class="form-group">
+              <label class="form-label">Location <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="newEvent.location" placeholder="e.g. USJ-R Gymnasium" class="form-input" />
+            </div>
+
+            <!-- Event Type + Max Participants -->
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label class="form-label">Event Type</label>
+                <select [(ngModel)]="newEvent.eventType" class="form-input">
+                  <option value="global">Global (All Users)</option>
+                  <option value="alumni">Alumni Only</option>
+                  <option value="student">Student Only</option>
+                  <option value="department">Department</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Participants <span class="optional-label">(optional)</span></label>
+                <input type="number" [(ngModel)]="newEvent.maxParticipants" placeholder="Leave blank for unlimited" class="form-input" min="1" />
+              </div>
+            </div>
+
+            <!-- Event Category + Points -->
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label class="form-label">Event Category <span class="points-badge-hint">affects points awarded</span></label>
+                <select [(ngModel)]="newEvent.eventCategory" (change)="onEventCategoryChange()" class="form-input">
+                  <option value="regular">Regular Event (+10 pts default)</option>
+                  <option value="special">Special Event (+20 pts default)</option>
+                  <option value="volunteer">Volunteer / Organizing (+30 pts default)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  Points Value
+                  <span class="points-badge-hint">customizable</span>
+                </label>
+                <input type="number" [(ngModel)]="newEvent.pointValue" class="form-input" min="0" max="999" />
+              </div>
+            </div>
+
+            <!-- Cover Image -->
+            <div class="form-group">
+              <label class="form-label">Cover Image <span class="optional-label">(optional, max 2MB)</span></label>
+              <div class="cover-upload-area" *ngIf="!newEvent.coverImageBase64">
+                <input #coverInput type="file" accept="image/*" (change)="onCoverImageSelected($event)" style="display:none" />
+                <button class="btn btn-secondary cover-upload-btn" (click)="coverInput.click()">
+                  <ion-icon name="image"></ion-icon>
+                  Choose Image
+                </button>
+              </div>
+              <div class="cover-preview" *ngIf="newEvent.coverImageBase64">
+                <img [src]="'data:image/jpeg;base64,' + newEvent.coverImageBase64" alt="Cover preview" class="cover-preview-img" />
+                <div class="cover-preview-actions">
+                  <span class="cover-file-name">{{ newEvent.coverImageFileName }}</span>
+                  <button class="btn-icon btn-delete" (click)="removeCoverImage()" title="Remove image">
+                    <ion-icon name="close"></ion-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button class="btn btn-primary btn-create-submit" (click)="saveEvent()" [disabled]="isSubmittingEvent">
+              <ion-spinner name="crescent" *ngIf="isSubmittingEvent"></ion-spinner>
+              <ion-icon name="checkmark-circle" *ngIf="!isSubmittingEvent"></ion-icon>
+              {{ isSubmittingEvent ? 'Saving...' : (editingEventId ? 'Update Event' : 'Publish Event') }}
+            </button>
+          </div>
+
+          <!-- Events Summary -->
+          <div class="events-summary" *ngIf="events.length > 0">
+            <span class="events-count">{{ events.length }} event{{ events.length !== 1 ? 's' : '' }} total</span>
+          </div>
+
+          <!-- Events Grid -->
+          <div class="events-grid" *ngIf="events.length > 0">
+            <div class="event-admin-card" *ngFor="let ev of events"
+                 [class.active]="selectedEvent?.id === ev.id"
+                 [class.past]="isEventPast(ev)"
+                 (click)="selectEventDetail(ev)">
+
+              <!-- Cover -->
+              <div class="event-admin-cover">
+                <img [src]="'data:image/jpeg;base64,' + ev.coverImageBase64" *ngIf="ev.coverImageBase64" alt="" class="event-admin-cover-img" />
+                <div class="event-admin-cover-placeholder" *ngIf="!ev.coverImageBase64">
+                  <ion-icon name="calendar"></ion-icon>
+                </div>
+                <span class="event-type-pill">{{ ev.eventType || 'Global' }}</span>
+                <span class="event-points-pill">+{{ ev.pointValue ?? 10 }} pts</span>
+                <span class="event-past-pill" *ngIf="isEventPast(ev)">Past</span>
+              </div>
+
+              <!-- Info -->
+              <div class="event-admin-info">
+                <h4 class="event-admin-title">{{ ev.title }}</h4>
+                <p class="event-admin-meta">
+                  <ion-icon name="calendar-outline"></ion-icon>
+                  {{ formatEventDate(ev) }}
+                  <span *ngIf="ev.time"> · {{ formatEventTime(ev) }}</span>
+                </p>
+                <p class="event-admin-meta" *ngIf="ev.location">
+                  <ion-icon name="location-outline"></ion-icon>
+                  {{ ev.location }}
+                </p>
+                <div class="event-admin-footer">
+                  <span class="attendees-badge">
+                    <ion-icon name="people-outline"></ion-icon>
+                    {{ ev.attendees?.length || 0 }}
+                    <span *ngIf="ev.maxParticipants"> / {{ ev.maxParticipants }}</span>
+                  </span>
+                  <div class="event-card-actions" (click)="$event.stopPropagation()">
+                    <button class="btn-icon btn-edit" (click)="editEvent(ev.id)" title="Edit">
+                      <ion-icon name="pencil"></ion-icon>
+                    </button>
+                    <button class="btn-icon btn-delete" (click)="deleteEvent(ev.id)" title="Delete">
+                      <ion-icon name="trash"></ion-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Expanded detail panel -->
+              <div class="event-admin-detail" *ngIf="selectedEvent?.id === ev.id" (click)="$event.stopPropagation()">
+                <p class="event-detail-desc">{{ ev.description }}</p>
+                <p class="event-detail-meta" *ngIf="ev.maxParticipants">
+                  <strong>Max Participants:</strong> {{ ev.maxParticipants }}
+                </p>
+
+                <!-- QR Code button -->
+                <div class="qr-action-row">
+                  <button class="btn-show-qr" (click)="showEventQR(ev)">
+                    <ion-icon name="qr-code-outline"></ion-icon>
+                    Show QR Code
+                  </button>
+                  <span class="attendance-stat-chip" *ngIf="ev.attendanceCount">
+                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                    {{ ev.attendanceCount }} attended
+                  </span>
+                </div>
+
+                <!-- Participants toggle -->
+                <button class="btn-participants-toggle" (click)="toggleParticipants(ev)">
+                  <ion-icon name="people"></ion-icon>
+                  {{ showParticipantsForEvent === ev.id ? 'Hide' : 'View' }} Participants
+                  <span class="participants-count-pill">{{ ev.attendees?.length || 0 }}</span>
+                </button>
+
+                <!-- Participants list -->
+                <div class="participants-panel" *ngIf="showParticipantsForEvent === ev.id">
+                  <div class="participants-loading" *ngIf="loadingParticipants">
+                    <ion-spinner name="crescent"></ion-spinner>
+                    <span>Loading...</span>
+                  </div>
+
+                  <div class="participant-row" *ngFor="let p of eventParticipants">
+                    <div class="participant-avatar">
+                      {{ (p.firstName?.charAt(0) || p.email?.charAt(0) || 'U').toUpperCase() }}
+                    </div>
+                    <div class="participant-info">
+                      <p class="participant-name">{{ p.firstName }} {{ p.lastName }}</p>
+                      <p class="participant-email">{{ p.email }}</p>
+                    </div>
+                    <span class="participant-badge"
+                          [class.alumni]="p.userType === 'alumni'"
+                          [class.student]="p.userType === 'student'">
+                      {{ p.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                    </span>
+                  </div>
+
+                  <div class="participants-empty" *ngIf="!loadingParticipants && eventParticipants.length === 0">
+                    <ion-icon name="people-outline"></ion-icon>
+                    <span>No participants yet.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="events.length === 0 && !showEventForm">
+            <ion-icon name="calendar" class="empty-icon"></ion-icon>
+            <h4>No Events Yet</h4>
+            <p>Create your first event — it will be published to the Feeds page immediately.</p>
+          </div>
+
+        </section>
+
+        <!-- Alumni ID Verification Tab -->
+        <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
+          <div class="section-header">
+            <h3>Alumni ID Verification</h3>
+          </div>
+
+          <!-- Verification Summary Stats -->
+          <div class="summary-cards verification-summary">
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <ion-icon name="hourglass"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Pending Review</p>
+                <h3 class="stat-value">{{ pendingAlumniVerification.length }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon approved">
+                <ion-icon name="shield-checkmark"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Verified Alumni</p>
+                <h3 class="stat-value">{{ verifiedAlumni.length }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending Section -->
+          <div class="verif-section-label">
+            <ion-icon name="hourglass-outline"></ion-icon>
+            Pending Review
+            <span class="badge">{{ pendingAlumniVerification.length }}</span>
+          </div>
+
+          <div class="verification-grid" *ngIf="pendingAlumniVerification.length > 0">
+            <div class="verification-card" *ngFor="let alumnus of pendingAlumniVerification">
+              <div class="verification-header">
+                <div class="user-info">
+                  <h4 class="user-name">{{ alumnus.firstName }} {{ alumnus.lastName }}</h4>
+                  <p class="user-email">{{ alumnus.email }}</p>
+                  <p class="user-details">{{ getDepartmentName(alumnus.department) }} | Batch {{ alumnus.graduationYear }}</p>
+                </div>
+                <span class="status-badge pending">Pending Review</span>
+              </div>
+
+              <div class="verification-body">
+                <div class="alumni-id-container" *ngIf="alumnus.alumniIdBase64">
+                  <img
+                    [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
+                    alt="Alumni ID"
+                    class="alumni-id-image"
+                    (click)="expandedAlumniId = expandedAlumniId === alumnus.id ? null : alumnus.id"
+                  />
+                  <p class="file-name" *ngIf="alumnus.alumniIdFileName">
+                    <ion-icon name="document"></ion-icon>
+                    {{ alumnus.alumniIdFileName }}
+                  </p>
+                </div>
+
+                <div class="expanded-view" *ngIf="expandedAlumniId === alumnus.id" (click)="expandedAlumniId = null">
+                  <div class="expanded-image-container" (click)="$event.stopPropagation()">
+                    <button class="close-btn" (click)="expandedAlumniId = null">
+                      <ion-icon name="close"></ion-icon>
+                    </button>
+                    <img [src]="getImageSafeUrl(alumnus.alumniIdBase64)" alt="Alumni ID - Expanded" class="expanded-image" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="verification-actions">
+                <button class="btn btn-approve" (click)="approveAlumniId(alumnus.id)">
+                  <ion-icon name="checkmark-circle"></ion-icon>
+                  Approve
+                </button>
+                <button class="btn btn-download" (click)="downloadAlumniId(alumnus)">
+                  <ion-icon name="download"></ion-icon>
+                  Download
+                </button>
+                <button class="btn btn-reject" (click)="rejectAlumniId(alumnus.id)">
+                  <ion-icon name="close-circle"></ion-icon>
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state compact" *ngIf="pendingAlumniVerification.length === 0">
+            <ion-icon name="checkmark-done" class="empty-icon"></ion-icon>
+            <h4>No Pending Reviews</h4>
+            <p>All submitted alumni IDs have been reviewed.</p>
+          </div>
+
+          <!-- Verified Alumni List -->
+          <div class="verif-section-label verif-section-label--verified">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+            Verified Alumni
+            <span class="badge badge-verified">{{ verifiedAlumni.length }}</span>
+          </div>
+
+          <div *ngIf="verifiedAlumni.length > 0">
+            <div class="verified-search-bar">
+              <div class="search-input-wrapper">
+                <ion-icon name="search"></ion-icon>
+                <input
+                  type="text"
+                  [(ngModel)]="verifiedAlumniSearch"
+                  placeholder="Search by name, email, student no. or department…"
+                  class="search-input"
+                />
+                <button *ngIf="verifiedAlumniSearch" class="clear-search-btn" (click)="verifiedAlumniSearch = ''">
+                  <ion-icon name="close-circle"></ion-icon>
+                </button>
+              </div>
+              <span class="verified-search-count">{{ filteredVerifiedAlumni.length }} of {{ verifiedAlumni.length }}</span>
+            </div>
+
+          <div class="verified-alumni-table-wrap">
+            <table class="verified-alumni-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Department</th>
+                  <th>Batch</th>
+                  <th>Student No.</th>
+                  <th>Verified On</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of filteredVerifiedAlumni" class="verified-row">
+                  <td class="verif-name-col">
+                    <div class="verif-avatar">{{ (a.firstName?.charAt(0) || 'A').toUpperCase() }}</div>
+                    <span>{{ a.firstName }} {{ a.lastName }}</span>
+                  </td>
+                  <td>{{ a.email }}</td>
+                  <td>{{ getDepartmentName(a.department) }}</td>
+                  <td>{{ a.graduationYear || '—' }}</td>
+                  <td>{{ a.studentNumber || '—' }}</td>
+                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : '—' }}</td>
+                </tr>
+                <tr *ngIf="filteredVerifiedAlumni.length === 0">
+                  <td colspan="6" class="verif-no-results">
+                    <ion-icon name="search-outline"></ion-icon>
+                    No results match "{{ verifiedAlumniSearch }}"
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div>
+
+          <div class="empty-state compact" *ngIf="verifiedAlumni.length === 0">
+            <ion-icon name="id-card-outline" class="empty-icon"></ion-icon>
+            <h4>No Verified Alumni Yet</h4>
+            <p>Approved alumni IDs will appear here.</p>
+          </div>
+
+        </section>
+
+        <!-- ── Attendance Dashboard Tab ──────────────────────── -->
+        <section class="tab-content att-tab" *ngIf="activeTab === 'attendance'">
+
+          <!-- Leaderboard -->
+          <div class="ldb-card">
+            <div class="ldb-header">
+              <div>
+                <h3 class="ldb-title"><ion-icon name="trophy-outline"></ion-icon> Points Leaderboard</h3>
+                <p class="ldb-sub">Top 10 participants by total points earned</p>
+              </div>
+              <button class="ldb-refresh-btn" (click)="loadLeaderboard()" [disabled]="isLoadingLeaderboard">
+                <ion-icon name="refresh-outline"></ion-icon>
+              </button>
+            </div>
+            <div class="ldb-loading" *ngIf="isLoadingLeaderboard">
+              <ion-spinner name="crescent" color="primary"></ion-spinner>
+            </div>
+            <div class="ldb-empty" *ngIf="!isLoadingLeaderboard && leaderboard.length === 0">
+              <ion-icon name="star-outline"></ion-icon>
+              <p>No points earned yet</p>
+            </div>
+            <div class="ldb-list" *ngIf="!isLoadingLeaderboard && leaderboard.length > 0">
+              <div class="ldb-row" *ngFor="let u of leaderboard" [class.ldb-top3]="u.rank <= 3">
+                <div class="ldb-rank" [class.rank-1]="u.rank===1" [class.rank-2]="u.rank===2" [class.rank-3]="u.rank===3">
+                  <ion-icon name="trophy" *ngIf="u.rank <= 3"></ion-icon>
+                  <span *ngIf="u.rank > 3">{{ u.rank }}</span>
+                </div>
+                <div class="ldb-avatar" [style.backgroundImage]="u.photoUrl ? 'url('+u.photoUrl+')' : 'none'">
+                  <span *ngIf="!u.photoUrl">{{ u.initials }}</span>
+                </div>
+                <div class="ldb-info">
+                  <span class="ldb-name">{{ u.name }}</span>
+                  <span class="ldb-type">{{ u.userType === 'alumni' ? 'Alumni' : 'Student' }}</span>
+                </div>
+                <div class="ldb-right">
+                  <span class="ldb-level-pill" [style.background]="u.level.color + '22'" [style.color]="u.level.color">{{ u.level.label }}</span>
+                  <span class="ldb-pts">{{ u.totalPoints }} pts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event Selector -->
+          <div class="att-selector-bar">
+            <div class="att-selector-label">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span>Select Event</span>
+            </div>
+            <select class="att-event-select" [(ngModel)]="activeDashboardEventId" (change)="selectDashboardEvent(activeDashboardEventId)">
+              <option value="">— Choose an event to view attendance —</option>
+              <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} · {{ formatEventDate(ev) }}</option>
+            </select>
+          </div>
+
+          <!-- Empty state -->
+          <div class="att-empty-state" *ngIf="!dashboardEvent">
+            <div class="att-empty-icon"><ion-icon name="scan-circle-outline"></ion-icon></div>
+            <h3>No Event Selected</h3>
+            <p>Choose an event from the dropdown above to view its attendance dashboard.</p>
+          </div>
+
+          <ng-container *ngIf="dashboardEvent">
+
+            <!-- Loading -->
+            <div class="att-loading-state" *ngIf="isLoadingDashboard">
+              <ion-spinner name="crescent" color="primary"></ion-spinner>
+              <p>Loading attendance data…</p>
+            </div>
+
+            <ng-container *ngIf="!isLoadingDashboard">
+
+              <!-- Event Summary Card -->
+              <div class="att-event-card">
+                <div class="att-event-thumb" [class.att-thumb-placeholder]="!dashboardEvent.coverImageBase64">
+                  <img *ngIf="dashboardEvent.coverImageBase64" [src]="'data:image/jpeg;base64,' + dashboardEvent.coverImageBase64" [alt]="dashboardEvent.title">
+                  <ion-icon *ngIf="!dashboardEvent.coverImageBase64" name="calendar-outline"></ion-icon>
+                </div>
+                <div class="att-event-details">
+                  <span class="att-event-type-badge">{{ dashboardEvent.eventType === 'global' ? 'Global Event' : 'Department Event' }}</span>
+                  <h2 class="att-event-title">{{ dashboardEvent.title }}</h2>
+                  <div class="att-event-meta">
+                    <span class="att-meta-item">
+                      <ion-icon name="calendar-outline"></ion-icon>
+                      {{ formatEventDate(dashboardEvent) }}
+                    </span>
+                    <span class="att-meta-item" *ngIf="dashboardEvent.time">
+                      <ion-icon name="time-outline"></ion-icon>
+                      {{ formatEventTime(dashboardEvent) }}
+                    </span>
+                    <span class="att-meta-item" *ngIf="dashboardEvent.location">
+                      <ion-icon name="location-outline"></ion-icon>
+                      {{ dashboardEvent.location }}
+                    </span>
+                  </div>
+                </div>
+                <button class="att-view-event-btn" (click)="selectTab('events')">
+                  <ion-icon name="open-outline"></ion-icon>
+                  View Event Details
+                </button>
+              </div>
+
+              <!-- Statistics -->
+              <div class="att-stats-grid">
+                <div class="att-stat-card att-stat-blue">
+                  <div class="att-stat-icon-wrap">
+                    <ion-icon name="people-outline"></ion-icon>
+                  </div>
+                  <div class="att-stat-body">
+                    <p class="att-stat-label">Total Registered</p>
+                    <h3 class="att-stat-value">{{ dashboardStats.registered }}</h3>
+                  </div>
+                </div>
+                <div class="att-stat-card att-stat-green">
+                  <div class="att-stat-icon-wrap">
+                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  </div>
+                  <div class="att-stat-body">
+                    <p class="att-stat-label">Total Attended</p>
+                    <h3 class="att-stat-value">{{ dashboardStats.attended }}</h3>
+                  </div>
+                </div>
+                <div class="att-stat-card att-stat-red">
+                  <div class="att-stat-icon-wrap">
+                    <ion-icon name="close-circle-outline"></ion-icon>
+                  </div>
+                  <div class="att-stat-body">
+                    <p class="att-stat-label">No-shows</p>
+                    <h3 class="att-stat-value">{{ dashboardStats.noShows }}</h3>
+                  </div>
+                </div>
+                <div class="att-stat-card att-stat-amber">
+                  <div class="att-stat-icon-wrap">
+                    <ion-icon name="stats-chart-outline"></ion-icon>
+                  </div>
+                  <div class="att-stat-body">
+                    <p class="att-stat-label">Attendance Rate</p>
+                    <h3 class="att-stat-value">{{ dashboardStats.rate }}<span class="att-stat-unit">%</span></h3>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rate Progress Bar -->
+              <div class="att-rate-bar-card">
+                <div class="att-rate-bar-header">
+                  <span>Attendance Rate</span>
+                  <span class="att-rate-pct">{{ dashboardStats.attended }} / {{ dashboardStats.registered }} attendees</span>
+                </div>
+                <div class="att-rate-track">
+                  <div class="att-rate-fill" [style.width.%]="dashboardStats.rate"></div>
+                </div>
+              </div>
+
+              <!-- Line Chart -->
+              <div class="att-chart-card">
+                <div class="att-chart-head">
+                  <div>
+                    <h3 class="att-chart-title">Attendance Over Time</h3>
+                    <p class="att-chart-sub">Cumulative scans throughout the event</p>
+                  </div>
+                  <div class="att-chart-legend">
+                    <span class="att-legend-dot"></span>
+                    <span>Scans</span>
+                  </div>
+                </div>
+                <div class="att-chart-wrap" *ngIf="chartPoints.length >= 2">
+                  <svg viewBox="0 0 600 158" class="att-svg" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="attFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#1E5128" stop-opacity="0.2"/>
+                        <stop offset="100%" stop-color="#1E5128" stop-opacity="0.01"/>
+                      </linearGradient>
+                    </defs>
+                    <line x1="40" y1="10"  x2="580" y2="10"  stroke="#f3f4f6" stroke-width="1"/>
+                    <line x1="40" y1="40"  x2="580" y2="40"  stroke="#f3f4f6" stroke-width="1"/>
+                    <line x1="40" y1="70"  x2="580" y2="70"  stroke="#f3f4f6" stroke-width="1"/>
+                    <line x1="40" y1="100" x2="580" y2="100" stroke="#f3f4f6" stroke-width="1"/>
+                    <line x1="40" y1="130" x2="580" y2="130" stroke="#e5e7eb" stroke-width="1"/>
+                    <path [attr.d]="chartFillPath" fill="url(#attFill)"/>
+                    <path [attr.d]="chartSvgPath" fill="none" stroke="#1E5128" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <g *ngFor="let pt of chartPoints; let i = index">
+                      <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="4" fill="#1E5128" stroke="white" stroke-width="2"/>
+                    </g>
+                    <text x="40" y="148" fill="#9ca3af" font-size="10">{{ chartPoints[0]?.label }}</text>
+                    <text [attr.x]="580 - (chartPoints[chartPoints.length-1]?.label?.length || 0) * 3" y="148" fill="#9ca3af" font-size="10">{{ chartPoints[chartPoints.length-1]?.label }}</text>
+                  </svg>
+                </div>
+                <div class="att-chart-empty" *ngIf="chartPoints.length < 2">
+                  <ion-icon name="bar-chart-outline"></ion-icon>
+                  <p>Not enough scan data to display a chart</p>
+                </div>
+              </div>
+
+              <!-- Attendees Table -->
+              <div class="att-table-card">
+                <div class="att-table-head">
+                  <div class="att-table-title-wrap">
+                    <h3>Attendees</h3>
+                    <span class="att-table-count">{{ filteredDashboardAttendees.length }}</span>
+                  </div>
+                  <div class="att-table-controls">
+                    <div class="att-search-box">
+                      <ion-icon name="search-outline"></ion-icon>
+                      <input type="text" placeholder="Search name…" [(ngModel)]="dashboardSearch" (input)="filterDashboardList()" class="att-search-input">
+                    </div>
+                    <select class="att-status-filter" [(ngModel)]="dashboardStatusFilter" (change)="filterDashboardList()">
+                      <option value="all">All Status</option>
+                      <option value="attended">Attended</option>
+                      <option value="no-show">No-show</option>
+                    </select>
+                    <button class="att-export-btn" (click)="exportAttendanceCSV()">
+                      <ion-icon name="download-outline"></ion-icon>
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div class="att-table-scroll">
+                  <table class="att-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Course / Department</th>
+                        <th>Role</th>
+                        <th>Time Scanned</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let u of filteredDashboardAttendees" class="att-row">
+                        <td class="att-name-col">
+                          <div class="att-avatar" [class.att-has-photo]="u.photoUrl" [style.backgroundImage]="u.photoUrl ? 'url(' + u.photoUrl + ')' : 'none'">
+                            <span *ngIf="!u.photoUrl">{{ u.initials }}</span>
+                          </div>
+                          <span class="att-name-text">{{ u.name }}</span>
+                        </td>
+                        <td class="att-course-col">
+                          <span class="att-course">{{ u.course || '—' }}</span>
+                          <span class="att-dept">{{ getDepartmentName(u.department) || '—' }}</span>
+                        </td>
+                        <td>
+                          <span class="att-role-pill" [class.role-alumni]="u.userType === 'alumni'" [class.role-student]="u.userType === 'student'">
+                            {{ u.userType === 'alumni' ? 'Alumni' : 'Student' }}
+                          </span>
+                        </td>
+                        <td class="att-time-col">{{ formatDashboardTime(u.scannedAt) }}</td>
+                        <td>
+                          <span class="att-status-pill" [class.status-attended]="u.status === 'attended'" [class.status-noshow]="u.status === 'no-show'">
+                            <ion-icon [name]="u.status === 'attended' ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+                            {{ u.status === 'attended' ? 'Attended' : 'No-show' }}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr *ngIf="filteredDashboardAttendees.length === 0">
+                        <td colspan="5" class="att-no-data">No records match your search</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </ng-container>
+          </ng-container>
+        </section>
+
       </div>
     </main>
+  </div>
+</div>
+
+<!-- ── QR Code Modal Overlay ───────────────────────────────── -->
+<div class="qr-overlay" *ngIf="showQRModal" (click)="closeQRModal()">
+  <div class="qr-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="qr-modal-header">
+      <div class="qr-modal-title-group">
+        <ion-icon name="qr-code-outline" class="qr-header-icon"></ion-icon>
+        <div>
+          <h3 class="qr-modal-title">Event QR Code</h3>
+          <p class="qr-modal-subtitle">{{ qrModalEvent?.title }}</p>
+        </div>
+      </div>
+      <button class="qr-close-btn" (click)="closeQRModal()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Event meta -->
+    <div class="qr-event-meta">
+      <span *ngIf="qrModalEvent?.date">
+        <ion-icon name="calendar-outline"></ion-icon>
+        {{ formatEventDate(qrModalEvent) }}
+      </span>
+      <span *ngIf="qrModalEvent?.time">
+        <ion-icon name="time-outline"></ion-icon>
+        {{ formatEventTime(qrModalEvent) }}
+      </span>
+      <span *ngIf="qrModalEvent?.location">
+        <ion-icon name="location-outline"></ion-icon>
+        {{ qrModalEvent?.location }}
+      </span>
+    </div>
+
+    <!-- QR Image -->
+    <div class="qr-image-wrap">
+      <div class="qr-generating" *ngIf="isGeneratingQR">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Generating QR…</p>
+      </div>
+      <img *ngIf="!isGeneratingQR && qrCodeDataUrl" [src]="qrCodeDataUrl" alt="Event QR Code" class="qr-image" />
+    </div>
+
+    <!-- Validity note -->
+    <p class="qr-validity-note" *ngIf="!isGeneratingQR">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      Valid only on the event date · Registered users only
+    </p>
+
+    <!-- Stats row -->
+    <div class="qr-stats-row">
+      <div class="qr-stat">
+        <span class="qr-stat-num">{{ qrModalEvent?.attendees?.length || 0 }}</span>
+        <span class="qr-stat-lbl">Registered</span>
+      </div>
+      <div class="qr-stat-divider"></div>
+      <div class="qr-stat">
+        <span class="qr-stat-num">{{ qrModalEvent?.attendanceCount || 0 }}</span>
+        <span class="qr-stat-lbl">Attended</span>
+      </div>
+      <div class="qr-stat-divider"></div>
+      <div class="qr-stat">
+        <span class="qr-stat-num">
+          {{ ((qrModalEvent?.attendanceCount || 0) / (qrModalEvent?.attendees?.length || 1) * 100).toFixed(0) }}%
+        </span>
+        <span class="qr-stat-lbl">Rate</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="qr-actions">
+      <button class="qr-btn-refresh" (click)="refreshQRCode()" [disabled]="isGeneratingQR">
+        <ion-icon name="refresh-outline"></ion-icon>
+        Refresh QR
+      </button>
+      <button class="qr-btn-attendance" (click)="toggleAttendanceList()">
+        <ion-icon [name]="showAttendanceInModal ? 'chevron-up' : 'people-outline'"></ion-icon>
+        {{ showAttendanceInModal ? 'Hide' : 'View' }} Attendance
+      </button>
+    </div>
+
+    <!-- Attendance list -->
+    <div class="qr-attendance-list" *ngIf="showAttendanceInModal">
+      <div class="qr-attendance-loading" *ngIf="isLoadingAttendance">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading attendance…</span>
+      </div>
+
+      <div class="qr-attendance-empty" *ngIf="!isLoadingAttendance && attendanceList.length === 0">
+        <ion-icon name="people-outline"></ion-icon>
+        <p>No attendances recorded yet.</p>
+      </div>
+
+      <div class="qr-attendee-row" *ngFor="let a of attendanceList">
+        <div class="qr-attendee-avatar">
+          {{ (a.userName || '?').charAt(0).toUpperCase() }}
+        </div>
+        <div class="qr-attendee-info">
+          <p class="qr-attendee-name">{{ a.userName }}</p>
+          <p class="qr-attendee-email">{{ a.userEmail }}</p>
+        </div>
+        <div class="qr-attendee-right">
+          <span class="qr-attendee-badge" [class.alumni]="a.userType === 'alumni'">
+            {{ a.userType === 'alumni' ? 'Alumni' : 'Student' }}
+          </span>
+          <span class="qr-attendee-time">{{ formatAttendanceTime(a.scannedAt) }}</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

@@ -1,5 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { AlertController } from '@ionic/angular';
+import { Auth, authState } from '@angular/fire/auth';
+import { AuthService } from '../services/auth.service';
+import { ChatService, ConversationItem } from '../services/chat.service';
 
 @Component({
   selector: 'app-messages',
@@ -7,98 +11,155 @@ import { Router } from '@angular/router';
   styleUrls: ['./messages.page.scss'],
   standalone: false,
 })
-export class MessagesPage implements OnInit {
+export class MessagesPage implements OnInit, OnDestroy {
   searchQuery = '';
-  
-  // Chat conversations
-  conversations = [
-    {
-      id: 1,
-      name: 'John Doe',
-      role: 'Department Head',
-      avatar: 'JD',
-      lastMessage: 'Thanks for your feedback on the project',
-      timestamp: '2 minutes ago',
-      unread: 2,
-      online: true,
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      role: 'Colleague',
-      avatar: 'SJ',
-      lastMessage: 'Let\'s meet tomorrow to discuss',
-      timestamp: '15 minutes ago',
-      unread: 0,
-      online: true,
-    },
-    {
-      id: 3,
-      name: 'Mike Chen',
-      role: 'Team Lead',
-      avatar: 'MC',
-      lastMessage: 'The report is ready for review',
-      timestamp: '1 hour ago',
-      unread: 1,
-      online: false,
-    },
-    {
-      id: 4,
-      name: 'Emily Rodriguez',
-      role: 'Colleague',
-      avatar: 'ER',
-      lastMessage: 'See you at the conference next week',
-      timestamp: '3 hours ago',
-      unread: 0,
-      online: true,
-    },
-    {
-      id: 5,
-      name: 'David Park',
-      role: 'Senior Advisor',
-      avatar: 'DP',
-      lastMessage: 'Great work on the presentation',
-      timestamp: 'Yesterday',
-      unread: 0,
-      online: false,
-    },
-    {
-      id: 6,
-      name: 'Lisa Wang',
-      role: 'Colleague',
-      avatar: 'LW',
-      lastMessage: 'Thanks for sharing the document',
-      timestamp: 'Yesterday',
-      unread: 0,
-      online: true,
-    },
-  ];
+  allItems: ConversationItem[] = [];
+  filteredItems: ConversationItem[] = [];
+  isLoading = true;
+  private currentUserUid: string | null = null;
+  private convUnsubscribe: (() => void) | null = null;
 
-  filteredConversations = this.conversations;
-
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: Auth,
+    private authService: AuthService,
+    private chatService: ChatService,
+    private alertCtrl: AlertController
+  ) {}
 
   ngOnInit() {
+    authState(this.auth).subscribe(async user => {
+      if (!user) { this.router.navigate(['/login']); return; }
+      this.currentUserUid = user.uid;
+      await this.loadFriends();
+    });
+  }
+
+  ngOnDestroy() {
+    this.convUnsubscribe?.();
+  }
+
+  private async loadFriends() {
+    if (!this.currentUserUid) return;
+    this.isLoading = true;
+    try {
+      // Get current user doc to read friends array
+      const profile = await this.authService.getUserProfile(this.currentUserUid);
+      const friendUids: string[] = profile?.['friends'] || [];
+
+      // Get profiles of all friends
+      const allUsers = await this.authService.getAllUsers();
+      const friendProfiles = allUsers.filter((u: any) => friendUids.includes(u.id));
+
+      // Build base items from friend profiles (no conversation data yet)
+      this.allItems = friendProfiles.map((u: any) => {
+        const firstName = u.firstName || '';
+        const lastName = u.lastName || '';
+        return {
+          id: this.chatService.getConversationId(this.currentUserUid!, u.id),
+          otherUid: u.id,
+          otherName: `${firstName} ${lastName}`.trim() || u.email || 'User',
+          otherAvatar: firstName.charAt(0).toUpperCase() || '?',
+          lastMessage: '',
+          lastMessageAt: null,
+          unreadCount: 0,
+          hasConversation: false
+        } as ConversationItem;
+      });
+
+      this.applyFilter();
+      this.subscribeToConversations();
+    } catch (err) {
+      console.error('Error loading friends:', err);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private subscribeToConversations() {
+    if (!this.currentUserUid) return;
+    this.convUnsubscribe = this.chatService.subscribeToConversations(
+      this.currentUserUid,
+      (rawConvs: any[]) => {
+        // Merge real-time conversation data into allItems
+        this.allItems = this.allItems.map(item => {
+          const conv = rawConvs.find(c => c.id === item.id);
+          if (!conv) return item;
+          return {
+            ...item,
+            lastMessage: conv.lastMessage || '',
+            lastMessageAt: conv.lastMessageAt?.toDate?.() ?? null,
+            unreadCount: conv.unreadCount?.[this.currentUserUid!] ?? 0,
+            hasConversation: !!(conv.lastMessage)
+          };
+        });
+
+        // Sort: conversations with messages first (newest first), then friends without
+        this.allItems.sort((a, b) => {
+          if (a.lastMessageAt && b.lastMessageAt) {
+            return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+          }
+          if (a.lastMessageAt) return -1;
+          if (b.lastMessageAt) return 1;
+          return a.otherName.localeCompare(b.otherName);
+        });
+
+        this.applyFilter();
+      }
+    );
+  }
+
+  private applyFilter() {
+    const q = this.searchQuery.toLowerCase();
+    this.filteredItems = q
+      ? this.allItems.filter(i => i.otherName.toLowerCase().includes(q))
+      : [...this.allItems];
+  }
+
+  onSearchChange(event: any) {
+    this.searchQuery = event.detail.value || '';
+    this.applyFilter();
+  }
+
+  openChat(otherUid: string) {
+    this.router.navigate(['/chat', otherUid]);
+  }
+
+  formatTime(date: Date | null): string {
+    if (!date) return '';
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
+    if (diffDays === 0) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  async removeConversation(item: ConversationItem) {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Conversation',
+      message: `Delete your conversation with ${item.otherName}? This cannot be undone.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await this.chatService.deleteConversation(item.id);
+              this.allItems = this.allItems.filter(i => i.id !== item.id);
+              this.applyFilter();
+            } catch (err) {
+              console.error('Error deleting conversation:', err);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   goBack() {
     this.router.navigate(['/home']);
-  }
-
-  openChat(conversationId: number) {
-    // Navigate to chat detail page when ready
-    console.log('Opening chat:', conversationId);
-  }
-
-  onSearchChange(event: any) {
-    const query = event.detail.value.toLowerCase();
-    this.filteredConversations = this.conversations.filter(conv =>
-      conv.name.toLowerCase().includes(query) ||
-      conv.role.toLowerCase().includes(query)
-    );
-  }
-
-  getTotalUnread(): number {
-    return this.conversations.reduce((sum, conv) => sum + conv.unread, 0);
   }
 }

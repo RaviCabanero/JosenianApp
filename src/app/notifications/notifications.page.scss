@@ -1,6 +1,6 @@
 // SCSS Variables
-$primary-color: #10b981;
-$primary-dark: #059669;
+$primary-color: #1E5128;
+$primary-dark: #143C1C;
 $text-primary: #1f2937;
 $text-secondary: #6b7280;
 $border-color: #e5e7eb;
@@ -139,7 +139,7 @@ ion-content {
                 }
 
                 &.avatar-mention {
-                  background: linear-gradient(135deg, #10b981, #059669);
+                  background: linear-gradient(135deg, #1E5128, #143C1C);
                 }
 
                 &.avatar-comment {
@@ -167,7 +167,7 @@ ion-content {
                 }
 
                 &.avatar-update {
-                  background: linear-gradient(135deg, #10b981, #059669);
+                  background: linear-gradient(135deg, #1E5128, #143C1C);
                 }
               }
             }

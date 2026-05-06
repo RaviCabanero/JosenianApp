@@ -5,47 +5,111 @@
         <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>History</ion-title>
+    <ion-title>Event History</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Section Title -->
-    <div class="section-header">
-      <h2>Recent Events</h2>
-      <span class="event-count">{{ events.length }} events</span>
+
+    <!-- Summary row -->
+    <div class="history-summary">
+      <div class="summary-pill">
+        <ion-icon name="calendar-outline"></ion-icon>
+        <span>{{ events.length }} past event{{ events.length !== 1 ? 's' : '' }} joined</span>
+      </div>
     </div>
 
-    <!-- Events Timeline -->
-    <div class="events-timeline">
-      <div *ngFor="let event of events; let last = last" class="event-item" [class.last]="last" (click)="viewEventDetails(event.id)">
-        <!-- Timeline Dot and Line -->
+    <!-- Filter tabs -->
+    <div class="filter-tabs" *ngIf="events.length > 0">
+      <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+        All <span class="tab-count">{{ events.length }}</span>
+      </button>
+      <button class="filter-tab" [class.active]="activeFilter === 'global'" (click)="setFilter('global')">
+        <ion-icon name="globe-outline"></ion-icon>
+        Global <span class="tab-count">{{ globalCount }}</span>
+      </button>
+      <button class="filter-tab" [class.active]="activeFilter === 'department'" (click)="setFilter('department')">
+        <ion-icon name="business-outline"></ion-icon>
+        Department <span class="tab-count">{{ deptCount }}</span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading your event history…</p>
+    </div>
+
+    <!-- Timeline -->
+    <div class="events-timeline" *ngIf="!isLoading && filteredEvents.length > 0">
+      <div
+        *ngFor="let event of filteredEvents; let last = last"
+        class="event-item"
+        [class.last]="last">
+
         <div class="timeline-marker">
-          <div class="timeline-dot">
-            <ion-icon [name]="getEventIcon(event.type)"></ion-icon>
+          <div class="timeline-dot" [class.dot-dept]="event.source === 'department'">
+            <ion-icon [name]="getEventIcon(event)"></ion-icon>
           </div>
           <div class="timeline-line" *ngIf="!last"></div>
         </div>
 
-        <!-- Event Card -->
         <div class="event-card">
-          <div class="event-header">
-            <h3>{{ event.title }}</h3>
-            <ion-badge [color]="eventTypeColors[event.type]">
-              {{ event.type | titlecase }}
-            </ion-badge>
+          <div class="event-card-top">
+            <span class="source-badge" [class.source-global]="event.source === 'global'" [class.source-dept]="event.source === 'department'">
+              <ion-icon [name]="event.source === 'global' ? 'globe-outline' : 'business-outline'"></ion-icon>
+              {{ event.source === 'global' ? 'Global' : getDeptName(event.departmentId) }}
+            </span>
+            <span class="type-tag" *ngIf="event.type">{{ event.type | titlecase }}</span>
           </div>
-          <p class="event-date">
-            <ion-icon name="calendar-clear" size="small"></ion-icon>
-            {{ event.date | date:'MMM dd, yyyy' }}
-          </p>
-          <p class="event-attendees">
-            <ion-icon name="people" size="small"></ion-icon>
-            {{ event.attendees }} attendees
-          </p>
+
+          <h3 class="event-title">{{ event.title }}</h3>
+
+          <div class="event-meta">
+            <span>
+              <ion-icon name="calendar-clear-outline"></ion-icon>
+              {{ formatDate(event.date) }}
+            </span>
+            <span *ngIf="event.time">
+              <ion-icon name="time-outline"></ion-icon>
+              {{ event.time }}
+            </span>
+            <span *ngIf="event.location">
+              <ion-icon name="location-outline"></ion-icon>
+              {{ event.location }}
+            </span>
+            <span *ngIf="event.venue">
+              <ion-icon name="location-outline"></ion-icon>
+              {{ event.venue }}
+            </span>
+          </div>
+
+          <p class="event-description" *ngIf="event.description">{{ event.description }}</p>
+
+          <div class="event-footer">
+            <span class="attendees-chip">
+              <ion-icon name="people-outline"></ion-icon>
+              {{ (event.attendees || []).length }} joined
+            </span>
+          </div>
         </div>
+
       </div>
     </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="!isLoading && filteredEvents.length === 0 && events.length > 0">
+      <ion-icon name="filter-outline"></ion-icon>
+      <h2>No {{ activeFilter === 'global' ? 'Global' : 'Department' }} Events</h2>
+      <p>You haven't joined any {{ activeFilter === 'global' ? 'global' : 'department' }} events yet.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading && events.length === 0">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <h2>No Past Events</h2>
+      <p>Events you join will appear here once they're over.</p>
+    </div>
+
   </div>
 </ion-content>
