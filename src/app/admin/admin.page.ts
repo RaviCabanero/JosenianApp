@@ -31,6 +31,8 @@ export class AdminPage implements OnInit {
   adminNotes: string = '';
 
   pendingAlumniVerification: any[] = [];
+  verifiedAlumni: any[] = [];
+  verifiedAlumniSearch: string = '';
   expandedAlumniId: string | null = null;
 
   departments: any[] = [];
@@ -307,9 +309,12 @@ export class AdminPage implements OnInit {
 
   async loadPendingAlumniVerification() {
     try {
-      this.pendingAlumniVerification = await this.authService.getPendingAlumniVerification();
+      [this.pendingAlumniVerification, this.verifiedAlumni] = await Promise.all([
+        this.authService.getPendingAlumniVerification(),
+        this.authService.getVerifiedAlumni()
+      ]);
     } catch (error) {
-      console.error('Error loading pending alumni verification:', error);
+      console.error('Error loading alumni verification:', error);
     }
   }
 
@@ -326,7 +331,11 @@ export class AdminPage implements OnInit {
   async approveAlumniId(userId: string) {
     try {
       await this.authService.verifyAlumniId(userId, 'approved', '');
+      const approved = this.pendingAlumniVerification.find(a => a.id === userId);
       this.pendingAlumniVerification = this.pendingAlumniVerification.filter(a => a.id !== userId);
+      if (approved) {
+        this.verifiedAlumni = [{ ...approved, alumniIdVerificationStatus: 'approved' }, ...this.verifiedAlumni];
+      }
     } catch (error) {
       console.error('Error approving alumni ID:', error);
       await this.showAlert('Error', 'Failed to approve alumni ID.');
@@ -374,6 +383,17 @@ export class AdminPage implements OnInit {
 
   getDepartmentsWithCourses(): number {
     return this.departments.filter(dept => (dept.courses?.length || 0) > 0).length;
+  }
+
+  get filteredVerifiedAlumni(): any[] {
+    const term = this.verifiedAlumniSearch.toLowerCase().trim();
+    if (!term) return this.verifiedAlumni;
+    return this.verifiedAlumni.filter(a =>
+      `${a.firstName} ${a.lastName}`.toLowerCase().includes(term) ||
+      (a.email || '').toLowerCase().includes(term) ||
+      (a.studentNumber || '').toLowerCase().includes(term) ||
+      (this.getDepartmentName(a.department) || '').toLowerCase().includes(term)
+    );
   }
 
   get filteredDepartments(): any[] {

@@ -924,6 +924,27 @@
                   </div>
                 </div>
 
+                <!-- Work Experience -->
+                <div class="work-exp-section" *ngIf="selectedAlumni.workExperiences?.length > 0">
+                  <h4>
+                    <ion-icon name="briefcase-outline"></ion-icon>
+                    Work Experience
+                  </h4>
+                  <div class="work-exp-list">
+                    <div class="work-exp-item" *ngFor="let job of selectedAlumni.workExperiences">
+                      <div class="work-exp-header">
+                        <span class="work-position">{{ job.position }}</span>
+                        <span class="work-current-badge" *ngIf="job.isCurrent">Current</span>
+                      </div>
+                      <span class="work-company">{{ job.company }}</span>
+                      <span class="work-years">
+                        {{ job.startYear }}–{{ job.isCurrent ? 'Present' : job.endYear }}
+                      </span>
+                      <p class="work-desc" *ngIf="job.description">{{ job.description }}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Role Assignment — inline, alumni only -->
                 <div class="role-management-section" *ngIf="selectedAlumni.source === 'registered' && selectedAlumni.userType === 'alumni'">
                   <h4>
@@ -1241,7 +1262,35 @@
         <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
           <div class="section-header">
             <h3>Alumni ID Verification</h3>
-            <span class="badge">{{ pendingAlumniVerification.length }} Pending</span>
+          </div>
+
+          <!-- Verification Summary Stats -->
+          <div class="summary-cards verification-summary">
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <ion-icon name="hourglass"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Pending Review</p>
+                <h3 class="stat-value">{{ pendingAlumniVerification.length }}</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon approved">
+                <ion-icon name="shield-checkmark"></ion-icon>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Verified Alumni</p>
+                <h3 class="stat-value">{{ verifiedAlumni.length }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending Section -->
+          <div class="verif-section-label">
+            <ion-icon name="hourglass-outline"></ion-icon>
+            Pending Review
+            <span class="badge">{{ pendingAlumniVerification.length }}</span>
           </div>
 
           <div class="verification-grid" *ngIf="pendingAlumniVerification.length > 0">
@@ -1250,13 +1299,12 @@
                 <div class="user-info">
                   <h4 class="user-name">{{ alumnus.firstName }} {{ alumnus.lastName }}</h4>
                   <p class="user-email">{{ alumnus.email }}</p>
-                  <p class="user-details">{{ alumnus.department }} | Batch {{ alumnus.graduationYear }}</p>
+                  <p class="user-details">{{ getDepartmentName(alumnus.department) }} | Batch {{ alumnus.graduationYear }}</p>
                 </div>
                 <span class="status-badge pending">Pending Review</span>
               </div>
 
               <div class="verification-body">
-                <!-- Alumni ID Image -->
                 <div class="alumni-id-container" *ngIf="alumnus.alumniIdBase64">
                   <img
                     [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
@@ -1270,17 +1318,12 @@
                   </p>
                 </div>
 
-                <!-- Expanded View -->
                 <div class="expanded-view" *ngIf="expandedAlumniId === alumnus.id" (click)="expandedAlumniId = null">
                   <div class="expanded-image-container" (click)="$event.stopPropagation()">
                     <button class="close-btn" (click)="expandedAlumniId = null">
                       <ion-icon name="close"></ion-icon>
                     </button>
-                    <img
-                      [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
-                      alt="Alumni ID - Expanded"
-                      class="expanded-image"
-                    />
+                    <img [src]="getImageSafeUrl(alumnus.alumniIdBase64)" alt="Alumni ID - Expanded" class="expanded-image" />
                   </div>
                 </div>
               </div>
@@ -1302,12 +1345,77 @@
             </div>
           </div>
 
-          <!-- Empty State -->
-          <div class="empty-state" *ngIf="pendingAlumniVerification.length === 0">
+          <div class="empty-state compact" *ngIf="pendingAlumniVerification.length === 0">
             <ion-icon name="checkmark-done" class="empty-icon"></ion-icon>
-            <h4>All Verified!</h4>
-            <p>No pending alumni ID verifications. All alumni IDs have been reviewed.</p>
+            <h4>No Pending Reviews</h4>
+            <p>All submitted alumni IDs have been reviewed.</p>
           </div>
+
+          <!-- Verified Alumni List -->
+          <div class="verif-section-label verif-section-label--verified">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+            Verified Alumni
+            <span class="badge badge-verified">{{ verifiedAlumni.length }}</span>
+          </div>
+
+          <div *ngIf="verifiedAlumni.length > 0">
+            <div class="verified-search-bar">
+              <div class="search-input-wrapper">
+                <ion-icon name="search"></ion-icon>
+                <input
+                  type="text"
+                  [(ngModel)]="verifiedAlumniSearch"
+                  placeholder="Search by name, email, student no. or department…"
+                  class="search-input"
+                />
+                <button *ngIf="verifiedAlumniSearch" class="clear-search-btn" (click)="verifiedAlumniSearch = ''">
+                  <ion-icon name="close-circle"></ion-icon>
+                </button>
+              </div>
+              <span class="verified-search-count">{{ filteredVerifiedAlumni.length }} of {{ verifiedAlumni.length }}</span>
+            </div>
+
+          <div class="verified-alumni-table-wrap">
+            <table class="verified-alumni-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Department</th>
+                  <th>Batch</th>
+                  <th>Student No.</th>
+                  <th>Verified On</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of filteredVerifiedAlumni" class="verified-row">
+                  <td class="verif-name-col">
+                    <div class="verif-avatar">{{ (a.firstName?.charAt(0) || 'A').toUpperCase() }}</div>
+                    <span>{{ a.firstName }} {{ a.lastName }}</span>
+                  </td>
+                  <td>{{ a.email }}</td>
+                  <td>{{ getDepartmentName(a.department) }}</td>
+                  <td>{{ a.graduationYear || '—' }}</td>
+                  <td>{{ a.studentNumber || '—' }}</td>
+                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : '—' }}</td>
+                </tr>
+                <tr *ngIf="filteredVerifiedAlumni.length === 0">
+                  <td colspan="6" class="verif-no-results">
+                    <ion-icon name="search-outline"></ion-icon>
+                    No results match "{{ verifiedAlumniSearch }}"
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div>
+
+          <div class="empty-state compact" *ngIf="verifiedAlumni.length === 0">
+            <ion-icon name="id-card-outline" class="empty-icon"></ion-icon>
+            <h4>No Verified Alumni Yet</h4>
+            <p>Approved alumni IDs will appear here.</p>
+          </div>
+
         </section>
 
         <!-- ── Attendance Dashboard Tab ──────────────────────── -->
@@ -1478,8 +1586,8 @@
                   <svg viewBox="0 0 600 158" class="att-svg" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="attFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.2"/>
-                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.01"/>
+                        <stop offset="0%" stop-color="#1E5128" stop-opacity="0.2"/>
+                        <stop offset="100%" stop-color="#1E5128" stop-opacity="0.01"/>
                       </linearGradient>
                     </defs>
                     <line x1="40" y1="10"  x2="580" y2="10"  stroke="#f3f4f6" stroke-width="1"/>
@@ -1488,9 +1596,9 @@
                     <line x1="40" y1="100" x2="580" y2="100" stroke="#f3f4f6" stroke-width="1"/>
                     <line x1="40" y1="130" x2="580" y2="130" stroke="#e5e7eb" stroke-width="1"/>
                     <path [attr.d]="chartFillPath" fill="url(#attFill)"/>
-                    <path [attr.d]="chartSvgPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path [attr.d]="chartSvgPath" fill="none" stroke="#1E5128" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     <g *ngFor="let pt of chartPoints; let i = index">
-                      <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="4" fill="#10b981" stroke="white" stroke-width="2"/>
+                      <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="4" fill="#1E5128" stroke="white" stroke-width="2"/>
                     </g>
                     <text x="40" y="148" fill="#9ca3af" font-size="10">{{ chartPoints[0]?.label }}</text>
                     <text [attr.x]="580 - (chartPoints[chartPoints.length-1]?.label?.length || 0) * 3" y="148" fill="#9ca3af" font-size="10">{{ chartPoints[chartPoints.length-1]?.label }}</text>

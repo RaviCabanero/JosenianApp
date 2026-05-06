@@ -52,11 +52,6 @@ const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
-    path: 'statistics',
-    loadChildren: () => import('./statistics/statistics.module').then( m => m.StatisticsPageModule),
-    canActivate: [AuthGuard]
-  },
-  {
     path: 'messages',
     loadChildren: () => import('./messages/messages.module').then( m => m.MessagesPageModule),
     canActivate: [AuthGuard]

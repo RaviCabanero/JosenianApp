@@ -59,6 +59,7 @@ export class DepartmentPage implements OnInit {
 
   allDepartments: Department[] = [];
   userDepartments: UserDepartment[] = [];
+  myDepartmentFollowerCount = 0;
 
   currentUserId = '';
   currentUserType = '';
@@ -130,8 +131,13 @@ export class DepartmentPage implements OnInit {
     return ['overview'];
   }
 
+  private getLocalDateString(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
   get filteredEvents(): DeptEvent[] {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     let events = this.eventFilter === 'upcoming'
       ? this.departmentEvents.filter(e => !e.date || e.date >= today)
       : this.departmentEvents.filter(e => !!e.date && e.date < today);
@@ -205,6 +211,11 @@ export class DepartmentPage implements OnInit {
         ...d,
         hodName: hodMap[d.id] || null
       }));
+      if (this.currentUserDepartmentId) {
+        this.myDepartmentFollowerCount = allUsers.filter((u: any) =>
+          (u.followedDepartments || []).includes(this.currentUserDepartmentId)
+        ).length;
+      }
     } catch {
       this.errorMessage = 'Failed to load departments. Please try again.';
     } finally {
@@ -698,8 +709,7 @@ export class DepartmentPage implements OnInit {
 
   isEventToday(event: DeptEvent): boolean {
     if (!event.date) return false;
-    const today = new Date().toISOString().split('T')[0];
-    return event.date === today;
+    return event.date === this.getLocalDateString();
   }
 
   goBack() { this.router.navigate(['/home']); }

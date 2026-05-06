@@ -1,12 +1,14 @@
-// Color Scheme
-$primary-color: #10b981;
-$primary-dark: #059669;
-$secondary-color: #14b8a6;
-$success-color: #10b981;
+// Color Scheme — USJ-R Brand
+$primary-color: #1E5128;
+$primary-dark: #143C1C;
+$secondary-color: #276836;
+$success-color: #1E5128;
 $warning-color: #f59e0b;
 $danger-color: #ef4444;
-$light-bg: #f0fdf4;
-$light-border: #dcfce7;
+$light-bg: #f1f8f2;
+$light-border: #C8E6C9;
+$gold: #F5B800;
+$gold-dark: #C49500;
 $text-dark: #1f2937;
 $text-light: #6b7280;
 $bg-white: #ffffff;
@@ -57,7 +59,7 @@ $bg-light: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 8px 24px rgba(30, 81, 40, 0.25);
 
   ion-icon {
     font-size: 40px;
@@ -83,7 +85,7 @@ $bg-light: #f3f4f6;
   background: $bg-white;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(30, 81, 40, 0.1);
   padding: 32px 24px;
   animation: slideInUp 0.6s ease-out 0.2s both;
 }
@@ -131,7 +133,7 @@ $bg-light: #f3f4f6;
   &:focus-within {
     border-color: $primary-color;
     background-color: $bg-white;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.1);
   }
 }
 
@@ -188,7 +190,7 @@ $bg-light: #f3f4f6;
   font-size: 15px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 20px rgba(30, 81, 40, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,7 +198,7 @@ $bg-light: #f3f4f6;
 
   &:not([disabled]):hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 12px 28px rgba(30, 81, 40, 0.4);
   }
 
   &:disabled {
@@ -212,7 +214,7 @@ $bg-light: #f3f4f6;
 .demo-credentials {
   margin-top: 24px;
   padding: 16px;
-  background-color: rgba(16, 185, 129, 0.05);
+  background-color: rgba(30, 81, 40, 0.05);
   border-radius: 8px;
   text-align: center;
   border: 1px solid $light-border;
@@ -387,7 +389,7 @@ $bg-light: #f3f4f6;
   transition: all 0.3s ease;
 
   &:hover:not(:disabled) {
-    background-color: rgba(16, 185, 129, 0.1);
+    background-color: rgba(30, 81, 40, 0.1);
     color: $primary-dark;
   }
 
@@ -582,7 +584,7 @@ $bg-light: #f3f4f6;
     }
 
     &.alumni {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(30, 81, 40, 0.1);
       color: $primary-dark;
 
       ion-icon {
@@ -764,7 +766,7 @@ $bg-light: #f3f4f6;
     }
 
     &.alumni {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(30, 81, 40, 0.15);
       color: $primary-dark;
     }
   }
@@ -993,7 +995,7 @@ $bg-light: #f3f4f6;
   }
 
   &.active {
-    background: rgba(16, 185, 129, 0.08);
+    background: rgba(30, 81, 40, 0.08);
     border-color: $primary-color;
 
     .row-name {
@@ -1258,7 +1260,7 @@ $bg-light: #f3f4f6;
   }
 
   &.approved {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(30, 81, 40, 0.1);
     color: $primary-dark;
   }
 
@@ -1395,7 +1397,7 @@ $bg-light: #f3f4f6;
     &:focus {
       outline: none;
       border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+      box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.08);
     }
 
     &::placeholder {
@@ -1435,7 +1437,7 @@ $bg-light: #f3f4f6;
 
     &:hover {
       background: $primary-dark;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 12px rgba(30, 81, 40, 0.3);
     }
   }
 
@@ -1632,7 +1634,7 @@ $bg-light: #f3f4f6;
     }
 
     &.alumni {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(30, 81, 40, 0.1);
       color: $primary-dark;
     }
   }
@@ -1651,7 +1653,7 @@ $bg-light: #f3f4f6;
     }
 
     &.alumni {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(30, 81, 40, 0.15);
       color: $primary-dark;
     }
   }
@@ -1701,7 +1703,7 @@ $bg-light: #f3f4f6;
           }
 
           &.approved {
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(30, 81, 40, 0.1);
             color: $primary-dark;
           }
 
@@ -1882,7 +1884,7 @@ $bg-light: #f3f4f6;
       &:hover {
         background: $primary-dark;
         transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 2px 8px rgba(30, 81, 40, 0.3);
       }
     }
 
@@ -2044,21 +2046,21 @@ $bg-light: #f3f4f6;
   &.btn-primary {
     background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 12px rgba(30, 81, 40, 0.3);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 6px 16px rgba(30, 81, 40, 0.4);
     }
   }
 
   &.btn-approve {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(30, 81, 40, 0.1);
     color: $primary-color;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(30, 81, 40, 0.3);
 
     &:hover {
-      background: rgba(16, 185, 129, 0.2);
+      background: rgba(30, 81, 40, 0.2);
       border-color: $primary-color;
     }
   }
@@ -2211,11 +2213,11 @@ $bg-light: #f3f4f6;
     color: $primary-color;
 
     &:hover {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(30, 81, 40, 0.1);
     }
 
     &.active {
-      background: rgba(16, 185, 129, 0.2);
+      background: rgba(30, 81, 40, 0.2);
     }
   }
 }
@@ -3157,6 +3159,10 @@ $bg-light: #f3f4f6;
     white-space: nowrap;
   }
 
+  th:first-child {
+    padding-left: 62px; // 16px base + 36px avatar + 10px gap
+  }
+
   td {
     padding: 13px 16px;
     border-bottom: 1px solid #f3f4f6;
@@ -3485,7 +3491,7 @@ $bg-light: #f3f4f6;
       &:focus {
         outline: none;
         border-color: $primary-color;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.1);
       }
     }
   }
@@ -3524,7 +3530,7 @@ $bg-light: #f3f4f6;
       transition: background-color 0.2s ease;
 
       &:hover {
-        background-color: rgba(16, 185, 129, 0.02);
+        background-color: rgba(30, 81, 40, 0.02);
       }
 
       td {
@@ -3600,7 +3606,7 @@ $bg-light: #f3f4f6;
   }
 
   &.active {
-    background-color: rgba(16, 185, 129, 0.08);
+    background-color: rgba(30, 81, 40, 0.08);
     border-left: 4px solid $primary-color;
   }
 
@@ -3721,7 +3727,7 @@ $bg-light: #f3f4f6;
       font-size: 32px;
       font-weight: 700;
       margin: 0 auto 16px;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 2px 8px rgba(30, 81, 40, 0.3);
     }
 
     .profile-info {
@@ -3772,6 +3778,78 @@ $bg-light: #f3f4f6;
         word-break: break-word;
       }
     }
+  }
+
+  .work-exp-section {
+    margin-top: 20px;
+
+    h4 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0 0 12px;
+
+      ion-icon { font-size: 16px; color: #1E5128; }
+    }
+  }
+
+  .work-exp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .work-exp-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .work-exp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .work-position {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .work-current-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(30, 81, 40, 0.12);
+    color: #1E5128;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .work-company {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .work-years {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .work-desc {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 4px 0 0;
+    line-height: 1.5;
   }
 
   .role-management-section {
@@ -3961,8 +4039,8 @@ $bg-light: #f3f4f6;
   }
 
   .info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px 16px;
+    grid-template-columns: 1fr;
+    gap: 10px;
     margin-bottom: 0;
   }
 }
@@ -4454,7 +4532,7 @@ $bg-light: #f3f4f6;
       &:hover {
         background: $primary-dark;
         transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 2px 8px rgba(30, 81, 40, 0.3);
       }
     }
 
@@ -4612,10 +4690,10 @@ $bg-light: #f3f4f6;
   gap: 20px;
   margin-bottom: 18px;
   padding: 24px;
-  border: 1px solid rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(30, 81, 40, 0.18);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(255, 255, 255, 0) 56%),
+    linear-gradient(135deg, rgba(30, 81, 40, 0.14), rgba(255, 255, 255, 0) 56%),
     $bg-white;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
 
@@ -4713,7 +4791,7 @@ $bg-light: #f3f4f6;
 
   &:focus-within {
     border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 0 3px rgba(30, 81, 40, 0.1);
   }
 
   ion-icon {
@@ -4827,7 +4905,7 @@ $bg-light: #f3f4f6;
   overflow: hidden;
   padding: 18px;
   border-radius: 8px;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(30, 81, 40, 0.2);
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
 
   &::before {
@@ -5357,7 +5435,7 @@ $bg-light: #f3f4f6;
   gap: 4px;
   padding: 4px 10px;
   background: #d1fae5;
-  color: #059669;
+  color: #1E5128;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -5491,7 +5569,7 @@ $bg-light: #f3f4f6;
   font-size: 11.5px;
   color: #6b7280;
   text-align: center;
-  ion-icon { font-size: 13px; color: #10b981; }
+  ion-icon { font-size: 13px; color: #1E5128; }
 }
 
 .qr-stats-row {
@@ -5616,7 +5694,7 @@ $bg-light: #f3f4f6;
   justify-content: center;
   font-size: 15px;
   font-weight: 800;
-  color: #059669;
+  color: #1E5128;
   flex-shrink: 0;
 }
 
@@ -5651,6 +5729,144 @@ $bg-light: #f3f4f6;
   font-size: 10px;
   color: #9ca3af;
   font-weight: 500;
+}
+
+// ========== VERIFICATION SECTION LABELS ==========
+.verif-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 28px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid $light-border;
+
+  ion-icon {
+    font-size: 18px;
+    color: $warning-color;
+  }
+
+  .badge {
+    margin-left: auto;
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 999px;
+  }
+
+  &.verif-section-label--verified {
+    ion-icon { color: $primary-color; }
+
+    .badge-verified {
+      background: rgba(30, 81, 40, 0.12);
+      color: $primary-dark;
+    }
+  }
+}
+
+// ========== VERIFIED ALUMNI TABLE ==========
+.verified-alumni-table-wrap {
+  overflow-x: auto;
+  background: $bg-white;
+  border: 1px solid $light-border;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.verified-alumni-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    background: $light-bg;
+  }
+
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: $text-light;
+    border-bottom: 1px solid $light-border;
+    white-space: nowrap;
+  }
+
+  .verified-row {
+    transition: background .15s;
+    &:hover { background: $bg-gray; }
+    &:not(:last-child) td { border-bottom: 1px solid $bg-light; }
+  }
+
+  td {
+    padding: 12px 16px;
+    color: $text-dark;
+    vertical-align: middle;
+  }
+
+  .verif-name-col {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
+
+  .verif-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $primary-color, $primary-dark);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
+.verification-summary {
+  margin-bottom: 8px;
+}
+
+// ========== VERIFIED ALUMNI SEARCH BAR ==========
+.verified-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .search-input-wrapper {
+    flex: 1;
+  }
+
+  .verified-search-count {
+    font-size: 12px;
+    color: $text-light;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+}
+
+.verif-no-results {
+  text-align: center;
+  padding: 24px 16px;
+  color: $text-light;
+  font-size: 13px;
+
+  ion-icon {
+    display: block;
+    font-size: 22px;
+    margin: 0 auto 6px;
+    color: #d1d5db;
+  }
 }
 
 

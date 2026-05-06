@@ -1,7 +1,7 @@
 // ── Variables ──────────────────────────────────────────────
-$green:        #10b981;
-$green-dark:   #059669;
-$green-light:  #d1fae5;
+$green:        #1E5128;
+$green-dark:   #143C1C;
+$green-light:  #C8E6C9;
 $blue:         #0ea5e9;
 $red:          #ef4444;
 $text-1:       #111827;
@@ -53,7 +53,7 @@ $bg-field:     #f9fafb;
 .profile-hero {
   position: relative;
   padding: 28px 20px 20px;
-  background: linear-gradient(140deg, #059669 0%, #10b981 55%, #34d399 100%);
+  background: linear-gradient(140deg, #143C1C 0%, #1E5128 55%, #276836 100%);
   overflow: hidden;
 }
 
@@ -229,7 +229,7 @@ $bg-field:     #f9fafb;
   font-weight: 700;
   ion-icon { font-size: 15px; }
 
-  &.badge-verified   { background: #f0fdf4; color: #059669; }
+  &.badge-verified   { background: #f1f8f2; color: #1E5128; }
   &.badge-pending    { background: #fffbeb; color: #d97706; }
   &.badge-rejected   { background: #fef2f2; color: #dc2626; }
   &.badge-unverified { background: #f3f4f6; color: #6b7280; }
@@ -253,7 +253,7 @@ $bg-field:     #f9fafb;
 .alumni-id-actions { margin-top: 4px; }
 
 .digital-id-btn {
-  --background: linear-gradient(135deg, #10b981, #059669);
+  --background: linear-gradient(135deg, #1E5128, #143C1C);
   --border-radius: 12px;
   font-weight: 700;
 }
@@ -373,7 +373,7 @@ $bg-field:     #f9fafb;
 
 .did-verified-tag {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 9px; font-weight: 700; color: #10b981;
+  font-size: 9px; font-weight: 700; color: #1E5128;
   background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3);
   border-radius: 999px; padding: 3px 8px;
   ion-icon { font-size: 11px; }
@@ -503,9 +503,9 @@ $bg-field:     #f9fafb;
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  background: #f0fdf4;
-  color: #059669;
-  border: 1px solid #d1fae5;
+  background: #f1f8f2;
+  color: #1E5128;
+  border: 1px solid #C8E6C9;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -527,7 +527,7 @@ $bg-field:     #f9fafb;
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #f0fdf4;
+  background: #f1f8f2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1452,7 +1452,7 @@ $bg-field:     #f9fafb;
   font-weight: 700;
   color: $text-1;
   margin: 0 0 3px;
-  ion-icon { font-size: 16px; color: #10b981; }
+  ion-icon { font-size: 16px; color: #1E5128; }
 
   &.private-mode {
     color: #4338ca;
@@ -1497,7 +1497,7 @@ $bg-field:     #f9fafb;
     flex-shrink: 0;
     font-size: 20px;
 
-    &.public  { background: #d1fae5; color: #10b981; }
+    &.public  { background: #C8E6C9; color: #1E5128; }
     &.private { background: #ede9fe; color: #6366f1; }
   }
 
@@ -1517,5 +1517,5 @@ $bg-field:     #f9fafb;
   font-size: 12px;
   color: $text-3;
   margin: 0;
-  ion-icon { font-size: 15px; color: #10b981; flex-shrink: 0; }
+  ion-icon { font-size: 15px; color: #1E5128; flex-shrink: 0; }
 }

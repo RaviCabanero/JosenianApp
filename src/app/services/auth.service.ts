@@ -562,10 +562,11 @@ export class AuthService {
           status: data['status'],
           role: data['role'] || 'user',
           createdAt: data['createdAt'],
-          source: 'registered'
+          source: 'registered',
+          workExperiences: data['workExperiences'] || []
         });
       });
-      
+
       // Also fetch manually managed alumni from the alumni collection
       try {
         const manualAlumniSnapshot = await getDocs(collection(this.firestore, 'alumni'));
@@ -663,6 +664,11 @@ export class AuthService {
 
   // Delete a registered user's Firestore document (admin action)
   async deleteRegisteredUser(userId: string): Promise<void> {
+    const userSnap = await getDoc(doc(this.firestore, 'users', userId));
+    const departmentId: string = userSnap.data()?.['department'] || '';
+    if (departmentId) {
+      await this.removeMemberFromDepartment(departmentId, userId);
+    }
     await deleteDoc(doc(this.firestore, 'users', userId));
   }
 
@@ -946,6 +952,22 @@ export class AuthService {
     }
   }
 
+  // Get all alumni with approved ID verification
+  async getVerifiedAlumni(): Promise<any[]> {
+    try {
+      const q = query(
+        collection(this.firestore, 'users'),
+        where('userType', '==', 'alumni'),
+        where('alumniIdVerificationStatus', '==', 'approved')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.error('Error getting verified alumni:', error);
+      return [];
+    }
+  }
+
   // Request alumni ID verification (from profile page, post-registration)
   async requestAlumniIdVerification(
     userId: string,
@@ -985,6 +1007,22 @@ export class AuthService {
       await updateDoc(userRef, updateData);
       if (status === 'approved') {
         await this.awardInspiredPoints(userId, 'integrity', 25, 'Alumni ID verified', 'integrity_verified');
+        await this.createNotification(
+          userId,
+          'Alumni ID Verified ✓',
+          'Your alumni ID has been verified by the admin. Your account is now fully verified.',
+          'success',
+          '/profile'
+        );
+      } else if (status === 'rejected') {
+        const reason = rejectionReason ? ` Reason: ${rejectionReason}` : '';
+        await this.createNotification(
+          userId,
+          'Alumni ID Verification Failed',
+          `Your alumni ID could not be verified.${reason} Please re-submit a valid ID from your profile.`,
+          'error',
+          '/profile'
+        );
       }
       console.log(`Alumni ID ${status}:`, userId);
     } catch (error) {
@@ -1741,7 +1779,7 @@ export class AuthService {
       'Points Updated',
       `Your points have been adjusted by ${sign}. Reason: ${reason}`,
       'points',
-      '/statistics'
+      '/history'
     );
   }
 

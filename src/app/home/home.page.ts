@@ -31,7 +31,6 @@ export class HomePage implements OnInit, OnDestroy {
     { id: 2, title: 'My Network',    icon: 'people',    value: '—', description: 'Members',     color: 'secondary' },
     { id: 3, title: 'History',       icon: 'time',      value: '—', description: 'Events',      color: 'tertiary'  },
     { id: 4, title: 'Feeds',         icon: 'newspaper', value: '—', description: 'Your Posts',  color: 'success'   },
-    { id: 5, title: 'Statistics',    icon: 'bar-chart', value: '—', description: 'Approved',    color: 'warning'   },
   ];
 
   constructor(
@@ -125,10 +124,6 @@ export class HomePage implements OnInit, OnDestroy {
         this.updateCard(4, String(postCount));
       }
 
-      // Card 5 — Statistics: % of users approved
-      const totalNonAdmin = allUsers.filter((u: any) => u.role !== 'admin').length;
-      const pct = totalNonAdmin > 0 ? Math.round((approved.length / totalNonAdmin) * 100) : 0;
-      this.updateCard(5, `${pct}%`);
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
     }
@@ -148,8 +143,7 @@ export class HomePage implements OnInit, OnDestroy {
       1: '/department',
       2: '/network',
       3: '/history',
-      4: '/feeds',
-      5: '/statistics'
+      4: '/feeds'
     };
     const route = routes[cardId];
     if (route) this.router.navigate([route]);

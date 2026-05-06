@@ -1,7 +1,7 @@
 // ── Variables ──────────────────────────────────────────────
-$green:      #10b981;
-$green-dk:   #059669;
-$green-lt:   #d1fae5;
+$green:      #1E5128;
+$green-dk:   #143C1C;
+$green-lt:   #C8E6C9;
 $text-1:     #111827;
 $text-2:     #374151;
 $text-3:     #6b7280;
@@ -69,7 +69,7 @@ $bg-card:    #ffffff;
 .hero-banner {
   position: relative;
   padding: 28px 20px 20px;
-  background: linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%);
+  background: linear-gradient(135deg, #143C1C 0%, #1E5128 60%, #276836 100%);
   overflow: hidden;
 }
 
@@ -440,7 +440,7 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  background: linear-gradient(135deg, #C8E6C9, #A5D6A7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -969,7 +969,7 @@ select.ef-input { appearance: none; cursor: pointer; }
     font-weight: 500;
     ion-icon { font-size: 15px; flex-shrink: 0; }
 
-    &.allowed { color: #059669; ion-icon { color: #10b981; } }
+    &.allowed { color: #1E5128; ion-icon { color: #276836; } }
     &.blocked  { color: #9ca3af; ion-icon { color: #d1d5db; } }
   }
 }
@@ -994,8 +994,8 @@ select.ef-input { appearance: none; cursor: pointer; }
 .hod-summary-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 1px solid #bbf7d0;
+  background: linear-gradient(135deg, #f1f8f2, #E8F5E9);
+  border: 1px solid #A5D6A7;
   border-radius: 12px;
   padding: 14px 0;
   margin-bottom: 10px;
@@ -1012,7 +1012,7 @@ select.ef-input { appearance: none; cursor: pointer; }
 .hod-stat-num {
   font-size: 18px;
   font-weight: 800;
-  color: #065f46;
+  color: #143C1C;
   line-height: 1;
   &.rate { color: $green; }
 }
@@ -1038,11 +1038,11 @@ select.ef-input { appearance: none; cursor: pointer; }
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: #f1f8f2;
+  border: 1px solid #A5D6A7;
   border-radius: 10px;
   font-size: 13px;
-  color: #065f46;
+  color: #143C1C;
   margin-bottom: 10px;
 
   ion-icon { font-size: 16px; color: $green; flex-shrink: 0; }
@@ -1063,7 +1063,7 @@ select.ef-input { appearance: none; cursor: pointer; }
 .my-stats-bar {
   width: 56px;
   height: 4px;
-  background: #d1fae5;
+  background: #C8E6C9;
   border-radius: 999px;
   overflow: hidden;
   flex-shrink: 0;
