@@ -1,25 +1,24 @@
-<!-- Header with Profile and Notification Icons -->
+<!-- Header -->
 <ion-header [translucent]="true" class="header-sticky">
   <ion-toolbar>
     <div class="header-content">
-      <!-- Left: Profile Section -->
-      <div class="profile-section" (click)="goToProfile()" style="cursor: pointer;">
-        <ion-avatar class="profile-avatar">
-          <div class="avatar-placeholder">{{ user.initials }}</div>
-        </ion-avatar>
+      <div class="profile-section" (click)="goToProfile()" style="cursor:pointer">
+        <div class="profile-avatar">
+          <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="avatar" />
+          <div class="avatar-placeholder" *ngIf="!user.photoUrl">{{ user.initials }}</div>
+        </div>
         <div class="profile-info">
-          <p class="profile-name">{{ user.name }}</p>
+          <p class="profile-greeting">{{ greeting }}</p>
+          <p class="profile-name">{{ user.firstName || user.name }}</p>
         </div>
       </div>
-
-      <!-- Right: Icons Section -->
       <div class="icons-section">
         <ion-button fill="clear" class="icon-button" (click)="goToNotifications()">
-          <ion-icon slot="icon-only" name="notifications" color="primary"></ion-icon>
+          <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
           <ion-badge class="notification-badge" *ngIf="notifications > 0">{{ notifications }}</ion-badge>
         </ion-button>
         <ion-button fill="clear" class="icon-button" (click)="goToMessages()">
-          <ion-icon slot="icon-only" name="chatbubbles" color="primary"></ion-icon>
+          <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
           <ion-badge class="notification-badge" *ngIf="unreadChats > 0">{{ unreadChats }}</ion-badge>
         </ion-button>
       </div>
@@ -29,53 +28,75 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Welcome Card -->
-    <ion-card class="welcome-card">
-      <ion-card-header>
-        <ion-card-title>Welcome, {{ user.name.split(' ')[0] }}!</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Here's what's happening in your network today. Stay connected and up to date with your department and colleagues.</p>
-      </ion-card-content>
-    </ion-card>
+
+    <!-- Date + welcome banner -->
+    <div class="welcome-banner">
+      <div class="banner-bg-deco"></div>
+      <div class="banner-body">
+        <span class="banner-date">
+          <ion-icon name="calendar-outline"></ion-icon>
+          {{ todayDate }}
+        </span>
+        <h1 class="banner-title">Welcome back,<br><span class="banner-name">{{ user.firstName || user.name.split(' ')[0] }}!</span></h1>
+        <p class="banner-dept" *ngIf="user.department">{{ user.department }}</p>
+      </div>
+      <div class="banner-logo-wrap">
+        <img src="assets/logo2.2.png" alt="USJ-R" class="banner-logo" />
+      </div>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <div class="stat-item" *ngFor="let card of dashboardCards" (click)="goToCard(card.id)">
+        <span class="stat-value">{{ card.value }}</span>
+        <span class="stat-label">{{ card.shortLabel || card.title }}</span>
+      </div>
+    </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions">
-      <button class="quick-action scan-action" (click)="goToScanner()">
-        <span class="quick-action-icon">
-          <ion-icon name="qr-code-outline"></ion-icon>
-        </span>
-        <span class="quick-action-text">
-          <span class="quick-action-title">Scan QR</span>
-          <span class="quick-action-subtitle">Record event attendance</span>
-        </span>
-        <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+    <div class="section-row">
+      <h2 class="section-label">Quick Actions</h2>
+    </div>
+
+    <div class="quick-grid">
+      <button class="qg-btn" (click)="goToScanner()">
+        <div class="qg-icon qg-green"><ion-icon name="qr-code-outline"></ion-icon></div>
+        <span class="qg-text">Scan QR</span>
+      </button>
+      <button class="qg-btn" (click)="goToCard(4)">
+        <div class="qg-icon qg-blue"><ion-icon name="newspaper-outline"></ion-icon></div>
+        <span class="qg-text">Feeds</span>
+      </button>
+      <button class="qg-btn" (click)="goToCard(2)">
+        <div class="qg-icon qg-purple"><ion-icon name="people-outline"></ion-icon></div>
+        <span class="qg-text">Network</span>
+      </button>
+      <button class="qg-btn" (click)="goToMessages()">
+        <div class="qg-icon qg-gold"><ion-icon name="chatbubbles-outline"></ion-icon></div>
+        <span class="qg-text">Messages</span>
       </button>
     </div>
 
-    <!-- Dashboard Section Title -->
-    <div class="section-title">
-      <h2>Dashboard</h2>
+    <!-- Overview cards -->
+    <div class="section-row">
+      <h2 class="section-label">Overview</h2>
     </div>
 
-    <!-- Dashboard Cards Grid -->
-    <ion-grid class="dashboard-grid">
-      <ion-row class="dashboard-row">
-        <ion-col size="6" sizeMd="6" sizeLg="4" *ngFor="let card of dashboardCards">
-          <ion-card class="dashboard-card" [class]="'card-' + card.color" (click)="goToCard(card.id)">
-            <ion-card-header>
-              <div class="card-icon">
-                <ion-icon [name]="card.icon"></ion-icon>
-              </div>
-              <ion-card-title class="card-title">{{ card.title }}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <div class="card-value">{{ card.value }}</div>
-              <p class="card-description">{{ card.description }}</p>
-            </ion-card-content>
-          </ion-card>
-        </ion-col>
-      </ion-row>
-    </ion-grid>
+    <div class="nav-cards">
+      <div class="nav-card" *ngFor="let card of dashboardCards" (click)="goToCard(card.id)">
+        <div class="nav-card-icon" [class]="'nci-' + card.color">
+          <ion-icon [name]="card.icon"></ion-icon>
+        </div>
+        <div class="nav-card-body">
+          <span class="nav-card-title">{{ card.title }}</span>
+          <span class="nav-card-desc">{{ card.description }}</span>
+        </div>
+        <div class="nav-card-right">
+          <span class="nav-card-value">{{ card.value }}</span>
+          <ion-icon name="chevron-forward" class="nav-card-arrow"></ion-icon>
+        </div>
+      </div>
+    </div>
+
   </div>
 </ion-content>

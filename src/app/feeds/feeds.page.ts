@@ -1,21 +1,32 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, doc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
+import { AlertController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 
 interface Post {
   id?: string;
   userId: number;
   content: string;
-  image?: string; // Base64 or image URL
+  image?: string;
   timestamp: Timestamp | Date;
   likes: number;
   comments: number;
   shares: number;
   liked: boolean;
-  likedBy?: string[]; // Array of user IDs who liked this post
+  likedBy?: string[];
+  privacy?: 'public' | 'private';
+}
+
+interface Comment {
+  id?: string;
+  userUid: string;
+  authorName: string;
+  authorAvatar: string;
+  content: string;
+  timestamp: Timestamp | Date;
 }
 
 interface User {
@@ -23,6 +34,7 @@ interface User {
   uid: string;
   name: string;
   avatar: string;
+  photoUrl?: string;
   mutualFriends?: number;
   posts: Post[];
 }
@@ -36,8 +48,9 @@ interface User {
 export class FeedsPage implements OnInit {
 
   currentUser: User | null = null;
-  currentUserUid: string | null = null; // Store Firebase UID
+  currentUserUid: string | null = null;
   friends: User[] = [];
+  allPosts: Array<{post: Post; user: User}> = [];
   suggestedUsers: User[] = [];
   newPostContent: string = '';
   newPostImage: string | null = null;
@@ -51,7 +64,25 @@ export class FeedsPage implements OnInit {
   globalEvents: any[] = [];
   joiningEventId: string | null = null;
 
-  constructor(private router: Router, private firestore: Firestore, private auth: Auth, private authService: AuthService) {}
+  expandedPostId: string | null = null;
+  commentInputs: { [postId: string]: string } = {};
+  postComments: { [postId: string]: Comment[] } = {};
+  loadingComments: string | null = null;
+  submittingComment: string | null = null;
+
+  editingPostId: string | null = null;
+  editingContent: string = '';
+  editingPrivacy: 'public' | 'private' = 'public';
+
+  newPostPrivacy: 'public' | 'private' = 'public';
+
+  constructor(
+    private router: Router,
+    private firestore: Firestore,
+    private auth: Auth,
+    private authService: AuthService,
+    private alertCtrl: AlertController
+  ) {}
 
   ngOnInit() {
     authState(this.auth).subscribe(async user => {
@@ -81,6 +112,7 @@ export class FeedsPage implements OnInit {
           uid: this.currentUserUid,
           name,
           avatar: firstName.charAt(0).toUpperCase() || 'U',
+          photoUrl: data['photoUrl'] || '',
           posts: []
         };
         this.friends = [this.currentUser];
@@ -100,7 +132,7 @@ export class FeedsPage implements OnInit {
       if (this.currentUser) {
         this.currentUser.posts = ownPostsSnap.docs.map(d => {
           const data = d.data();
-          return { id: d.id, ...data, timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
+          return { id: d.id, ...data, privacy: data['privacy'] || 'public', timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
         });
       }
 
@@ -120,17 +152,36 @@ export class FeedsPage implements OnInit {
           const friendPostsSnap = await getDocs(collection(this.firestore, `users/${uid}/posts`));
           const posts: Post[] = friendPostsSnap.docs.map(d => {
             const data = d.data();
-            return { id: d.id, ...data, timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
+            return { id: d.id, ...data, privacy: data['privacy'] || 'public', timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
           });
 
-          return { id: index + 1, uid, name, avatar: firstName.charAt(0).toUpperCase() || 'U', posts } as User;
+          return { id: index + 1, uid, name, avatar: firstName.charAt(0).toUpperCase() || 'U', photoUrl: fd['photoUrl'] || '', posts } as User;
         })
       );
 
       this.friends = [this.currentUser!, ...friendUsers];
+      this.refreshPosts();
     } catch (error) {
       console.error('Error loading posts from Firestore:', error);
     }
+  }
+
+  refreshPosts() {
+    const all: Array<{post: Post; user: User}> = [];
+    for (const friend of this.friends) {
+      for (const post of friend.posts) {
+        all.push({ post, user: friend });
+      }
+    }
+    this.allPosts = all.sort((a, b) => {
+      const ta = a.post.timestamp instanceof Date ? a.post.timestamp.getTime() : (a.post.timestamp as any).toDate().getTime();
+      const tb = b.post.timestamp instanceof Date ? b.post.timestamp.getTime() : (b.post.timestamp as any).toDate().getTime();
+      return tb - ta;
+    });
+  }
+
+  trackByPostId(_: number, item: {post: Post; user: User}): string {
+    return item.post.id || String(item.post.timestamp);
   }
 
   // Save post to Firestore using the user's UID
@@ -149,10 +200,10 @@ export class FeedsPage implements OnInit {
         likes: post.likes,
         comments: post.comments,
         shares: post.shares,
-        liked: post.liked
+        liked: post.liked,
+        privacy: post.privacy || 'public'
       };
-      
-      // Only add image if it exists
+
       if (post.image) {
         postData.image = post.image;
       }
@@ -356,40 +407,26 @@ export class FeedsPage implements OnInit {
       likes: 0,
       comments: 0,
       shares: 0,
-      liked: false
+      liked: false,
+      privacy: this.newPostPrivacy
     };
     
-    // Add to local state
     this.currentUser.posts.unshift(newPost);
-    
-    // Save to Firestore
+    this.refreshPosts();
+
     try {
       await this.savePostToFirestore(newPost);
-      console.log('Post saved to Firestore');
     } catch (error) {
       console.error('Failed to save post:', error);
-      // Remove from local state if failed
       this.currentUser.posts.shift();
+      this.refreshPosts();
       return;
     }
     
     this.newPostContent = '';
     this.newPostImage = null;
+    this.newPostPrivacy = 'public';
     this.showPostForm = false;
-  }
-
-  getAllPosts(): Array<{post: Post; user: User}> {
-    const allPosts: Array<{post: Post; user: User}> = [];
-    for (let friend of this.friends) {
-      for (let post of friend.posts) {
-        allPosts.push({post, user: friend});
-      }
-    }
-    return allPosts.sort((a, b) => {
-      const timeA = a.post.timestamp instanceof Date ? a.post.timestamp.getTime() : a.post.timestamp.toDate().getTime();
-      const timeB = b.post.timestamp instanceof Date ? b.post.timestamp.getTime() : b.post.timestamp.toDate().getTime();
-      return timeB - timeA;
-    });
   }
 
   getTimeAgo(date: Date | Timestamp): string {
@@ -408,6 +445,138 @@ export class FeedsPage implements OnInit {
     if (!this.showPostForm) {
       this.newPostContent = '';
       this.newPostImage = null;
+      this.newPostPrivacy = 'public';
+    }
+  }
+
+  async toggleComments(post: Post, ownerUid: string, event: Event) {
+    event.stopPropagation();
+    const postId = post.id!;
+    if (this.expandedPostId === postId) {
+      this.expandedPostId = null;
+      return;
+    }
+    this.expandedPostId = postId;
+    if (!this.postComments[postId]) {
+      await this.loadComments(postId, ownerUid);
+    }
+  }
+
+  async loadComments(postId: string, ownerUid: string) {
+    this.loadingComments = postId;
+    try {
+      const ref = collection(this.firestore, `users/${ownerUid}/posts/${postId}/comments`);
+      const snap = await getDocs(ref);
+      this.postComments[postId] = snap.docs
+        .map(d => ({
+          id: d.id,
+          ...d.data(),
+          timestamp: d.data()['timestamp']?.toDate?.() || new Date(d.data()['timestamp'])
+        } as Comment))
+        .sort((a, b) => {
+          const ta = a.timestamp instanceof Date ? a.timestamp.getTime() : (a.timestamp as Timestamp).toDate().getTime();
+          const tb = b.timestamp instanceof Date ? b.timestamp.getTime() : (b.timestamp as Timestamp).toDate().getTime();
+          return ta - tb;
+        });
+    } catch {
+      this.postComments[postId] = [];
+    } finally {
+      this.loadingComments = null;
+    }
+  }
+
+  startEditPost(post: Post, event: Event) {
+    event.stopPropagation();
+    this.editingPostId = post.id!;
+    this.editingContent = post.content;
+    this.editingPrivacy = post.privacy || 'public';
+  }
+
+  cancelEditPost(event: Event) {
+    event.stopPropagation();
+    this.editingPostId = null;
+    this.editingContent = '';
+    this.editingPrivacy = 'public';
+  }
+
+  async saveEditPost(post: Post, event: Event) {
+    event.stopPropagation();
+    const content = this.editingContent.trim();
+    if (!content) return;
+
+    const originalContent = post.content;
+    const originalPrivacy = post.privacy;
+    post.content = content;
+    post.privacy = this.editingPrivacy;
+    this.editingPostId = null;
+    this.editingContent = '';
+    this.editingPrivacy = 'public';
+    this.refreshPosts();
+
+    try {
+      await updateDoc(doc(this.firestore, `users/${this.currentUserUid}/posts/${post.id}`), { content, privacy: post.privacy });
+    } catch (error) {
+      console.error('Error updating post:', error);
+      post.content = originalContent;
+      post.privacy = originalPrivacy;
+      this.refreshPosts();
+    }
+  }
+
+  async deletePost(post: Post, event: Event) {
+    event.stopPropagation();
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Post',
+      message: 'Are you sure you want to delete this post?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await deleteDoc(doc(this.firestore, `users/${this.currentUserUid}/posts/${post.id}`));
+              if (this.currentUser) {
+                this.currentUser.posts = this.currentUser.posts.filter(p => p.id !== post.id);
+                this.refreshPosts();
+              }
+            } catch (error) {
+              console.error('Error deleting post:', error);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async submitComment(post: Post, ownerUid: string, event: Event) {
+    event.stopPropagation();
+    const postId = post.id!;
+    const text = (this.commentInputs[postId] || '').trim();
+    if (!text || !this.currentUser || this.submittingComment === postId) return;
+
+    this.submittingComment = postId;
+    try {
+      const comment: Comment = {
+        userUid: this.currentUserUid!,
+        authorName: this.currentUser.name,
+        authorAvatar: this.currentUser.avatar,
+        content: text,
+        timestamp: new Date()
+      };
+      const ref = collection(this.firestore, `users/${ownerUid}/posts/${postId}/comments`);
+      const docRef = await addDoc(ref, { ...comment, timestamp: Timestamp.now() });
+      comment.id = docRef.id;
+      if (!this.postComments[postId]) this.postComments[postId] = [];
+      this.postComments[postId].push(comment);
+      post.comments++;
+      this.commentInputs[postId] = '';
+      await updateDoc(doc(this.firestore, `users/${ownerUid}/posts/${postId}`), { comments: post.comments });
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+    } finally {
+      this.submittingComment = null;
     }
   }
 }

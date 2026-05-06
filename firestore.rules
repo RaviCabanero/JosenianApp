@@ -7,6 +7,10 @@ service cloud.firestore {
 
       match /posts/{postId} {
         allow read, write;
+
+        match /comments/{commentId} {
+          allow read, write;
+        }
       }
 
       match /notifications/{notificationId} {

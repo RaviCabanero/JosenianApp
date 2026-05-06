@@ -19,15 +19,18 @@
   <!-- Loading -->
   <div *ngIf="isLoading" class="loading-container">
     <ion-spinner color="primary"></ion-spinner>
-    <p>Loading profile...</p>
+    <p>Loading profile…</p>
   </div>
 
   <div *ngIf="!isLoading" class="profile-container">
 
-    <!-- ── Hero ───────────────────────────── -->
+    <!-- ── Hero ──────────────────────────────────────────────── -->
     <section class="profile-hero">
+      <!-- Gold accent top band -->
+      <div class="hero-gold-band"></div>
       <div class="hero-bg-decoration"></div>
 
+      <!-- Avatar + identity -->
       <div class="hero-body">
         <div class="avatar-wrapper">
           <div class="avatar-circle"
@@ -50,153 +53,122 @@
               {{ userProfile.department }}
             </span>
           </div>
+          <p class="hero-course" *ngIf="userProfile.course">{{ userProfile.course }}</p>
         </div>
       </div>
 
-      <!-- Bio inside hero -->
-      <div class="hero-bio">
+      <!-- Bio -->
+      <div class="hero-bio" *ngIf="userProfile.bio || true">
         <p *ngIf="userProfile.bio" class="bio-text">{{ userProfile.bio }}</p>
         <p *ngIf="!userProfile.bio" class="bio-empty" (click)="openEditModal()">
           <ion-icon name="add-circle-outline"></ion-icon>
           Add a bio
         </p>
       </div>
+
+      <!-- Stats strip -->
+      <div class="hero-stats" *ngIf="!isLoadingPoints">
+        <div class="hero-stat">
+          <span class="hero-stat-value">{{ pointsData.total }}</span>
+          <span class="hero-stat-label">Points</span>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">{{ pointsData.level.label }}</span>
+          <span class="hero-stat-label">Level</span>
+        </div>
+        <div class="hero-stat-divider" *ngIf="userProfile.userType === 'alumni'"></div>
+        <div class="hero-stat" *ngIf="userProfile.userType === 'alumni'">
+          <span class="hero-stat-value">
+            <ion-icon
+              [name]="alumniIdVerificationStatus === 'approved' ? 'shield-checkmark' : 'shield-outline'"
+              [style.color]="alumniIdVerificationStatus === 'approved' ? '#F5B800' : 'rgba(255,255,255,.5)'"
+              style="font-size:18px;vertical-align:middle;">
+            </ion-icon>
+          </span>
+          <span class="hero-stat-label">ID Status</span>
+        </div>
+      </div>
+
+      <!-- Edit profile action -->
+      <button class="hero-edit-btn" (click)="openEditModal()">
+        <ion-icon name="create-outline"></ion-icon>
+        Edit Profile
+      </button>
     </section>
 
-    <!-- ── Edit Button ────────────────────── -->
-    <ion-button expand="block" fill="solid" class="edit-profile-btn" (click)="openEditModal()">
-      <ion-icon slot="start" name="create-outline"></ion-icon>
-      Edit Profile
-    </ion-button>
-
-    <!-- ── Privacy Settings Card ───────────── -->
-    <div class="section-card privacy-card">
-      <div class="section-header">
-        <div class="section-header-icon privacy-icon">
-          <ion-icon [name]="isPrivate ? 'lock-closed' : 'globe-outline'"></ion-icon>
-        </div>
-        <div>
-          <h2 class="section-title">Privacy Settings</h2>
-          <p class="section-subtitle">Control who sees your profile</p>
-        </div>
-      </div>
-
-      <div class="privacy-toggle-row">
-        <div class="privacy-toggle-info">
-          <p class="privacy-mode-label" [class.private-mode]="isPrivate">
-            <ion-icon [name]="isPrivate ? 'lock-closed' : 'globe-outline'"></ion-icon>
-            {{ isPrivate ? 'Private Account' : 'Public Account' }}
-          </p>
-          <p class="privacy-mode-desc">
-            {{ isPrivate ? 'Only friends can view your full profile.' : 'Your profile is visible to everyone.' }}
-          </p>
-        </div>
-        <ion-toggle
-          [checked]="isPrivate"
-          (ionChange)="onPrivacyChange($event)"
-          color="primary">
-        </ion-toggle>
-      </div>
-
-      <div class="privacy-options">
-        <div class="privacy-option" [class.option-active]="!isPrivate">
-          <div class="option-icon public"><ion-icon name="globe-outline"></ion-icon></div>
-          <div class="option-body">
-            <strong>Public</strong>
-            <p>Full profile visible to all users. Appears in search and suggestions.</p>
-          </div>
-          <ion-icon name="checkmark-circle" class="option-check" *ngIf="!isPrivate" color="success"></ion-icon>
-        </div>
-
-        <div class="privacy-option" [class.option-active]="isPrivate">
-          <div class="option-icon private"><ion-icon name="lock-closed-outline"></ion-icon></div>
-          <div class="option-body">
-            <strong>Private</strong>
-            <p>Non-friends see only your name and course. Send a friend request to unlock.</p>
-          </div>
-          <ion-icon name="checkmark-circle" class="option-check" *ngIf="isPrivate" color="primary"></ion-icon>
-        </div>
-      </div>
-
-      <p class="privacy-note">
-        <ion-icon name="shield-checkmark-outline"></ion-icon>
-        Privacy does not affect events, QR scanning, or points.
-      </p>
-    </div>
-
-    <!-- ── Personal Information Card ─────── -->
+    <!-- ── Personal Information ───────────────────────────────── -->
     <div class="section-card">
       <div class="section-header">
         <div class="section-header-icon"><ion-icon name="person-circle-outline"></ion-icon></div>
         <div>
           <h2 class="section-title">Personal Information</h2>
-          <p class="section-subtitle">Academic & contact details</p>
+          <p class="section-subtitle">Academic &amp; contact details</p>
         </div>
       </div>
-      <div class="field-grid">
 
-        <div class="field-item" *ngIf="userProfile.course">
-          <span class="field-label">
-            <ion-icon name="book-outline"></ion-icon>
-            Bachelor / Course
-          </span>
-          <span class="field-value">{{ userProfile.course || '—' }}</span>
+      <div class="info-list">
+        <div class="info-row" *ngIf="userProfile.email">
+          <div class="info-icon-wrap"><ion-icon name="mail-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Email</span>
+            <span class="info-value">{{ userProfile.email }}</span>
+          </div>
         </div>
 
-        <div class="field-item" *ngIf="userProfile.userType === 'student'">
-          <span class="field-label">
-            <ion-icon name="id-card-outline"></ion-icon>
-            Student Number
-          </span>
-          <span class="field-value">{{ userProfile.studentNumber || '—' }}</span>
+        <div class="info-row" *ngIf="userProfile.course">
+          <div class="info-icon-wrap"><ion-icon name="book-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Course</span>
+            <span class="info-value">{{ userProfile.course }}</span>
+          </div>
         </div>
 
-        <div class="field-item" *ngIf="userProfile.userType === 'alumni'">
-          <span class="field-label">
-            <ion-icon name="school-outline"></ion-icon>
-            Graduation Year
-          </span>
-          <span class="field-value">{{ userProfile.graduationYear || '—' }}</span>
+        <div class="info-row" *ngIf="userProfile.userType === 'student' && userProfile.studentNumber">
+          <div class="info-icon-wrap"><ion-icon name="id-card-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Student Number</span>
+            <span class="info-value mono">{{ userProfile.studentNumber }}</span>
+          </div>
         </div>
 
-        <div class="field-item">
-          <span class="field-label">
-            <ion-icon name="mail-outline"></ion-icon>
-            Email
-          </span>
-          <span class="field-value">{{ userProfile.email || '—' }}</span>
+        <div class="info-row" *ngIf="userProfile.userType === 'alumni' && userProfile.graduationYear">
+          <div class="info-icon-wrap"><ion-icon name="school-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Graduation Year</span>
+            <span class="info-value">{{ userProfile.graduationYear }}</span>
+          </div>
         </div>
 
-        <div class="field-item">
-          <span class="field-label">
-            <ion-icon name="location-outline"></ion-icon>
-            Address
-          </span>
-          <span class="field-value">{{ userProfile.address || '—' }}</span>
+        <div class="info-row">
+          <div class="info-icon-wrap"><ion-icon name="call-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Phone</span>
+            <span class="info-value" [class.empty-value]="!userProfile.contactNumber">
+              {{ formatPhoneNumber(userProfile.contactNumber) }}
+            </span>
+          </div>
         </div>
 
-        <div class="field-item">
-          <span class="field-label">
-            <ion-icon name="call-outline"></ion-icon>
-            Phone Number
-          </span>
-          <span class="field-value" [class.empty-value]="!userProfile.contactNumber">
-            {{ formatPhoneNumber(userProfile.contactNumber) }}
-          </span>
+        <div class="info-row">
+          <div class="info-icon-wrap"><ion-icon name="male-female-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Sex</span>
+            <span class="info-value" [class.empty-value]="!userProfile.gender">{{ userProfile.gender || '—' }}</span>
+          </div>
         </div>
 
-        <div class="field-item">
-          <span class="field-label">
-            <ion-icon name="male-female-outline"></ion-icon>
-            Sex
-          </span>
-          <span class="field-value">{{ userProfile.gender || '—' }}</span>
+        <div class="info-row no-border" *ngIf="userProfile.address">
+          <div class="info-icon-wrap"><ion-icon name="location-outline"></ion-icon></div>
+          <div class="info-content">
+            <span class="info-label">Address</span>
+            <span class="info-value">{{ userProfile.address }}</span>
+          </div>
         </div>
-
       </div>
     </div>
 
-    <!-- ── Work Experience Card (Alumni) ──── -->
+    <!-- ── Work Experience (Alumni) ──────────────────────────── -->
     <div class="section-card" *ngIf="userProfile.userType === 'alumni'">
       <div class="section-header">
         <div class="section-header-icon work-icon"><ion-icon name="briefcase-outline"></ion-icon></div>
@@ -210,7 +182,6 @@
         </ion-button>
       </div>
 
-      <!-- Empty state -->
       <div class="empty-state" *ngIf="workExperiences.length === 0">
         <div class="empty-icon"><ion-icon name="briefcase-outline"></ion-icon></div>
         <p>No work experience added yet.</p>
@@ -220,10 +191,9 @@
         </ion-button>
       </div>
 
-      <!-- Work Experience Display -->
       <div class="work-experience-container" *ngIf="workExperiences.length > 0">
 
-        <!-- Current Position Section -->
+        <!-- Current Position -->
         <div class="work-section" *ngIf="currentJob">
           <div class="section-label current-label">
             <ion-icon name="flame"></ion-icon>
@@ -231,6 +201,7 @@
           </div>
           <div class="work-card current-card">
             <div class="work-header">
+              <div class="work-company-logo">{{ currentJob.company.charAt(0).toUpperCase() }}</div>
               <div class="work-title-group">
                 <h3 class="work-position">{{ currentJob.position }}</h3>
                 <p class="work-company">{{ currentJob.company }}</p>
@@ -248,19 +219,19 @@
             </div>
             <p class="work-description" *ngIf="currentJob.description">{{ currentJob.description }}</p>
             <div class="work-actions">
-              <button class="action-btn edit-action" (click)="openEditWorkModal(currentJob)" title="Edit">
+              <button class="action-btn edit-action" (click)="openEditWorkModal(currentJob)">
                 <ion-icon name="create-outline"></ion-icon>
-                <span>Edit</span>
+                Edit
               </button>
-              <button class="action-btn delete-action" (click)="deleteWorkExperience(currentJob.id)" title="Delete">
+              <button class="action-btn delete-action" (click)="deleteWorkExperience(currentJob.id)">
                 <ion-icon name="trash-outline"></ion-icon>
-                <span>Delete</span>
+                Delete
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Previous Experience Section -->
+        <!-- Previous Experience -->
         <div class="work-section" *ngIf="pastJobs.length > 0">
           <div class="section-label previous-label">
             <ion-icon name="time-outline"></ion-icon>
@@ -287,30 +258,28 @@
                 </div>
                 <p class="work-description" *ngIf="work.description">{{ work.description }}</p>
                 <div class="work-actions">
-                  <button class="action-btn edit-action" (click)="openEditWorkModal(work)" title="Edit">
+                  <button class="action-btn edit-action" (click)="openEditWorkModal(work)">
                     <ion-icon name="create-outline"></ion-icon>
-                    <span>Edit</span>
+                    Edit
                   </button>
-                  <button class="action-btn delete-action" (click)="deleteWorkExperience(work.id)" title="Delete">
+                  <button class="action-btn delete-action" (click)="deleteWorkExperience(work.id)">
                     <ion-icon name="trash-outline"></ion-icon>
-                    <span>Delete</span>
+                    Delete
                   </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
-
     </div>
 
-    <!-- ── Points & Rewards ──────────────── -->
+    <!-- ── Points & Rewards ──────────────────────────────────── -->
     <div class="section-card pts-card">
       <div class="section-header">
         <div class="section-header-icon pts-icon"><ion-icon name="star-outline"></ion-icon></div>
         <div>
-          <h2 class="section-title">Points & Rewards</h2>
+          <h2 class="section-title">Points &amp; Rewards</h2>
           <p class="section-subtitle">Your participation score</p>
         </div>
       </div>
@@ -321,7 +290,6 @@
 
       <ng-container *ngIf="!isLoadingPoints">
 
-        <!-- Level + Total -->
         <div class="pts-hero">
           <div class="pts-total-wrap">
             <span class="pts-total">{{ pointsData.total }}</span>
@@ -333,20 +301,19 @@
               {{ pointsData.level.label }}
             </div>
             <p class="pts-next" *ngIf="pointsData.level.next !== -1">
-              {{ pointsData.level.next - pointsData.total }} pts to {{ pointsData.level.level === 'bronze' ? 'Silver' : pointsData.level.level === 'silver' ? 'Gold' : 'Platinum' }}
+              {{ pointsData.level.next - pointsData.total }} pts to
+              {{ pointsData.level.level === 'bronze' ? 'Silver' : pointsData.level.level === 'silver' ? 'Gold' : 'Platinum' }}
             </p>
             <p class="pts-next" *ngIf="pointsData.level.next === -1">Maximum level reached!</p>
           </div>
         </div>
 
-        <!-- Progress Bar -->
         <div class="pts-progress-track">
           <div class="pts-progress-fill" [style.width.%]="levelProgressPct" [style.background]="pointsData.level.color"></div>
         </div>
 
-        <!-- Badges -->
         <div class="pts-badges-wrap" *ngIf="pointsData.badges.length > 0">
-          <p class="pts-badges-title">Badges Earned</p>
+          <p class="pts-section-label">Badges Earned</p>
           <div class="pts-badges-list">
             <div class="pts-badge-chip" *ngFor="let b of pointsData.badges">
               <ion-icon [name]="getBadgeIcon(b)"></ion-icon>
@@ -355,9 +322,8 @@
           </div>
         </div>
 
-        <!-- Points History -->
         <div class="pts-history" *ngIf="pointsHistory.length > 0">
-          <p class="pts-history-title">Recent History</p>
+          <p class="pts-section-label">Recent History</p>
           <div class="pts-history-row" *ngFor="let h of pointsHistory | slice:0:5">
             <div class="pts-history-icon" [class.pts-adj]="h.type === 'admin_adjustment'">
               <ion-icon [name]="h.type === 'admin_adjustment' ? 'settings-outline' : 'calendar-check-outline'"></ion-icon>
@@ -376,23 +342,19 @@
           <ion-icon name="calendar-outline"></ion-icon>
           Attend events to start earning points!
         </p>
-
       </ng-container>
     </div>
 
-    <!-- ── INSPIRED Badges ──────────────────────────── -->
+    <!-- ── INSPIRED Badges ────────────────────────────────────── -->
     <div class="section-card inspired-card">
       <div class="section-header">
-        <div class="section-header-icon inspired-icon">
-          <ion-icon name="medal-outline"></ion-icon>
-        </div>
+        <div class="section-header-icon inspired-icon"><ion-icon name="medal-outline"></ion-icon></div>
         <div>
           <h2 class="section-title">INSPIRED Badges</h2>
           <p class="section-subtitle">USJ-R Core Values achievement system</p>
         </div>
       </div>
 
-      <!-- Master Badge -->
       <div class="inspired-master" [class.inspired-master-earned]="inspiredMasterBadge">
         <div class="inspired-master-icon">
           <ion-icon [name]="inspiredMasterBadge ? 'trophy' : 'trophy-outline'"></ion-icon>
@@ -400,9 +362,7 @@
         <div class="inspired-master-info">
           <span class="inspired-master-title">INSPIRED Master Badge</span>
           <span class="inspired-master-sub">
-            {{ inspiredMasterBadge
-              ? 'Achieved! You embody all USJ-R core values.'
-              : 'Reach Silver in all 7 categories to unlock.' }}
+            {{ inspiredMasterBadge ? 'Achieved! You embody all USJ-R core values.' : 'Reach Silver in all 7 categories to unlock.' }}
           </span>
         </div>
         <span class="inspired-master-check" *ngIf="inspiredMasterBadge">
@@ -410,7 +370,6 @@
         </span>
       </div>
 
-      <!-- Category rows -->
       <div class="inspired-list">
         <div class="inspired-row" *ngFor="let cat of INSPIRED_CATEGORIES">
           <div class="inspired-letter" [style.background]="cat.bg" [style.color]="cat.color">{{ cat.letter }}</div>
@@ -426,10 +385,7 @@
               </span>
             </div>
             <div class="inspired-progress-track">
-              <div class="inspired-progress-fill"
-                [style.width.%]="getInspiredProgress(cat.key)"
-                [style.background]="cat.color">
-              </div>
+              <div class="inspired-progress-fill" [style.width.%]="getInspiredProgress(cat.key)" [style.background]="cat.color"></div>
             </div>
             <span class="inspired-next">{{ getInspiredNextLabel(cat.key) }} · {{ inspiredPoints[cat.key] || 0 }} pts</span>
           </div>
@@ -437,41 +393,35 @@
       </div>
     </div>
 
-    <!-- ── Alumni ID Verification (Alumni only) ──────── -->
+    <!-- ── Alumni ID Verification ─────────────────────────────── -->
     <div class="section-card alumni-id-card" *ngIf="userProfile.userType === 'alumni'">
       <div class="section-header">
-        <div class="section-header-icon alumni-id-icon">
-          <ion-icon name="id-card-outline"></ion-icon>
-        </div>
+        <div class="section-header-icon alumni-id-icon"><ion-icon name="id-card-outline"></ion-icon></div>
         <div>
           <h2 class="section-title">Alumni ID</h2>
-          <p class="section-subtitle">Identity verification & digital ID</p>
+          <p class="section-subtitle">Identity verification &amp; digital ID</p>
         </div>
       </div>
 
-      <!-- Status badge row -->
       <div class="alumni-id-status-row">
         <span class="alumni-id-badge"
           [class.badge-verified]="alumniIdVerificationStatus === 'approved'"
           [class.badge-pending]="alumniIdVerificationStatus === 'pending'"
           [class.badge-rejected]="alumniIdVerificationStatus === 'rejected'"
           [class.badge-unverified]="alumniIdVerificationStatus === 'unverified' || !alumniIdVerificationStatus">
-          <ion-icon
-            [name]="alumniIdVerificationStatus === 'approved' ? 'shield-checkmark' :
-                    alumniIdVerificationStatus === 'pending'   ? 'time-outline' :
-                    alumniIdVerificationStatus === 'rejected'  ? 'close-circle' : 'shield-outline'">
+          <ion-icon [name]="alumniIdVerificationStatus === 'approved' ? 'shield-checkmark' :
+                           alumniIdVerificationStatus === 'pending'   ? 'time-outline' :
+                           alumniIdVerificationStatus === 'rejected'  ? 'close-circle' : 'shield-outline'">
           </ion-icon>
           {{ verificationStatusLabel }}
         </span>
       </div>
 
-      <!-- Rejection reason -->
       <div class="alumni-id-reject-notice" *ngIf="alumniIdVerificationStatus === 'rejected' && alumniIdRejectionReason">
         <ion-icon name="information-circle-outline"></ion-icon>
         <p>Reason: {{ alumniIdRejectionReason }}</p>
       </div>
 
-      <!-- Verified: show Digital ID button -->
       <div *ngIf="alumniIdVerificationStatus === 'approved'" class="alumni-id-actions">
         <ion-button expand="block" class="digital-id-btn" (click)="openDigitalId()">
           <ion-icon slot="start" name="card-outline"></ion-icon>
@@ -479,32 +429,24 @@
         </ion-button>
       </div>
 
-      <!-- Pending notice -->
       <div class="alumni-id-pending-notice" *ngIf="alumniIdVerificationStatus === 'pending'">
         <ion-icon name="hourglass-outline"></ion-icon>
         <p>Your Alumni ID is under review. You'll be notified once it's verified.</p>
       </div>
 
-      <!-- Unverified / Rejected: show request/re-upload button -->
       <div *ngIf="alumniIdVerificationStatus === 'unverified' || alumniIdVerificationStatus === 'rejected'">
-        <ion-button
-          expand="block"
-          fill="outline"
-          class="request-verify-btn"
-          (click)="showVerificationUpload = !showVerificationUpload"
-        >
+        <ion-button expand="block" fill="outline" class="request-verify-btn"
+          (click)="showVerificationUpload = !showVerificationUpload">
           <ion-icon slot="start" [name]="alumniIdVerificationStatus === 'rejected' ? 'refresh-outline' : 'cloud-upload-outline'"></ion-icon>
           {{ alumniIdVerificationStatus === 'rejected' ? 'Re-upload Alumni ID' : 'Request Alumni ID Verification' }}
         </ion-button>
 
-        <!-- Upload form -->
         <div class="verification-upload-form" *ngIf="showVerificationUpload">
           <p class="verification-upload-hint">
             <ion-icon name="information-circle-outline"></ion-icon>
             Upload your physical Alumni ID and a formal/graduation photo. Both are required.
           </p>
 
-          <!-- Alumni ID photo -->
           <p class="verify-upload-label">Alumni ID Photo</p>
           <input #verifyIdInput id="verifyIdInput" type="file" accept=".jpg,.jpeg,.png"
             (change)="onVerificationIdFileSelected($event)" style="display:none" />
@@ -520,7 +462,6 @@
             </ion-button>
           </div>
 
-          <!-- Graduation photo -->
           <p class="verify-upload-label" style="margin-top:10px">
             Graduation / Formal Photo
             <span class="verify-upload-sub">Appears on your Digital Alumni ID</span>
@@ -539,12 +480,9 @@
             </ion-button>
           </div>
 
-          <ion-button
-            expand="block"
-            class="verify-submit-btn"
+          <ion-button expand="block" class="verify-submit-btn"
             [disabled]="!verificationIdFile || !verificationGradFile || isSubmittingVerification"
-            (click)="submitVerificationRequest()"
-          >
+            (click)="submitVerificationRequest()">
             <ion-spinner name="crescent" *ngIf="isSubmittingVerification"></ion-spinner>
             <ion-icon name="checkmark-circle-outline" *ngIf="!isSubmittingVerification" slot="start"></ion-icon>
             {{ isSubmittingVerification ? 'Submitting…' : 'Submit for Verification' }}
@@ -553,28 +491,61 @@
       </div>
     </div>
 
-    <!-- ── Logout Button ─────────────────── -->
+    <!-- ── Privacy Settings ──────────────────────────────────── -->
+    <div class="section-card privacy-card">
+      <div class="section-header">
+        <div class="section-header-icon privacy-icon">
+          <ion-icon [name]="isPrivate ? 'lock-closed' : 'globe-outline'"></ion-icon>
+        </div>
+        <div>
+          <h2 class="section-title">Privacy</h2>
+          <p class="section-subtitle">Control who sees your profile</p>
+        </div>
+        <ion-toggle [checked]="isPrivate" (ionChange)="onPrivacyChange($event)" color="primary"></ion-toggle>
+      </div>
+
+      <div class="privacy-compact-row">
+        <div class="privacy-option" [class.option-active]="!isPrivate">
+          <div class="option-icon public"><ion-icon name="globe-outline"></ion-icon></div>
+          <div class="option-body">
+            <strong>Public</strong>
+            <p>Visible to all users. Appears in search and suggestions.</p>
+          </div>
+          <ion-icon name="checkmark-circle" class="option-check" *ngIf="!isPrivate" color="success"></ion-icon>
+        </div>
+
+        <div class="privacy-option" [class.option-active]="isPrivate">
+          <div class="option-icon private"><ion-icon name="lock-closed-outline"></ion-icon></div>
+          <div class="option-body">
+            <strong>Private</strong>
+            <p>Non-friends see only your name and course.</p>
+          </div>
+          <ion-icon name="checkmark-circle" class="option-check" *ngIf="isPrivate" color="primary"></ion-icon>
+        </div>
+      </div>
+
+      <p class="privacy-note">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        Privacy does not affect events, QR scanning, or points.
+      </p>
+    </div>
+
+    <!-- ── Logout ─────────────────────────────────────────────── -->
     <ion-button expand="block" fill="outline" color="danger" class="logout-btn" (click)="logout()">
       <ion-icon slot="start" name="log-out-outline"></ion-icon>
-      Logout
+      Sign Out
     </ion-button>
 
   </div>
 </ion-content>
 
-<!-- ── Digital Alumni ID Modal ───────────────────────── -->
+<!-- ── Digital Alumni ID Modal ───────────────────────────────── -->
 <div class="digital-id-overlay" *ngIf="showDigitalId" (click)="closeDigitalId()">
   <div class="digital-id-modal" (click)="$event.stopPropagation()">
-
-    <!-- Close -->
     <button class="digital-id-close" (click)="closeDigitalId()">
       <ion-icon name="close"></ion-icon>
     </button>
-
-    <!-- Card -->
     <div class="digital-id-card">
-
-      <!-- Header bar -->
       <div class="did-header">
         <img src="assets/transparent_Logo.png" alt="USJ-R Logo" class="did-logo" />
         <div class="did-header-text">
@@ -583,11 +554,7 @@
           <p class="did-city">Cebu City, Philippines</p>
         </div>
       </div>
-
-      <!-- Body -->
       <div class="did-body">
-
-        <!-- Photo -->
         <div class="did-photo-wrap">
           <div class="did-photo"
             [style.backgroundImage]="alumniGradPhotoBase64 ? 'url(data:image/jpeg;base64,' + alumniGradPhotoBase64 + ')' : 'none'">
@@ -598,8 +565,6 @@
             Verified Alumni
           </span>
         </div>
-
-        <!-- Details -->
         <div class="did-details">
           <h2 class="did-name">{{ userProfile.firstName }} {{ userProfile.lastName }}</h2>
           <p class="did-course">{{ userProfile.course }}</p>
@@ -607,24 +572,17 @@
           <p class="did-idnum">ID No. {{ userProfile.studentNumber || '—' }}</p>
           <p class="did-dept">{{ userProfile.department }}</p>
         </div>
-
       </div>
-
-      <!-- Footer -->
       <div class="did-footer">
         <p>This is an official digital identification card.</p>
         <p>Valid as long as membership is active.</p>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ── Edit Profile Modal ────────────────────────── -->
-<ion-modal #editModal class="form-modal"
-           [breakpoints]="[0, 1]"
-           [initialBreakpoint]="1"
-           [handle]="false">
+<!-- ── Edit Profile Modal ─────────────────────────────────────── -->
+<ion-modal #editModal class="form-modal" [breakpoints]="[0, 1]" [initialBreakpoint]="1" [handle]="false">
   <ng-template>
     <ion-header>
       <ion-toolbar>
@@ -639,41 +597,26 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="modal-content">
       <div class="modal-form">
-
         <div class="form-field">
           <label class="form-label">Bio</label>
-          <ion-textarea
-            [(ngModel)]="editFormData.bio"
-            placeholder="Tell the community about yourself..."
-            [autoGrow]="true"
-            rows="3"
-            class="field-input"
-          ></ion-textarea>
+          <ion-textarea [(ngModel)]="editFormData.bio" placeholder="Tell the community about yourself..."
+            [autoGrow]="true" rows="3" class="field-input"></ion-textarea>
           <button class="remove-bio-btn" *ngIf="editFormData.bio" (click)="removeBio()">
-            <ion-icon name="trash-outline"></ion-icon>
-            Remove Bio
+            <ion-icon name="trash-outline"></ion-icon> Remove Bio
           </button>
         </div>
-
         <div class="form-field">
           <label class="form-label">Sex</label>
           <ion-select [(ngModel)]="editFormData.gender" placeholder="Select sex" class="field-input">
             <ion-select-option *ngFor="let g of genders" [value]="g">{{ g }}</ion-select-option>
           </ion-select>
         </div>
-
         <div class="form-field">
           <label class="form-label">Address</label>
-          <ion-input
-            [(ngModel)]="editFormData.address"
-            placeholder="Enter your address"
-            class="field-input"
-          ></ion-input>
+          <ion-input [(ngModel)]="editFormData.address" placeholder="Enter your address" class="field-input"></ion-input>
         </div>
-
         <div class="form-field">
           <div class="form-label-row">
             <label class="form-label">
@@ -682,28 +625,17 @@
             </label>
             <span class="char-counter" [class.warning]="phoneNumberLength >= maxPhoneLength - 2">{{ phoneNumberLength }}/{{ maxPhoneLength }}</span>
           </div>
-          <ion-input
-            [(ngModel)]="editFormData.contactNumber"
-            (ionChange)="onPhoneNumberChange()"
-            placeholder="e.g., +63 917 123 4567 or 09171234567"
-            type="tel"
-            inputmode="numeric"
-            maxlength="20"
-            class="field-input"
-          ></ion-input>
+          <ion-input [(ngModel)]="editFormData.contactNumber" (ionChange)="onPhoneNumberChange()"
+            placeholder="e.g., +63 917 123 4567" type="tel" inputmode="numeric" maxlength="20" class="field-input"></ion-input>
           <p class="field-hint">Philippine (+63) or international format. Will be automatically formatted.</p>
         </div>
-
       </div>
     </ion-content>
   </ng-template>
 </ion-modal>
 
-<!-- ── Work Experience Modal ─────────────────────── -->
-<ion-modal #workModal class="form-modal"
-           [breakpoints]="[0, 1]"
-           [initialBreakpoint]="1"
-           [handle]="false">
+<!-- ── Work Experience Modal ──────────────────────────────────── -->
+<ion-modal #workModal class="form-modal" [breakpoints]="[0, 1]" [initialBreakpoint]="1" [handle]="false">
   <ng-template>
     <ion-header>
       <ion-toolbar>
@@ -718,74 +650,44 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="modal-content">
       <div class="modal-form">
-
-        <!-- Validation Error Alert -->
         <div class="error-alert" *ngIf="workValidationError">
           <ion-icon name="alert-circle"></ion-icon>
           <span>{{ workValidationError }}</span>
         </div>
-
-        <!-- Warning: Current Job Exists -->
         <div class="warning-alert" *ngIf="hasCurrentJob && !isEditingWork && !workFormData.isCurrent">
           <ion-icon name="information-circle"></ion-icon>
           <span>You already have a job marked as "Currently Working". Please uncheck that entry first or mark this as current.</span>
         </div>
-
-        <!-- Warning: Changing to Current Job -->
         <div class="warning-alert" *ngIf="workFormData.isCurrent && hasCurrentJob && !isEditingWork">
           <ion-icon name="warning"></ion-icon>
           <span>This will replace your current job entry.</span>
         </div>
-
         <div class="form-field">
           <label class="form-label">Company / Organization</label>
-          <ion-input
-            [(ngModel)]="workFormData.company"
-            placeholder="Enter company name"
-            class="field-input"
-          ></ion-input>
+          <ion-input [(ngModel)]="workFormData.company" placeholder="Enter company name" class="field-input"></ion-input>
         </div>
-
         <div class="form-field">
           <label class="form-label">Position / Role</label>
-          <ion-input
-            [(ngModel)]="workFormData.position"
-            placeholder="Enter your position"
-            class="field-input"
-          ></ion-input>
+          <ion-input [(ngModel)]="workFormData.position" placeholder="Enter your position" class="field-input"></ion-input>
         </div>
-
         <div class="form-field">
           <label class="form-label">Start Year</label>
-          <ion-select 
-            [(ngModel)]="workFormData.startYear" 
-            (ionChange)="onStartYearChange()"
-            placeholder="Select start year" 
-            class="field-input">
+          <ion-select [(ngModel)]="workFormData.startYear" (ionChange)="onStartYearChange()" placeholder="Select start year" class="field-input">
             <ion-select-option *ngFor="let y of yearOptions" [value]="y">{{ y }}</ion-select-option>
           </ion-select>
         </div>
-
         <div class="form-field checkbox-field">
-          <ion-checkbox
-            [(ngModel)]="workFormData.isCurrent"
-            (ionChange)="onCurrentlyWorkingChange()"
-            labelPlacement="end"
-            [style]="{'--checkbox-background-checked':'#10b981','--border-color-checked':'#10b981'}"
-          >Currently working here</ion-checkbox>
-          <p class="checkbox-hint">If checked, End Year will be set to "Present" and cannot be edited</p>
+          <ion-checkbox [(ngModel)]="workFormData.isCurrent" (ionChange)="onCurrentlyWorkingChange()" labelPlacement="end"
+            [style]="{'--checkbox-background-checked':'#1E5128','--border-color-checked':'#1E5128'}">
+            Currently working here
+          </ion-checkbox>
+          <p class="checkbox-hint">If checked, End Year will be set to "Present"</p>
         </div>
-
         <div class="form-field" *ngIf="!workFormData.isCurrent">
           <label class="form-label">End Year <span class="required">*</span></label>
-          <ion-select 
-            [(ngModel)]="workFormData.endYear" 
-            (ionChange)="onEndYearChange()"
-            placeholder="Select end year" 
-            class="field-input"
+          <ion-select [(ngModel)]="workFormData.endYear" (ionChange)="onEndYearChange()" placeholder="Select end year" class="field-input"
             [disabled]="!workFormData.startYear || endYearOptions.length === 0">
             <ion-select-option *ngFor="let y of endYearOptions" [value]="y">{{ y }}</ion-select-option>
           </ion-select>
@@ -793,24 +695,17 @@
             End year must be after {{ workFormData.startYear }}
           </p>
         </div>
-
         <div class="form-field">
           <label class="form-label">Description <span class="optional">(optional)</span></label>
-          <ion-textarea
-            [(ngModel)]="workFormData.description"
-            placeholder="Brief description of your role..."
-            [autoGrow]="true"
-            rows="3"
-            class="field-input"
-          ></ion-textarea>
+          <ion-textarea [(ngModel)]="workFormData.description" placeholder="Brief description of your role..."
+            [autoGrow]="true" rows="3" class="field-input"></ion-textarea>
         </div>
-
       </div>
     </ion-content>
   </ng-template>
 </ion-modal>
 
-<!-- ── Photo Modal ───────────────────────────────── -->
+<!-- ── Photo Modal ────────────────────────────────────────────── -->
 <ion-modal #photoModal class="photo-modal" [breakpoints]="[0, 0.6, 0.85]" initialBreakpoint="0.6">
   <ng-template>
     <ion-header>
@@ -823,30 +718,22 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="photo-modal-body">
-
       <div class="photo-current" *ngIf="userProfile.photoUrl">
         <div class="photo-preview" [style.backgroundImage]="'url(' + userProfile.photoUrl + ')'"></div>
         <p class="photo-current-label">Current photo</p>
       </div>
-
       <div class="photo-actions">
-        <button class="photo-action-btn primary-action" (click)="selectAddPhoto()">
-          <div class="photo-action-icon green">
-            <ion-icon name="image-outline"></ion-icon>
-          </div>
+        <button class="photo-action-btn" (click)="selectAddPhoto()">
+          <div class="photo-action-icon green"><ion-icon name="image-outline"></ion-icon></div>
           <div class="photo-action-text">
             <span class="photo-action-title">{{ userProfile.photoUrl ? 'Change Photo' : 'Upload Photo' }}</span>
             <span class="photo-action-sub">JPG, PNG, WebP · Max 5 MB</span>
           </div>
           <ion-icon name="chevron-forward" class="photo-action-arrow"></ion-icon>
         </button>
-
         <button class="photo-action-btn danger-action" *ngIf="userProfile.photoUrl" (click)="removeProfilePicture()">
-          <div class="photo-action-icon red">
-            <ion-icon name="trash-outline"></ion-icon>
-          </div>
+          <div class="photo-action-icon red"><ion-icon name="trash-outline"></ion-icon></div>
           <div class="photo-action-text">
             <span class="photo-action-title">Remove Photo</span>
             <span class="photo-action-sub">Revert to initials avatar</span>
@@ -854,7 +741,6 @@
           <ion-icon name="chevron-forward" class="photo-action-arrow"></ion-icon>
         </button>
       </div>
-
     </ion-content>
   </ng-template>
 </ion-modal>

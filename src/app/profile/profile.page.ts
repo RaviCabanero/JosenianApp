@@ -769,14 +769,14 @@ export class ProfilePage implements OnInit {
   }
 
   onVerificationIdFileSelected(event: any) {
-    const file: File = event.target.files[0];
+    const file: File = event.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      this.showSimpleAlert('Invalid File', 'Please upload a JPG or PNG image of your Alumni ID.');
+    if (file.type && !file.type.startsWith('image/')) {
+      this.showSimpleAlert('Invalid File', 'Please upload an image file (JPG, PNG, or WebP).');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      this.showSimpleAlert('File Too Large', 'Please choose an image under 5MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      this.showSimpleAlert('File Too Large', 'Please choose an image under 15MB.');
       return;
     }
     this.verificationIdFile = file;
@@ -791,14 +791,14 @@ export class ProfilePage implements OnInit {
   }
 
   onVerificationGradFileSelected(event: any) {
-    const file: File = event.target.files[0];
+    const file: File = event.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      this.showSimpleAlert('Invalid File', 'Please upload a JPG or PNG graduation photo.');
+    if (file.type && !file.type.startsWith('image/')) {
+      this.showSimpleAlert('Invalid File', 'Please upload an image file (JPG, PNG, or WebP).');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      this.showSimpleAlert('File Too Large', 'Please choose an image under 5MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      this.showSimpleAlert('File Too Large', 'Please choose an image under 15MB.');
       return;
     }
     this.verificationGradFile = file;

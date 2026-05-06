@@ -879,47 +879,47 @@ export class AuthService {
     });
   }
 
-  // Compress image using Canvas
-  private compressImage(file: File): Promise<string> {
+  // Compress image using Canvas — tries progressively smaller sizes until under targetBytes
+  private compressImage(file: File, targetBytes = 380000): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = () => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Reduce image size
-          if (width > 1200 || height > 1200) {
-            const ratio = Math.min(1200 / width, 1200 / height);
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
           const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Failed to get canvas context'));
-            return;
+          if (!ctx) { reject(new Error('Canvas unavailable')); return; }
+
+          const passes = [
+            { maxDim: 1000, quality: 0.75 },
+            { maxDim: 800,  quality: 0.65 },
+            { maxDim: 650,  quality: 0.55 },
+            { maxDim: 500,  quality: 0.45 },
+            { maxDim: 400,  quality: 0.40 },
+          ];
+
+          for (const pass of passes) {
+            let w = img.width, h = img.height;
+            if (w > pass.maxDim || h > pass.maxDim) {
+              const ratio = Math.min(pass.maxDim / w, pass.maxDim / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', pass.quality);
+            const base64 = dataUrl.split(',')[1] || dataUrl;
+            if (base64.length <= targetBytes) { resolve(base64); return; }
           }
-          
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Compress to JPEG with 0.8 quality
-          const compressed = canvas.toDataURL('image/jpeg', 0.8);
-          const base64 = compressed.split(',')[1] || compressed;
-          resolve(base64);
+          // Last resort — return smallest attempt even if still large
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.35);
+          resolve(dataUrl.split(',')[1] || dataUrl);
         };
-        img.onerror = () => {
-          reject(new Error('Failed to load image'));
-        };
+        img.onerror = () => reject(new Error('Failed to load image'));
         img.src = reader.result as string;
       };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
   }
@@ -975,11 +975,18 @@ export class AuthService {
     idFileName: string,
     gradPhotoFile: File
   ): Promise<void> {
+    // Firestore doc limit ~1MB. Target 350KB base64 per image (~262KB binary).
+    const TARGET = 350000;
+
     let idBase64 = await this.fileToBase64(idFile);
-    if (idBase64.length > 500000) idBase64 = await this.compressImage(idFile);
+    if (idBase64.length > TARGET) idBase64 = await this.compressImage(idFile, TARGET);
 
     let gradBase64 = await this.fileToBase64(gradPhotoFile);
-    if (gradBase64.length > 500000) gradBase64 = await this.compressImage(gradPhotoFile);
+    if (gradBase64.length > TARGET) gradBase64 = await this.compressImage(gradPhotoFile, TARGET);
+
+    if (idBase64.length + gradBase64.length > 800000) {
+      throw new Error('Images are still too large after compression. Please use photos under 3MB each.');
+    }
 
     await updateDoc(doc(this.firestore, 'users', userId), {
       alumniIdBase64: idBase64,

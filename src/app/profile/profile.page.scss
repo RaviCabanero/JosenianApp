@@ -120,8 +120,23 @@ $bg-field:     #f9fafb;
   }
 }
 
+// Hero gold band
+.hero-gold-band {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #F5B800, #C49500);
+}
+
 // Hero info
 .hero-info { flex: 1; min-width: 0; }
+
+.hero-course {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: rgba(255,255,255,.7);
+  font-weight: 500;
+}
 
 .hero-name {
   margin: 0 0 8px;
@@ -167,6 +182,66 @@ $bg-field:     #f9fafb;
   white-space: nowrap;
 }
 
+// Hero stats strip
+.hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 12px 0 4px;
+  border-top: 1px solid rgba(255,255,255,.15);
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.hero-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.hero-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,.65);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255,255,255,.2);
+  flex-shrink: 0;
+}
+
+// Hero edit button
+.hero-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px auto 0;
+  padding: 8px 22px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,.4);
+  background: rgba(255,255,255,.12);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s;
+  ion-icon { font-size: 15px; }
+  &:active { background: rgba(255,255,255,.22); }
+}
+
 // Bio inside hero
 .hero-bio {
   position: relative;
@@ -196,6 +271,64 @@ $bg-field:     #f9fafb;
   font-style: italic;
   cursor: pointer;
   ion-icon { font-size: 16px; }
+}
+
+// ── Info List (replaces field-grid) ───────────────────────
+.info-list { padding: 4px 0; }
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid $border;
+
+  &:last-child, &.no-border { border-bottom: none; }
+}
+
+.info-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(30, 81, 40, .08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  ion-icon { font-size: 17px; color: $green; }
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.info-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: $text-3;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-2;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+
+  &.mono { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
+
+  &.empty-value {
+    color: $text-3;
+    font-style: italic;
+    font-weight: 400;
+  }
 }
 
 // ── Edit Profile Button ────────────────────────────────────
@@ -481,6 +614,7 @@ $bg-field:     #f9fafb;
   min-width: 4px;
 }
 
+.pts-section-label,
 .pts-badges-title, .pts-history-title {
   font-size: 11px;
   font-weight: 700;
@@ -708,6 +842,22 @@ $bg-field:     #f9fafb;
   --border-color: #{$green};
   --border-radius: 8px;
   font-weight: 700;
+}
+
+// ── Work Company Logo ──────────────────────────────────────
+.work-company-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f1f8f2, $green-light);
+  border: 1.5px solid rgba(30, 81, 40, .15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: $green;
+  flex-shrink: 0;
 }
 
 // ── Work Timeline ──────────────────────────────────────────
@@ -1426,6 +1576,13 @@ $bg-field:     #f9fafb;
 }
 
 // ── Privacy Settings ────────────────────────────────────────
+.privacy-compact-row {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .privacy-icon {
   background: rgba(99, 102, 241, 0.1) !important;
   color: #6366f1 !important;

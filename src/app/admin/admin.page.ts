@@ -538,7 +538,6 @@ export class AdminPage implements OnInit {
 
   filterAlumni() {
     this.filteredAlumni = this.alumni.filter(a => {
-      // Registered student/alumni users must be approved to appear in the management tab
       if (a.source === 'registered' && a.status !== 'approved') return false;
       const nameMatch = a.name.toLowerCase().includes(this.alumniSearchFilters.name.toLowerCase());
       const deptMatch = this.alumniSearchFilters.department === '' || a.department === this.alumniSearchFilters.department;

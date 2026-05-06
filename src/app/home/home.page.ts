@@ -19,6 +19,7 @@ export class HomePage implements OnInit, OnDestroy {
     lastName: '',
     bio: '',
     department: '',
+    photoUrl: '',
   };
 
   notifications = 0;
@@ -27,11 +28,22 @@ export class HomePage implements OnInit, OnDestroy {
   private chatUnsubscribe: (() => void) | null = null;
 
   dashboardCards = [
-    { id: 1, title: 'My Department', icon: 'business',  value: '—', description: 'Members',     color: 'primary'   },
-    { id: 2, title: 'My Network',    icon: 'people',    value: '—', description: 'Members',     color: 'secondary' },
-    { id: 3, title: 'History',       icon: 'time',      value: '—', description: 'Events',      color: 'tertiary'  },
-    { id: 4, title: 'Feeds',         icon: 'newspaper', value: '—', description: 'Your Posts',  color: 'success'   },
+    { id: 1, title: 'My Department', shortLabel: 'Dept',     icon: 'business-outline',  value: '—', description: 'Department members',  color: 'primary'   },
+    { id: 2, title: 'My Network',    shortLabel: 'Network',  icon: 'people-outline',    value: '—', description: 'Connections',         color: 'secondary' },
+    { id: 3, title: 'History',       shortLabel: 'Events',   icon: 'time-outline',      value: '—', description: 'Events attended',     color: 'tertiary'  },
+    { id: 4, title: 'Feeds',         shortLabel: 'Posts',    icon: 'newspaper-outline', value: '—', description: 'Your posts',          color: 'success'   },
   ];
+
+  get greeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  get todayDate(): string {
+    return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
 
   constructor(
     private authService: AuthService,
@@ -42,8 +54,11 @@ export class HomePage implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-    await this.loadUserProfile();
-    await this.loadDashboardStats();
+    authState(this.auth).subscribe(async firebaseUser => {
+      if (!firebaseUser) return;
+      await this.loadUserProfile();
+      await this.loadDashboardStats();
+    });
     this.subscribeToUnreadCounts();
   }
 
@@ -87,6 +102,7 @@ export class HomePage implements OnInit, OnDestroy {
         this.user.department = profile.department || '';
         this.user.initials =
           (this.user.firstName.charAt(0) + this.user.lastName.charAt(0)).toUpperCase() || 'U';
+        this.user.photoUrl = profile.photoUrl || '';
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -111,6 +127,7 @@ export class HomePage implements OnInit, OnDestroy {
         const myDept = depts.find(
           (d: any) => d.id === this.user.department || d.name === this.user.department
         );
+        if (myDept?.name) this.user.department = myDept.name;
         this.updateCard(1, String(myDept?.members?.length ?? 0));
       }
 
