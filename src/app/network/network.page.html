@@ -28,11 +28,6 @@
         </div>
         <div class="stat-div"></div>
         <div class="stat-pill">
-          <span class="stat-num">{{ deptCount }}</span>
-          <span class="stat-lbl">Department</span>
-        </div>
-        <div class="stat-div"></div>
-        <div class="stat-pill">
           <span class="stat-num">{{ requestsCount }}</span>
           <span class="stat-lbl">Requests</span>
         </div>
@@ -43,10 +38,6 @@
         <button class="tab-btn" [class.active]="activeTab === 'friends'" (click)="switchTab('friends')">
           <ion-icon name="people"></ion-icon>
           <span>Friends</span>
-        </button>
-        <button class="tab-btn" [class.active]="activeTab === 'department'" (click)="switchTab('department')">
-          <ion-icon name="school-outline"></ion-icon>
-          <span>Dept</span>
         </button>
         <button class="tab-btn" [class.active]="activeTab === 'people'" (click)="switchTab('people')">
           <ion-icon name="search-outline"></ion-icon>
@@ -59,6 +50,15 @@
         </button>
       </div>
 
+      <!-- Shared Search Bar -->
+      <ion-searchbar
+        [placeholder]="activeTab === 'requests' ? 'Search requests...' : activeTab === 'friends' ? 'Search friends...' : 'Search by name, department...'"
+        [(ngModel)]="searchQuery"
+        (ionInput)="onNetworkSearch($event)"
+        debounce="250"
+        class="net-search">
+      </ion-searchbar>
+
       <!-- ── Friends Tab ─────────────────────────────── -->
       <div *ngIf="activeTab === 'friends'">
         <div class="empty-state" *ngIf="friends.length === 0">
@@ -66,8 +66,13 @@
           <h3>No friends yet</h3>
           <p>Go to "Find" to send connection requests.</p>
         </div>
-        <div class="user-list" *ngIf="friends.length > 0">
-          <div class="user-card" *ngFor="let user of friends">
+        <div class="empty-state" *ngIf="friends.length > 0 && filteredFriends.length === 0">
+          <ion-icon name="search-outline"></ion-icon>
+          <h3>No results</h3>
+          <p>No friends match "{{ searchQuery }}".</p>
+        </div>
+        <div class="user-list" *ngIf="filteredFriends.length > 0">
+          <div class="user-card" *ngFor="let user of filteredFriends">
             <div class="user-avatar" (click)="viewUser(user.uid)" style="cursor:pointer">{{ user.initials }}</div>
             <div class="user-info">
               <p class="user-name">{{ user.name }}</p>
@@ -81,59 +86,8 @@
         </div>
       </div>
 
-      <!-- ── Department Tab ─────────────────────────── -->
-      <div *ngIf="activeTab === 'department'">
-        <div class="dept-header-row" *ngIf="departmentName">
-          <ion-icon name="school-outline"></ion-icon>
-          <span>{{ departmentName }}</span>
-          <span class="dept-member-count">{{ deptCount }} members</span>
-        </div>
-        <div class="empty-state" *ngIf="departmentUsers.length === 0">
-          <ion-icon name="school-outline"></ion-icon>
-          <h3>No department members</h3>
-          <p>Join a department to see other members here.</p>
-        </div>
-        <div class="user-list" *ngIf="departmentUsers.length > 0">
-          <div class="user-card" *ngFor="let user of departmentUsers">
-            <div class="user-avatar dept-avatar" (click)="viewUser(user.uid)" style="cursor:pointer">{{ user.initials }}</div>
-            <div class="user-info">
-              <p class="user-name">{{ user.name }}</p>
-              <span class="user-type-badge" [class.alumni]="user.userType === 'alumni'">{{ user.userType | titlecase }}</span>
-            </div>
-            <div class="user-actions">
-              <span class="friend-tag" *ngIf="user.friendStatus === 'friend'">
-                <ion-icon name="checkmark-circle"></ion-icon> Friend
-              </span>
-              <button
-                *ngIf="user.friendStatus === 'none'"
-                class="btn-add"
-                (click)="sendRequest(user)"
-                [disabled]="processingIds.has(user.uid)">
-                <ion-icon name="person-add-outline"></ion-icon>
-                Connect
-              </button>
-              <button
-                *ngIf="user.friendStatus === 'pending'"
-                class="btn-pending"
-                (click)="cancelRequest(user)"
-                [disabled]="processingIds.has(user.uid)"
-                title="Cancel request">
-                <ion-icon name="time-outline"></ion-icon>
-                Pending
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ── Find People Tab ────────────────────────── -->
       <div *ngIf="activeTab === 'people'">
-        <ion-searchbar
-          placeholder="Search by name, department..."
-          (ionInput)="onSearchChange($event)"
-          debounce="300"
-          class="net-search">
-        </ion-searchbar>
         <div class="empty-state" *ngIf="filteredPeople.length === 0">
           <ion-icon name="search-outline"></ion-icon>
           <h3>No results</h3>
@@ -184,8 +138,13 @@
           <h3>No pending requests</h3>
           <p>When someone sends you a friend request, it will appear here.</p>
         </div>
-        <div class="user-list" *ngIf="incomingRequests.length > 0">
-          <div class="user-card" *ngFor="let req of incomingRequests">
+        <div class="empty-state" *ngIf="incomingRequests.length > 0 && filteredRequests.length === 0">
+          <ion-icon name="search-outline"></ion-icon>
+          <h3>No results</h3>
+          <p>No requests match "{{ searchQuery }}".</p>
+        </div>
+        <div class="user-list" *ngIf="filteredRequests.length > 0">
+          <div class="user-card" *ngFor="let req of filteredRequests">
             <div class="user-avatar req-avatar" (click)="viewUser(req.fromId)" style="cursor:pointer">{{ req.fromInitials }}</div>
             <div class="user-info">
               <p class="user-name">{{ req.fromName }}</p>

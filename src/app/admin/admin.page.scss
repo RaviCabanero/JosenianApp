@@ -373,6 +373,47 @@ $bg-light: #f3f4f6;
   margin: 0;
 }
 
+.refresh-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: $primary-color;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: $primary-dark;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  ion-icon {
+    transition: transform 0.3s ease;
+
+    &.spinning {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .content-area {
   flex: 1;
   overflow-y: auto;
@@ -1415,6 +1456,22 @@ $bg-light: #f3f4f6;
     &:hover {
       background: #0d9488;
       box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+    }
+  }
+
+  .btn-remind {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+
+    &:hover:not(:disabled) {
+      background: #fef3c7;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 
@@ -4637,6 +4694,65 @@ $bg-light: #f3f4f6;
     color: $text-light;
     font-size: 12px;
     font-weight: 700;
+  }
+}
+
+.department-search-container {
+  margin-bottom: 24px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid $light-border;
+  border-radius: 8px;
+  background: $bg-white;
+  transition: all 0.3s ease;
+
+  &:focus-within {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  ion-icon {
+    color: $text-light;
+    font-size: 20px;
+  }
+
+  .department-search-input {
+    flex: 1;
+    border: none;
+    padding: 12px 0;
+    font-size: 14px;
+    background: transparent;
+    outline: none;
+    color: $text-dark;
+
+    &::placeholder {
+      color: $text-light;
+    }
+  }
+
+  .clear-search-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $text-light;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+
+    ion-icon {
+      font-size: 18px;
+    }
   }
 }
 

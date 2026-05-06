@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 import { Auth, authState } from '@angular/fire/auth';
 import { AuthService } from '../services/auth.service';
 import { ChatService, ConversationItem } from '../services/chat.service';
@@ -22,7 +23,8 @@ export class MessagesPage implements OnInit, OnDestroy {
     private router: Router,
     private auth: Auth,
     private authService: AuthService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
@@ -131,6 +133,30 @@ export class MessagesPage implements OnInit, OnDestroy {
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  async removeConversation(item: ConversationItem) {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Conversation',
+      message: `Delete your conversation with ${item.otherName}? This cannot be undone.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await this.chatService.deleteConversation(item.id);
+              this.allItems = this.allItems.filter(i => i.id !== item.id);
+              this.applyFilter();
+            } catch (err) {
+              console.error('Error deleting conversation:', err);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   goBack() {

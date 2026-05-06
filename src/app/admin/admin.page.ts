@@ -66,7 +66,7 @@ export class AdminPage implements OnInit {
     firstName: '',
     lastName: '',
     email: '',
-    userType: 'alumni' as 'student' | 'alumni',
+    userType: 'alumni' as 'alumni' | 'hod',
     department: '',
     studentNumber: '',
     course: '',
@@ -95,10 +95,12 @@ export class AdminPage implements OnInit {
 
   newDepartmentName: string = '';
   newCourseName: string = '';
+  departmentSearchTerm: string = '';
   selectedDepartmentId: string | null = null;
   showDepartmentForm: boolean = false;
   showCourseForm: boolean = false;
   isLoadingDepts: boolean = false;
+  isRefreshing: boolean = false;
   departmentMap: {[id: string]: string} = {};
 
   constructor(
@@ -374,6 +376,36 @@ export class AdminPage implements OnInit {
     return this.departments.filter(dept => (dept.courses?.length || 0) > 0).length;
   }
 
+  get filteredDepartments(): any[] {
+    if (!this.departmentSearchTerm.trim()) {
+      return this.departments;
+    }
+
+    const searchLower = this.departmentSearchTerm.toLowerCase();
+    return this.departments
+      .map((dept: any) => {
+        // Filter courses based on search term
+        const filteredCourses = dept.courses.filter((course: string) =>
+          course.toLowerCase().includes(searchLower)
+        );
+
+        // Include department if it matches the search or has matching courses
+        if (
+          dept.name.toLowerCase().includes(searchLower) ||
+          filteredCourses.length > 0
+        ) {
+          return {
+            ...dept,
+            courses: dept.name.toLowerCase().includes(searchLower)
+              ? dept.courses // Show all courses if department matches
+              : filteredCourses // Show only matching courses if department doesn't match
+          };
+        }
+        return null;
+      })
+      .filter((dept: any) => dept !== null);
+  }
+
   toggleDepartmentForm() {
     this.showDepartmentForm = !this.showDepartmentForm;
     if (!this.showDepartmentForm) this.newDepartmentName = '';
@@ -420,13 +452,30 @@ export class AdminPage implements OnInit {
   }
 
   async deleteCourse(departmentId: string, courseIndex: number) {
+    const department = this.departments.find(d => d.id === departmentId);
+    const courseName = department?.courses?.[courseIndex] || 'this course';
+    const confirmed = await this.showConfirm('Delete Course', `Are you sure you want to delete "${courseName}"?`);
+    if (!confirmed) return;
     try {
       await this.authService.deleteCourse(departmentId, courseIndex);
-      const department = this.departments.find(d => d.id === departmentId);
       if (department) department.courses.splice(courseIndex, 1);
     } catch (error) {
       console.error('Error deleting course:', error);
       await this.showAlert('Error', 'Failed to delete course.');
+    }
+  }
+
+  async editDepartment(departmentId: string, currentName: string) {
+    const newName = await this.showPrompt('Rename Department', currentName);
+    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    try {
+      await this.authService.updateDepartment(departmentId, newName.trim());
+      const dept = this.departments.find(d => d.id === departmentId);
+      if (dept) dept.name = newName.trim();
+      this.departmentMap[departmentId] = newName.trim();
+    } catch (error) {
+      console.error('Error renaming department:', error);
+      await this.showAlert('Error', 'Failed to rename department.');
     }
   }
 
@@ -440,6 +489,19 @@ export class AdminPage implements OnInit {
         console.error('Error deleting department:', error);
         await this.showAlert('Error', 'Failed to delete department.');
       }
+    }
+  }
+
+  async editCourse(departmentId: string, courseIndex: number, currentName: string) {
+    const newName = await this.showPrompt('Rename Course', currentName);
+    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    try {
+      await this.authService.updateCourse(departmentId, courseIndex, newName.trim());
+      const dept = this.departments.find(d => d.id === departmentId);
+      if (dept) dept.courses[courseIndex] = newName.trim();
+    } catch (error) {
+      console.error('Error renaming course:', error);
+      await this.showAlert('Error', 'Failed to rename course.');
     }
   }
 
@@ -483,7 +545,7 @@ export class AdminPage implements OnInit {
       firstName: '', lastName: '', email: '',
       userType: 'alumni', department: '',
       studentNumber: '', course: '', graduationYear: ''
-    };
+    } as any;
     this.createUserCourses = [];
   }
 
@@ -495,8 +557,13 @@ export class AdminPage implements OnInit {
 
   async createUser() {
     const { firstName, lastName, email, userType, department, studentNumber, course, graduationYear } = this.createUserData;
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !department || !studentNumber.trim()) {
+    const isHOD = userType === 'hod';
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !department) {
       await this.showAlert('Required', 'Please fill in all required fields.');
+      return;
+    }
+    if (!isHOD && !studentNumber.trim()) {
+      await this.showAlert('Required', 'Please enter the student number.');
       return;
     }
     if (userType === 'alumni' && !graduationYear.trim()) {
@@ -506,8 +573,12 @@ export class AdminPage implements OnInit {
     this.isCreatingUser = true;
     try {
       await this.authService.adminCreateUser(email, {
-        firstName, lastName, userType, department,
-        studentNumber, course, graduationYear
+        firstName, lastName,
+        userType: isHOD ? 'alumni' : userType as 'student' | 'alumni',
+        role: isHOD ? 'hod' : 'user',
+        department,
+        studentNumber: isHOD ? '' : studentNumber,
+        course, graduationYear
       });
       this.showCreateUserForm = false;
       this.resetCreateUserForm();
@@ -572,20 +643,30 @@ export class AdminPage implements OnInit {
 
   async deleteAlumni(alumniId: string) {
     const alumniToDelete = this.alumni.find(a => a.id === alumniId);
-    if (alumniToDelete && alumniToDelete.source === 'registered') {
-      await this.showAlert('Not Allowed', 'Cannot delete registered alumni users from this panel. Use the User Management section.');
-      return;
-    }
-    const confirmed = await this.showConfirm('Delete Alumni', 'Are you sure you want to delete this alumni record?');
-    if (confirmed) {
-      try {
+    if (!alumniToDelete) return;
+
+    const isRegistered = alumniToDelete.source === 'registered';
+    const confirmed = await this.showConfirm(
+      'Delete User',
+      isRegistered
+        ? `Permanently delete the account of "${alumniToDelete.name}"? This removes all their profile data.`
+        : `Delete the alumni record for "${alumniToDelete.name}"?`
+    );
+    if (!confirmed) return;
+
+    try {
+      if (isRegistered) {
+        await this.authService.deleteRegisteredUser(alumniId);
+      } else {
         await this.authService.deleteAlumni(alumniId);
-        this.alumni = this.alumni.filter(a => a.id !== alumniId);
-        this.filterAlumni();
-      } catch (error) {
-        console.error('Error deleting alumni:', error);
-        await this.showAlert('Error', 'Failed to delete alumni record.');
       }
+      this.alumni = this.alumni.filter(a => a.id !== alumniId);
+      if (this.selectedAlumni?.id === alumniId) this.selectedAlumni = null;
+      this.filterAlumni();
+      await this.calculateStats();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      await this.showAlert('Error', 'Failed to delete user.');
     }
   }
 
@@ -609,6 +690,33 @@ export class AdminPage implements OnInit {
 
   openRoleManagement() {
     this.showRoleManagementModal = true;
+  }
+
+  isReminding: boolean = false;
+
+  hasIncompleteProfile(alumnus: any): boolean {
+    return alumnus?.source === 'registered' &&
+      (!alumnus.contactNumber || !alumnus.gender || !alumnus.address);
+  }
+
+  async remindUpdateProfile(userId: string) {
+    if (this.isReminding) return;
+    this.isReminding = true;
+    try {
+      await this.authService.createNotification(
+        userId,
+        'Complete Your Profile',
+        'Your profile is incomplete. Please update your mobile number, sex, and address so others can connect with you better.',
+        'info',
+        '/profile'
+      );
+      await this.showAlert('Reminder Sent', 'A profile update reminder has been sent to this user.');
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      await this.showAlert('Error', 'Failed to send reminder.');
+    } finally {
+      this.isReminding = false;
+    }
   }
 
   async updateAlumniRole(newRole: string) {
@@ -1171,6 +1279,23 @@ export class AdminPage implements OnInit {
     this.activeTab = tab;
     if (tab === 'attendance' && this.leaderboard.length === 0) {
       this.loadLeaderboard();
+    }
+  }
+
+  async refreshData() {
+    this.isRefreshing = true;
+    try {
+      await Promise.all([
+        this.loadPendingUsers(),
+        this.loadDepartments(),
+        this.loadAlumni(),
+        this.loadPendingAlumniVerification(),
+        this.loadEvents()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      this.isRefreshing = false;
     }
   }
 

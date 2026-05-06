@@ -144,6 +144,17 @@ export class DepartmentPage implements OnInit {
     return this.allDepartments.reduce((sum, d) => sum + (d.members?.length || 0), 0);
   }
 
+  get myDepartmentMemberCount(): number {
+    const primary = this.userDepartments.find(ud => ud.status === 'primary');
+    if (!primary) return 0;
+    const dept = this.allDepartments.find(d => d.id === primary.departmentId);
+    return dept?.members?.length ?? 0;
+  }
+
+  get followedDepartmentCount(): number {
+    return this.userDepartments.filter(ud => ud.status === 'following').length;
+  }
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -433,32 +444,6 @@ export class DepartmentPage implements OnInit {
 
   // ── Department Actions ─────────────────────────────
 
-  async registerDepartment() {
-    if (!this.selectedDepartment) return;
-    const user = this.authService.getCurrentUser();
-    if (!user) return;
-    try {
-      const profile = await this.authService.getUserProfile(user.uid);
-      const joinedDate = new Date().toISOString().split('T')[0];
-      await this.authService.updateUserProfile(user.uid, { department: this.selectedDepartment.id, joinDate: joinedDate });
-      await this.authService.addMemberToDepartment(this.selectedDepartment.id, user.uid, {
-        name: `${profile?.['firstName'] || ''} ${profile?.['lastName'] || ''}`.trim() || user.email || '',
-        email: user.email || '',
-        userType: profile?.['userType'] || 'student',
-        role: profile?.['userType'] || 'student',
-        studentNumber: profile?.['studentNumber'] || '',
-        course: profile?.['course'] || '',
-        joinedDate
-      });
-      this.userDepartments = this.userDepartments.filter(ud => ud.status !== 'primary');
-      this.userDepartments.push({ departmentId: this.selectedDepartment.id, status: 'primary', joinedDate });
-      await this.closeDetailModal();
-      await this.loadDepartments();
-    } catch (error) {
-      console.error('Error registering department:', error);
-    }
-  }
-
   async followDepartment() {
     if (!this.selectedDepartment) return;
     const user = this.authService.getCurrentUser();
@@ -478,6 +463,24 @@ export class DepartmentPage implements OnInit {
     }
   }
 
+  async unfollowDepartment() {
+    if (!this.selectedDepartment) return;
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    try {
+      const profile = await this.authService.getUserProfile(user.uid);
+      const followed: string[] = (profile?.['followedDepartments'] || []).filter(
+        (id: string) => id !== this.selectedDepartment!.id
+      );
+      await this.authService.updateUserProfile(user.uid, { followedDepartments: followed });
+      this.userDepartments = this.userDepartments.filter(
+        ud => ud.departmentId !== this.selectedDepartment!.id
+      );
+    } catch (error) {
+      console.error('Error unfollowing department:', error);
+    }
+  }
+
   // ── Wall ───────────────────────────────────────────
 
   async loadWallPosts() {
@@ -489,6 +492,13 @@ export class DepartmentPage implements OnInit {
       // ignore
     } finally {
       this.isLoadingWall = false;
+    }
+  }
+
+  insertAtEveryone() {
+    const mention = '@everyone ';
+    if (!this.wallInput.includes('@everyone')) {
+      this.wallInput = mention + this.wallInput;
     }
   }
 
@@ -505,6 +515,22 @@ export class DepartmentPage implements OnInit {
         authorInitials: initials || 'M',
       });
       this.wallPosts = [post, ...this.wallPosts];
+
+      if (this.isHOD && this.wallInput.includes('@everyone')) {
+        const members: any[] = this.selectedDepartment.members || [];
+        const redirectLink = `/department`;
+        const notifyPromises = members
+          .filter(m => m.userId && m.userId !== this.currentUserId)
+          .map(m => this.authService.createNotification(
+            m.userId,
+            `📢 ${this.selectedDepartment!.name}`,
+            `${this.currentUserName}: ${this.wallInput.trim()}`,
+            'system',
+            redirectLink
+          ).catch(() => {}));
+        await Promise.all(notifyPromises);
+      }
+
       this.wallInput = '';
     } catch (error) {
       console.error('Error posting to wall:', error);

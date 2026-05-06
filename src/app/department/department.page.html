@@ -51,13 +51,13 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat-pill">
-          <span class="stat-num">{{ totalMembers }}</span>
-          <span class="stat-lbl">Total Members</span>
+          <span class="stat-num">{{ myDepartmentMemberCount }}</span>
+          <span class="stat-lbl">Dept Members</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-pill">
-          <span class="stat-num">{{ userDepartments.length }}</span>
-          <span class="stat-lbl">Connected</span>
+          <span class="stat-num">{{ followedDepartmentCount }}</span>
+          <span class="stat-lbl">Following</span>
         </div>
       </div>
     </div>
@@ -476,7 +476,7 @@
         <!-- Follower read-only notice -->
         <div class="wall-follower-notice" *ngIf="isFollowing">
           <ion-icon name="eye-outline"></ion-icon>
-          <span>You're following this department. Register as a member to post on the wall.</span>
+          <span>You're following this department. Switch to this department to post on the wall.</span>
         </div>
 
         <!-- Compose box (members + HOD only) -->
@@ -490,6 +490,15 @@
               rows="2"
             ></textarea>
             <div class="wall-compose-actions">
+              <button
+                class="wall-mention-btn"
+                *ngIf="isHOD"
+                (click)="insertAtEveryone()"
+                title="Notify all members"
+              >
+                <ion-icon name="megaphone-outline"></ion-icon>
+                @everyone
+              </button>
               <span class="wall-char-count" [class.over]="wallInput.length > 280">{{ wallInput.length }}/280</span>
               <button
                 class="wall-post-btn"
@@ -563,13 +572,14 @@
         </ion-button>
 
         <ion-button
-          *ngIf="!isPrimaryDepartment(selectedDepartment.id) && !isUserInDepartment(selectedDepartment.id)"
-          fill="solid"
-          class="footer-btn register-btn"
-          (click)="registerDepartment()"
+          *ngIf="isFollowing"
+          fill="outline"
+          color="danger"
+          class="footer-btn unfollow-btn"
+          (click)="unfollowDepartment()"
         >
-          <ion-icon slot="start" name="checkmark"></ion-icon>
-          Register
+          <ion-icon slot="start" name="star"></ion-icon>
+          Unfollow
         </ion-button>
 
         <ion-button
@@ -579,7 +589,7 @@
           class="footer-btn registered-btn"
         >
           <ion-icon slot="start" name="checkmark-circle"></ion-icon>
-          Registered
+          Your Department
         </ion-button>
       </div>
 

@@ -298,6 +298,11 @@ export class AuthService {
     }
   }
 
+  // Rename a department
+  async updateDepartment(departmentId: string, newName: string): Promise<void> {
+    await updateDoc(doc(this.firestore, 'departments', departmentId), { name: newName });
+  }
+
   // Delete department from Firestore
   async deleteDepartment(departmentId: string): Promise<void> {
     try {
@@ -327,6 +332,17 @@ export class AuthService {
     } catch (error) {
       console.error('Error adding course:', error);
       throw error;
+    }
+  }
+
+  // Rename a course in a department
+  async updateCourse(departmentId: string, courseIndex: number, newName: string): Promise<void> {
+    const deptRef = doc(this.firestore, 'departments', departmentId);
+    const deptDoc = await getDoc(deptRef);
+    if (deptDoc.exists()) {
+      const courses: string[] = deptDoc.data()['courses'] || [];
+      courses[courseIndex] = newName;
+      await updateDoc(deptRef, { courses });
     }
   }
 
@@ -454,6 +470,7 @@ export class AuthService {
       firstName: string;
       lastName: string;
       userType: 'student' | 'alumni';
+      role?: string;
       studentNumber?: string;
       department: string;
       course?: string;
@@ -479,7 +496,7 @@ export class AuthService {
         department: profileData.department,
         course: profileData.course || '',
         graduationYear: profileData.graduationYear || '',
-        role: 'user',
+        role: profileData.role || 'user',
         status: 'approved',
         createdAt: new Date(),
         joinDate: new Date().toISOString().split('T')[0],
@@ -538,6 +555,9 @@ export class AuthService {
           department: data['department'] || '',
           course: data['course'] || '',
           batch: data['graduationYear'] || '',
+          contactNumber: data['contactNumber'] || '',
+          gender: data['gender'] || '',
+          address: data['address'] || '',
           userType,
           status: data['status'],
           role: data['role'] || 'user',
@@ -639,6 +659,11 @@ export class AuthService {
       console.error('Error deleting alumni:', error);
       throw error;
     }
+  }
+
+  // Delete a registered user's Firestore document (admin action)
+  async deleteRegisteredUser(userId: string): Promise<void> {
+    await deleteDoc(doc(this.firestore, 'users', userId));
   }
 
   // Get alumni by search criteria
@@ -921,6 +946,29 @@ export class AuthService {
     }
   }
 
+  // Request alumni ID verification (from profile page, post-registration)
+  async requestAlumniIdVerification(
+    userId: string,
+    idFile: File,
+    idFileName: string,
+    gradPhotoFile: File
+  ): Promise<void> {
+    let idBase64 = await this.fileToBase64(idFile);
+    if (idBase64.length > 500000) idBase64 = await this.compressImage(idFile);
+
+    let gradBase64 = await this.fileToBase64(gradPhotoFile);
+    if (gradBase64.length > 500000) gradBase64 = await this.compressImage(gradPhotoFile);
+
+    await updateDoc(doc(this.firestore, 'users', userId), {
+      alumniIdBase64: idBase64,
+      alumniIdFileName: idFileName,
+      alumniGradPhotoBase64: gradBase64,
+      alumniIdVerificationStatus: 'pending',
+      alumniIdSubmittedAt: new Date().toISOString(),
+      alumniIdRejectionReason: ''
+    });
+  }
+
   // Verify (approve or reject) alumni ID
   async verifyAlumniId(userId: string, status: 'approved' | 'rejected', rejectionReason: string = '') {
     try {
@@ -935,6 +983,9 @@ export class AuthService {
       }
 
       await updateDoc(userRef, updateData);
+      if (status === 'approved') {
+        await this.awardInspiredPoints(userId, 'integrity', 25, 'Alumni ID verified', 'integrity_verified');
+      }
       console.log(`Alumni ID ${status}:`, userId);
     } catch (error) {
       console.error('Error verifying alumni ID:', error);
@@ -1181,6 +1232,7 @@ export class AuthService {
         const attendees: string[] = snap.data()['attendees'] || [];
         if (!attendees.includes(userId)) {
           await updateDoc(ref, { attendees: [...attendees, userId] });
+          await this.awardInspiredPoints(userId, 'excellence', 2, 'Joined global event', `excellence_join_${eventId}`);
         }
       }
     } catch (error) {
@@ -1286,6 +1338,7 @@ export class AuthService {
         if (!attendees.includes(userId)) {
           attendees.push(userId);
           await updateDoc(eventRef, { attendees });
+          await this.awardInspiredPoints(userId, 'service', 2, 'Joined department event', `service_join_${departmentId}_${eventId}`);
         }
       }
     } catch (error) {
@@ -1333,6 +1386,12 @@ export class AuthService {
         likes: [],
         createdAt: new Date()
       });
+      if (postData.authorId) {
+        await Promise.all([
+          this.awardInspiredPoints(postData.authorId, 'service',    2, 'Posted on department wall', `service_wall_${docRef.id}`),
+          this.awardInspiredPoints(postData.authorId, 'pioneerism', 2, 'Posted on department wall', `pioneerism_wall_${docRef.id}`),
+        ]);
+      }
       return { id: docRef.id, ...postData, likes: [] };
     } catch (error) {
       console.error('Error adding wall post:', error);
@@ -1425,6 +1484,10 @@ export class AuthService {
       // Award points based on event category
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
+      await Promise.all([
+        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Event'}`, `reliability_ev_${eventId}`),
+        this.awardInspiredPoints(userId, 'excellence',  5, `Attended: ${event['title'] || 'Event'}`, `excellence_ev_${eventId}`),
+      ]);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1515,6 +1578,10 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? 10;
       await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
+      await Promise.all([
+        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Dept Event'}`, `reliability_dept_${eventId}`),
+        this.awardInspiredPoints(userId, 'service',     3, `Attended: ${event['title'] || 'Dept Event'}`, `service_dept_${eventId}`),
+      ]);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1711,6 +1778,74 @@ export class AuthService {
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
+  // ==================== INSPIRED BADGE SYSTEM ====================
+
+  private readonly INSPIRED_NAMES: Readonly<Record<string, string>> = {
+    interiority: 'Interiority',
+    nationalism:  'Nationalism',
+    service:      'Service',
+    pioneerism:   'Pioneerism',
+    integrity:    'Integrity',
+    reliability:  'Reliability',
+    excellence:   'Excellence',
+  };
+
+  getInspiredBadgeLevel(points: number): string {
+    if (points >= 25) return 'Gold';
+    if (points >= 10) return 'Silver';
+    if (points >= 1)  return 'Bronze';
+    return 'None';
+  }
+
+  async awardInspiredPoints(
+    userId: string,
+    category: 'interiority' | 'nationalism' | 'service' | 'pioneerism' | 'integrity' | 'reliability' | 'excellence',
+    points: number,
+    reason: string,
+    uniqueKey?: string
+  ): Promise<void> {
+    try {
+      if (uniqueKey) {
+        const gateRef = doc(this.firestore, 'users', userId, 'pointsHistory', `inspired_${uniqueKey}`);
+        if ((await getDoc(gateRef)).exists()) return;
+        await setDoc(gateRef, { type: 'inspired_gate', category, points, reason, awardedAt: new Date() });
+      }
+      const userRef = doc(this.firestore, 'users', userId);
+      const snap = await getDoc(userRef);
+      const inspired: Record<string, number> = (snap.data() as any)?.inspiredPoints || {};
+      const oldVal = Number(inspired[category] || 0);
+      const newVal = oldVal + points;
+      await updateDoc(userRef, { [`inspiredPoints.${category}`]: increment(points) });
+      const oldLevel = this.getInspiredBadgeLevel(oldVal);
+      const newLevel = this.getInspiredBadgeLevel(newVal);
+      if (newLevel !== oldLevel && newLevel !== 'None') {
+        await this.createNotification(
+          userId, 'INSPIRED Badge Unlocked!',
+          `You reached ${newLevel} level in ${this.INSPIRED_NAMES[category]}! Keep embodying USJ-R core values.`,
+          'points', '/profile'
+        );
+      }
+      const updatedInspired: Record<string, number> = { ...inspired, [category]: newVal };
+      const hadMaster = Object.keys(this.INSPIRED_NAMES).every(c => Number(inspired[c] || 0) >= 10);
+      const hasMaster  = Object.keys(this.INSPIRED_NAMES).every(c => Number(updatedInspired[c] || 0) >= 10);
+      if (hasMaster && !hadMaster) {
+        await updateDoc(userRef, { inspiredMasterBadge: true });
+        await this.createNotification(
+          userId, 'Master INSPIRED Badge Earned!',
+          'You have embodied all 7 USJ-R core values and earned the master INSPIRED badge!',
+          'points', '/profile'
+        );
+      }
+    } catch (err) {
+      console.error('Error awarding INSPIRED points:', err);
+    }
+  }
+
+  async awardInspiredProfileComplete(userId: string, profileData: { bio: string; gender: string; address: string; contactNumber: string }): Promise<void> {
+    if (!profileData.bio || !profileData.gender || !profileData.address || !profileData.contactNumber) return;
+    await this.awardInspiredPoints(userId, 'interiority', 10, 'Completed profile with all details', 'interiority_complete');
+  }
+
   // ── Friend System ─────────────────────────────────────────────
 
   async sendFriendRequest(toUserId: string): Promise<void> {
@@ -1764,6 +1899,10 @@ export class AuthService {
       'connection',
       '/network'
     );
+    await Promise.all([
+      this.awardInspiredPoints(myId,       'nationalism', 3, 'New friend connection', `nationalism_${fromUserId}`),
+      this.awardInspiredPoints(fromUserId, 'nationalism', 3, 'New friend connection', `nationalism_${myId}`),
+    ]);
   }
 
   async declineFriendRequest(fromUserId: string): Promise<void> {

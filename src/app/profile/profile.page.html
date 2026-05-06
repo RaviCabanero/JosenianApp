@@ -178,9 +178,11 @@
         <div class="field-item">
           <span class="field-label">
             <ion-icon name="call-outline"></ion-icon>
-            Contact Number
+            Phone Number
           </span>
-          <span class="field-value">{{ userProfile.contactNumber || '—' }}</span>
+          <span class="field-value" [class.empty-value]="!userProfile.contactNumber">
+            {{ formatPhoneNumber(userProfile.contactNumber) }}
+          </span>
         </div>
 
         <div class="field-item">
@@ -218,37 +220,87 @@
         </ion-button>
       </div>
 
-      <!-- Work list -->
-      <div class="work-timeline" *ngIf="workExperiences.length > 0">
-        <div class="work-entry" *ngFor="let work of workExperiences; let last = last">
-          <div class="timeline-col">
-            <div class="timeline-dot" [class.active]="work.isCurrent"></div>
-            <div class="timeline-line" *ngIf="!last"></div>
+      <!-- Work Experience Display -->
+      <div class="work-experience-container" *ngIf="workExperiences.length > 0">
+
+        <!-- Current Position Section -->
+        <div class="work-section" *ngIf="currentJob">
+          <div class="section-label current-label">
+            <ion-icon name="flame"></ion-icon>
+            Current Position
           </div>
-          <div class="work-body">
-            <div class="work-row">
-              <div class="work-text">
-                <h3 class="work-position">{{ work.position }}</h3>
-                <p class="work-company">{{ work.company }}</p>
-                <p class="work-dates">
-                  {{ work.startYear }}
-                  <span class="dates-sep">–</span>
-                  <span class="present-tag" *ngIf="work.isCurrent">Present</span>
-                  <span *ngIf="!work.isCurrent">{{ work.endYear }}</span>
-                </p>
-                <p class="work-desc" *ngIf="work.description">{{ work.description }}</p>
+          <div class="work-card current-card">
+            <div class="work-header">
+              <div class="work-title-group">
+                <h3 class="work-position">{{ currentJob.position }}</h3>
+                <p class="work-company">{{ currentJob.company }}</p>
               </div>
-              <div class="work-actions">
-                <button class="action-btn edit-action" (click)="openEditWorkModal(work)" aria-label="Edit">
-                  <ion-icon name="create-outline"></ion-icon>
-                </button>
-                <button class="action-btn delete-action" (click)="deleteWorkExperience(work.id)" aria-label="Delete">
-                  <ion-icon name="trash-outline"></ion-icon>
-                </button>
+              <div class="current-badge">
+                <ion-icon name="checkmark-circle"></ion-icon>
+                Current
+              </div>
+            </div>
+            <div class="work-meta">
+              <span class="work-duration">
+                <ion-icon name="calendar-outline"></ion-icon>
+                {{ currentJob.startYear }} – <span class="present-label">Present</span>
+              </span>
+            </div>
+            <p class="work-description" *ngIf="currentJob.description">{{ currentJob.description }}</p>
+            <div class="work-actions">
+              <button class="action-btn edit-action" (click)="openEditWorkModal(currentJob)" title="Edit">
+                <ion-icon name="create-outline"></ion-icon>
+                <span>Edit</span>
+              </button>
+              <button class="action-btn delete-action" (click)="deleteWorkExperience(currentJob.id)" title="Delete">
+                <ion-icon name="trash-outline"></ion-icon>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Previous Experience Section -->
+        <div class="work-section" *ngIf="pastJobs.length > 0">
+          <div class="section-label previous-label">
+            <ion-icon name="time-outline"></ion-icon>
+            Previous Experience
+          </div>
+          <div class="work-timeline">
+            <div class="work-card past-card" *ngFor="let work of pastJobs; let last = last">
+              <div class="timeline-indicator">
+                <div class="timeline-dot"></div>
+                <div class="timeline-line" *ngIf="!last"></div>
+              </div>
+              <div class="work-content">
+                <div class="work-header">
+                  <div class="work-title-group">
+                    <h3 class="work-position">{{ work.position }}</h3>
+                    <p class="work-company">{{ work.company }}</p>
+                  </div>
+                </div>
+                <div class="work-meta">
+                  <span class="work-duration">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    {{ work.startYear }} – {{ work.endYear }}
+                  </span>
+                </div>
+                <p class="work-description" *ngIf="work.description">{{ work.description }}</p>
+                <div class="work-actions">
+                  <button class="action-btn edit-action" (click)="openEditWorkModal(work)" title="Edit">
+                    <ion-icon name="create-outline"></ion-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button class="action-btn delete-action" (click)="deleteWorkExperience(work.id)" title="Delete">
+                    <ion-icon name="trash-outline"></ion-icon>
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
 
     </div>
@@ -328,6 +380,179 @@
       </ng-container>
     </div>
 
+    <!-- ── INSPIRED Badges ──────────────────────────── -->
+    <div class="section-card inspired-card">
+      <div class="section-header">
+        <div class="section-header-icon inspired-icon">
+          <ion-icon name="medal-outline"></ion-icon>
+        </div>
+        <div>
+          <h2 class="section-title">INSPIRED Badges</h2>
+          <p class="section-subtitle">USJ-R Core Values achievement system</p>
+        </div>
+      </div>
+
+      <!-- Master Badge -->
+      <div class="inspired-master" [class.inspired-master-earned]="inspiredMasterBadge">
+        <div class="inspired-master-icon">
+          <ion-icon [name]="inspiredMasterBadge ? 'trophy' : 'trophy-outline'"></ion-icon>
+        </div>
+        <div class="inspired-master-info">
+          <span class="inspired-master-title">INSPIRED Master Badge</span>
+          <span class="inspired-master-sub">
+            {{ inspiredMasterBadge
+              ? 'Achieved! You embody all USJ-R core values.'
+              : 'Reach Silver in all 7 categories to unlock.' }}
+          </span>
+        </div>
+        <span class="inspired-master-check" *ngIf="inspiredMasterBadge">
+          <ion-icon name="checkmark-circle"></ion-icon>
+        </span>
+      </div>
+
+      <!-- Category rows -->
+      <div class="inspired-list">
+        <div class="inspired-row" *ngFor="let cat of INSPIRED_CATEGORIES">
+          <div class="inspired-letter" [style.background]="cat.bg" [style.color]="cat.color">{{ cat.letter }}</div>
+          <div class="inspired-body">
+            <div class="inspired-top">
+              <span class="inspired-label">{{ cat.label }}</span>
+              <span class="inspired-level-chip"
+                [class.chip-bronze]="getInspiredLevel(cat.key) === 'Bronze'"
+                [class.chip-silver]="getInspiredLevel(cat.key) === 'Silver'"
+                [class.chip-gold]="getInspiredLevel(cat.key) === 'Gold'"
+                [class.chip-none]="getInspiredLevel(cat.key) === 'None'">
+                {{ getInspiredLevel(cat.key) }}
+              </span>
+            </div>
+            <div class="inspired-progress-track">
+              <div class="inspired-progress-fill"
+                [style.width.%]="getInspiredProgress(cat.key)"
+                [style.background]="cat.color">
+              </div>
+            </div>
+            <span class="inspired-next">{{ getInspiredNextLabel(cat.key) }} · {{ inspiredPoints[cat.key] || 0 }} pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Alumni ID Verification (Alumni only) ──────── -->
+    <div class="section-card alumni-id-card" *ngIf="userProfile.userType === 'alumni'">
+      <div class="section-header">
+        <div class="section-header-icon alumni-id-icon">
+          <ion-icon name="id-card-outline"></ion-icon>
+        </div>
+        <div>
+          <h2 class="section-title">Alumni ID</h2>
+          <p class="section-subtitle">Identity verification & digital ID</p>
+        </div>
+      </div>
+
+      <!-- Status badge row -->
+      <div class="alumni-id-status-row">
+        <span class="alumni-id-badge"
+          [class.badge-verified]="alumniIdVerificationStatus === 'approved'"
+          [class.badge-pending]="alumniIdVerificationStatus === 'pending'"
+          [class.badge-rejected]="alumniIdVerificationStatus === 'rejected'"
+          [class.badge-unverified]="alumniIdVerificationStatus === 'unverified' || !alumniIdVerificationStatus">
+          <ion-icon
+            [name]="alumniIdVerificationStatus === 'approved' ? 'shield-checkmark' :
+                    alumniIdVerificationStatus === 'pending'   ? 'time-outline' :
+                    alumniIdVerificationStatus === 'rejected'  ? 'close-circle' : 'shield-outline'">
+          </ion-icon>
+          {{ verificationStatusLabel }}
+        </span>
+      </div>
+
+      <!-- Rejection reason -->
+      <div class="alumni-id-reject-notice" *ngIf="alumniIdVerificationStatus === 'rejected' && alumniIdRejectionReason">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>Reason: {{ alumniIdRejectionReason }}</p>
+      </div>
+
+      <!-- Verified: show Digital ID button -->
+      <div *ngIf="alumniIdVerificationStatus === 'approved'" class="alumni-id-actions">
+        <ion-button expand="block" class="digital-id-btn" (click)="openDigitalId()">
+          <ion-icon slot="start" name="card-outline"></ion-icon>
+          View Digital Alumni ID
+        </ion-button>
+      </div>
+
+      <!-- Pending notice -->
+      <div class="alumni-id-pending-notice" *ngIf="alumniIdVerificationStatus === 'pending'">
+        <ion-icon name="hourglass-outline"></ion-icon>
+        <p>Your Alumni ID is under review. You'll be notified once it's verified.</p>
+      </div>
+
+      <!-- Unverified / Rejected: show request/re-upload button -->
+      <div *ngIf="alumniIdVerificationStatus === 'unverified' || alumniIdVerificationStatus === 'rejected'">
+        <ion-button
+          expand="block"
+          fill="outline"
+          class="request-verify-btn"
+          (click)="showVerificationUpload = !showVerificationUpload"
+        >
+          <ion-icon slot="start" [name]="alumniIdVerificationStatus === 'rejected' ? 'refresh-outline' : 'cloud-upload-outline'"></ion-icon>
+          {{ alumniIdVerificationStatus === 'rejected' ? 'Re-upload Alumni ID' : 'Request Alumni ID Verification' }}
+        </ion-button>
+
+        <!-- Upload form -->
+        <div class="verification-upload-form" *ngIf="showVerificationUpload">
+          <p class="verification-upload-hint">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            Upload your physical Alumni ID and a formal/graduation photo. Both are required.
+          </p>
+
+          <!-- Alumni ID photo -->
+          <p class="verify-upload-label">Alumni ID Photo</p>
+          <input #verifyIdInput id="verifyIdInput" type="file" accept=".jpg,.jpeg,.png"
+            (change)="onVerificationIdFileSelected($event)" style="display:none" />
+          <ion-button expand="block" fill="outline" size="small" class="verify-choose-btn" (click)="verifyIdInput.click()">
+            <ion-icon slot="start" name="id-card-outline"></ion-icon>
+            {{ verificationIdFile ? 'Change Alumni ID Photo' : 'Choose Alumni ID Photo' }}
+          </ion-button>
+          <div class="verify-file-preview" *ngIf="verificationIdFile">
+            <ion-icon name="image"></ion-icon>
+            <div><p>{{ verificationIdFileName }}</p><span>{{ verificationIdFileSize }}</span></div>
+            <ion-button fill="clear" size="small" (click)="removeVerificationIdFile()">
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </div>
+
+          <!-- Graduation photo -->
+          <p class="verify-upload-label" style="margin-top:10px">
+            Graduation / Formal Photo
+            <span class="verify-upload-sub">Appears on your Digital Alumni ID</span>
+          </p>
+          <input #verifyGradInput id="verifyGradInput" type="file" accept=".jpg,.jpeg,.png"
+            (change)="onVerificationGradFileSelected($event)" style="display:none" />
+          <ion-button expand="block" fill="outline" size="small" class="verify-choose-btn verify-grad-btn" (click)="verifyGradInput.click()">
+            <ion-icon slot="start" name="person-circle-outline"></ion-icon>
+            {{ verificationGradFile ? 'Change Graduation Photo' : 'Choose Graduation Photo' }}
+          </ion-button>
+          <div class="verify-file-preview" *ngIf="verificationGradFile">
+            <ion-icon name="image"></ion-icon>
+            <div><p>{{ verificationGradFileName }}</p><span>{{ verificationGradFileSize }}</span></div>
+            <ion-button fill="clear" size="small" (click)="removeVerificationGradFile()">
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </div>
+
+          <ion-button
+            expand="block"
+            class="verify-submit-btn"
+            [disabled]="!verificationIdFile || !verificationGradFile || isSubmittingVerification"
+            (click)="submitVerificationRequest()"
+          >
+            <ion-spinner name="crescent" *ngIf="isSubmittingVerification"></ion-spinner>
+            <ion-icon name="checkmark-circle-outline" *ngIf="!isSubmittingVerification" slot="start"></ion-icon>
+            {{ isSubmittingVerification ? 'Submitting…' : 'Submit for Verification' }}
+          </ion-button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Logout Button ─────────────────── -->
     <ion-button expand="block" fill="outline" color="danger" class="logout-btn" (click)="logout()">
       <ion-icon slot="start" name="log-out-outline"></ion-icon>
@@ -336,6 +561,64 @@
 
   </div>
 </ion-content>
+
+<!-- ── Digital Alumni ID Modal ───────────────────────── -->
+<div class="digital-id-overlay" *ngIf="showDigitalId" (click)="closeDigitalId()">
+  <div class="digital-id-modal" (click)="$event.stopPropagation()">
+
+    <!-- Close -->
+    <button class="digital-id-close" (click)="closeDigitalId()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+
+    <!-- Card -->
+    <div class="digital-id-card">
+
+      <!-- Header bar -->
+      <div class="did-header">
+        <img src="assets/transparent_Logo.png" alt="USJ-R Logo" class="did-logo" />
+        <div class="did-header-text">
+          <p class="did-assoc">USJ-R Alumni Association, Inc.</p>
+          <p class="did-univ">University of San Jose–Recoletos</p>
+          <p class="did-city">Cebu City, Philippines</p>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="did-body">
+
+        <!-- Photo -->
+        <div class="did-photo-wrap">
+          <div class="did-photo"
+            [style.backgroundImage]="alumniGradPhotoBase64 ? 'url(data:image/jpeg;base64,' + alumniGradPhotoBase64 + ')' : 'none'">
+            <span *ngIf="!alumniGradPhotoBase64" class="did-photo-initials">{{ userProfile.initials }}</span>
+          </div>
+          <span class="did-verified-tag">
+            <ion-icon name="shield-checkmark"></ion-icon>
+            Verified Alumni
+          </span>
+        </div>
+
+        <!-- Details -->
+        <div class="did-details">
+          <h2 class="did-name">{{ userProfile.firstName }} {{ userProfile.lastName }}</h2>
+          <p class="did-course">{{ userProfile.course }}</p>
+          <p class="did-grad">Class of {{ userProfile.graduationYear }}</p>
+          <p class="did-idnum">ID No. {{ userProfile.studentNumber || '—' }}</p>
+          <p class="did-dept">{{ userProfile.department }}</p>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="did-footer">
+        <p>This is an official digital identification card.</p>
+        <p>Valid as long as membership is active.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- ── Edit Profile Modal ────────────────────────── -->
 <ion-modal #editModal class="form-modal"
@@ -392,13 +675,23 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">Contact Number</label>
+          <div class="form-label-row">
+            <label class="form-label">
+              <ion-icon name="call-outline"></ion-icon>
+              Phone Number <span class="optional">(optional)</span>
+            </label>
+            <span class="char-counter" [class.warning]="phoneNumberLength >= maxPhoneLength - 2">{{ phoneNumberLength }}/{{ maxPhoneLength }}</span>
+          </div>
           <ion-input
             [(ngModel)]="editFormData.contactNumber"
-            placeholder="e.g. 09XX-XXX-XXXX"
+            (ionChange)="onPhoneNumberChange()"
+            placeholder="e.g., +63 917 123 4567 or 09171234567"
             type="tel"
+            inputmode="numeric"
+            maxlength="20"
             class="field-input"
           ></ion-input>
+          <p class="field-hint">Philippine (+63) or international format. Will be automatically formatted.</p>
         </div>
 
       </div>
@@ -429,6 +722,24 @@
     <ion-content class="modal-content">
       <div class="modal-form">
 
+        <!-- Validation Error Alert -->
+        <div class="error-alert" *ngIf="workValidationError">
+          <ion-icon name="alert-circle"></ion-icon>
+          <span>{{ workValidationError }}</span>
+        </div>
+
+        <!-- Warning: Current Job Exists -->
+        <div class="warning-alert" *ngIf="hasCurrentJob && !isEditingWork && !workFormData.isCurrent">
+          <ion-icon name="information-circle"></ion-icon>
+          <span>You already have a job marked as "Currently Working". Please uncheck that entry first or mark this as current.</span>
+        </div>
+
+        <!-- Warning: Changing to Current Job -->
+        <div class="warning-alert" *ngIf="workFormData.isCurrent && hasCurrentJob && !isEditingWork">
+          <ion-icon name="warning"></ion-icon>
+          <span>This will replace your current job entry.</span>
+        </div>
+
         <div class="form-field">
           <label class="form-label">Company / Organization</label>
           <ion-input
@@ -449,7 +760,11 @@
 
         <div class="form-field">
           <label class="form-label">Start Year</label>
-          <ion-select [(ngModel)]="workFormData.startYear" placeholder="Select start year" class="field-input">
+          <ion-select 
+            [(ngModel)]="workFormData.startYear" 
+            (ionChange)="onStartYearChange()"
+            placeholder="Select start year" 
+            class="field-input">
             <ion-select-option *ngFor="let y of yearOptions" [value]="y">{{ y }}</ion-select-option>
           </ion-select>
         </div>
@@ -457,16 +772,26 @@
         <div class="form-field checkbox-field">
           <ion-checkbox
             [(ngModel)]="workFormData.isCurrent"
+            (ionChange)="onCurrentlyWorkingChange()"
             labelPlacement="end"
             [style]="{'--checkbox-background-checked':'#10b981','--border-color-checked':'#10b981'}"
           >Currently working here</ion-checkbox>
+          <p class="checkbox-hint">If checked, End Year will be set to "Present" and cannot be edited</p>
         </div>
 
         <div class="form-field" *ngIf="!workFormData.isCurrent">
-          <label class="form-label">End Year</label>
-          <ion-select [(ngModel)]="workFormData.endYear" placeholder="Select end year" class="field-input">
-            <ion-select-option *ngFor="let y of yearOptions" [value]="y">{{ y }}</ion-select-option>
+          <label class="form-label">End Year <span class="required">*</span></label>
+          <ion-select 
+            [(ngModel)]="workFormData.endYear" 
+            (ionChange)="onEndYearChange()"
+            placeholder="Select end year" 
+            class="field-input"
+            [disabled]="!workFormData.startYear || endYearOptions.length === 0">
+            <ion-select-option *ngFor="let y of endYearOptions" [value]="y">{{ y }}</ion-select-option>
           </ion-select>
+          <p class="field-hint" *ngIf="workFormData.startYear && endYearOptions.length === 0">
+            End year must be after {{ workFormData.startYear }}
+          </p>
         </div>
 
         <div class="form-field">

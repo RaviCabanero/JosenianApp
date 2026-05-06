@@ -50,6 +50,10 @@
           <ion-icon name="checkmark-circle"></ion-icon>
           Friends
         </div>
+        <button class="btn-message" (click)="goToChat()">
+          <ion-icon name="chatbubble-outline"></ion-icon>
+          Message
+        </button>
         <button class="btn-remove" (click)="removeFriend()" [disabled]="isProcessing">
           <ion-icon name="person-remove-outline"></ion-icon>
         </button>
@@ -57,10 +61,10 @@
     </div>
 
     <!-- Private Gate -->
-    <div class="private-gate" *ngIf="isPrivate && friendStatus !== 'friend'">
+    <div class="private-gate" *ngIf="isPrivate">
       <ion-icon name="lock-closed"></ion-icon>
       <h3>This account is private</h3>
-      <p>Send a friend request to see {{ profile.firstName || 'this user' }}'s full profile.</p>
+      <p>{{ profile.firstName || 'This user' }} has set their profile to private.</p>
     </div>
 
     <!-- Full Profile (public or friend) -->

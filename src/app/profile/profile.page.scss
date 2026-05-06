@@ -210,6 +210,192 @@ $bg-field:     #f9fafb;
   margin: 4px 16px 0;
 }
 
+// ── Alumni ID Verification Card ────────────────────────────
+.alumni-id-card { margin-bottom: 14px; }
+
+.alumni-id-icon { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; }
+
+.alumni-id-status-row {
+  margin-bottom: 14px;
+}
+
+.alumni-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  ion-icon { font-size: 15px; }
+
+  &.badge-verified   { background: #f0fdf4; color: #059669; }
+  &.badge-pending    { background: #fffbeb; color: #d97706; }
+  &.badge-rejected   { background: #fef2f2; color: #dc2626; }
+  &.badge-unverified { background: #f3f4f6; color: #6b7280; }
+}
+
+.alumni-id-reject-notice {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 10px 12px; background: #fef2f2; border-radius: 10px;
+  border: 1px solid #fecaca; margin-bottom: 12px;
+  ion-icon { font-size: 16px; color: #dc2626; flex-shrink: 0; margin-top: 1px; }
+  p { font-size: 12px; color: #374151; margin: 0; }
+}
+
+.alumni-id-pending-notice {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+  ion-icon { font-size: 18px; color: #d97706; flex-shrink: 0; }
+  p { font-size: 13px; color: #374151; margin: 0; line-height: 1.5; }
+}
+
+.alumni-id-actions { margin-top: 4px; }
+
+.digital-id-btn {
+  --background: linear-gradient(135deg, #10b981, #059669);
+  --border-radius: 12px;
+  font-weight: 700;
+}
+
+.request-verify-btn {
+  --border-radius: 12px;
+  --color: #{$blue};
+  --border-color: #{$blue};
+  margin-bottom: 10px;
+}
+
+.verification-upload-form {
+  display: flex; flex-direction: column; gap: 10px;
+  background: $bg-field; border-radius: 12px; padding: 14px;
+}
+
+.verification-upload-hint {
+  display: flex; gap: 6px; align-items: flex-start;
+  font-size: 12px; color: $text-2; margin: 0; line-height: 1.5;
+  ion-icon { font-size: 15px; color: #d97706; flex-shrink: 0; margin-top: 1px; }
+}
+
+.verify-choose-btn { --border-radius: 10px; }
+
+.verify-grad-btn { --color: #8b5cf6; --border-color: #8b5cf6; }
+
+.verify-upload-label {
+  font-size: 12px; font-weight: 700; color: $text-2; margin: 0 0 6px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+
+.verify-upload-sub { font-size: 11px; font-weight: 400; color: $text-3; }
+
+.verify-file-preview {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid $border; border-radius: 10px; padding: 10px 12px;
+  ion-icon { font-size: 24px; color: $green; }
+  div { flex: 1; p { font-size: 13px; font-weight: 600; margin: 0; } span { font-size: 11px; color: $text-3; } }
+}
+
+.verify-submit-btn {
+  --background: #{$green};
+  --border-radius: 12px;
+  font-weight: 700;
+}
+
+// ── Digital Alumni ID Modal ─────────────────────────────────
+.digital-id-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+
+.digital-id-modal {
+  position: relative; width: 100%; max-width: 360px;
+}
+
+.digital-id-close {
+  position: absolute; top: -36px; right: 0;
+  background: rgba(255,255,255,.15); border: none; border-radius: 50%;
+  width: 32px; height: 32px; color: #fff; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.digital-id-card {
+  background: linear-gradient(160deg, #0f1f3d 0%, #1a3a6e 60%, #10521f 100%);
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0,0,0,.5);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url('../../assets/shapes.svg') center/cover no-repeat;
+    opacity: .06;
+    pointer-events: none;
+  }
+}
+
+.did-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.did-logo {
+  width: 44px; height: 44px; object-fit: contain; flex-shrink: 0;
+}
+
+.did-header-text {
+  flex: 1;
+  .did-assoc { font-size: 11px; font-weight: 800; color: #fbbf24; margin: 0; letter-spacing: .3px; }
+  .did-univ  { font-size: 9.5px; font-weight: 600; color: rgba(255,255,255,.85); margin: 0; }
+  .did-city  { font-size: 9px; color: rgba(255,255,255,.55); margin: 0; }
+}
+
+.did-body {
+  display: flex; gap: 14px; padding: 16px;
+}
+
+.did-photo-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0;
+}
+
+.did-photo {
+  width: 80px; height: 80px; border-radius: 12px;
+  background: rgba(255,255,255,.15) center/cover no-repeat;
+  border: 2px solid rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.did-photo-initials {
+  font-size: 28px; font-weight: 800; color: #fff;
+}
+
+.did-verified-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 700; color: #10b981;
+  background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3);
+  border-radius: 999px; padding: 3px 8px;
+  ion-icon { font-size: 11px; }
+}
+
+.did-details {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+
+  .did-name   { font-size: 16px; font-weight: 800; color: #fff; margin: 0 0 4px; line-height: 1.2; }
+  .did-course { font-size: 11px; font-weight: 600; color: #fbbf24; margin: 0; }
+  .did-grad   { font-size: 11px; color: rgba(255,255,255,.7); margin: 0; }
+  .did-idnum  { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); margin: 4px 0 0; font-family: monospace; letter-spacing: 1px; }
+  .did-dept   { font-size: 10px; color: rgba(255,255,255,.55); margin: 2px 0 0; }
+}
+
+.did-footer {
+  padding: 8px 16px 14px; text-align: center;
+  p { font-size: 9.5px; color: rgba(255,255,255,.35); margin: 0; line-height: 1.4; }
+}
+
+// ── Logout ──────────────────────────────────────────────────
 .logout-btn {
   --border-radius: 12px;
   --color: #{$red};
@@ -469,6 +655,14 @@ $bg-field:     #f9fafb;
   color: $text-2;
   overflow-wrap: anywhere;
   line-height: 1.4;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+
+  &.empty-value {
+    color: $text-3;
+    font-style: italic;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
 }
 
 // ── Add button (work card header) ──────────────────────────
@@ -517,59 +711,84 @@ $bg-field:     #f9fafb;
 }
 
 // ── Work Timeline ──────────────────────────────────────────
-.work-timeline {
-  padding: 0 16px 8px;
-}
-
-.work-entry {
-  display: flex;
-  gap: 12px;
-  padding: 16px 0;
-}
-
-.timeline-col {
+// ── Work Experience ────────────────────────────────────────
+.work-experience-container {
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 3px;
-  flex-shrink: 0;
-  width: 16px;
+  gap: 28px;
 }
 
-.timeline-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: $border;
-  border: 3px solid $bg-card;
-  box-shadow: 0 0 0 2px $border;
-  flex-shrink: 0;
-  &.active {
-    background: $green;
-    box-shadow: 0 0 0 2px rgba(16,185,129,.3);
+.work-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 800;
+  color: $text-3;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  ion-icon { font-size: 16px; }
+
+  &.current-label {
+    color: $green;
+    ion-icon { color: $green; }
+  }
+
+  &.previous-label {
+    color: $text-3;
+    ion-icon { color: $text-3; opacity: .6; }
   }
 }
 
-.timeline-line {
-  flex: 1;
-  width: 2px;
-  background: $border;
-  margin: 4px 0;
-  min-height: 20px;
+// ── Current Job Card ───────────────────────────────────────
+.work-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin: 0 12px;
+  border-radius: 12px;
+  background: $bg-card;
+  border: 1.5px solid $border;
+  transition: all .2s ease;
+
+  &.current-card {
+    background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.04));
+    border-color: rgba(16,185,129,.3);
+    border-left: 4px solid $green;
+
+    .work-position { color: $green-dark; }
+  }
+
+  &.past-card {
+    border: 1px solid $border;
+    background: $bg-card;
+    &:hover { border-color: rgba(16,185,129,.4); }
+  }
 }
 
-.work-body { flex: 1; min-width: 0; }
-
-.work-row {
+.work-header {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.work-text { flex: 1; min-width: 0; }
+.work-title-group {
+  flex: 1;
+  min-width: 0;
+}
 
 .work-position {
-  margin: 0 0 2px;
+  margin: 0 0 4px;
   font-size: 15px;
   font-weight: 700;
   color: $text-1;
@@ -577,59 +796,168 @@ $bg-field:     #f9fafb;
 }
 
 .work-company {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 13px;
   color: $text-3;
   font-weight: 500;
 }
 
-.work-dates {
+.current-badge {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: $text-3;
-  .dates-sep { opacity: .6; }
-}
-
-.present-tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 6px;
-  background: $green-light;
-  color: $green-dark;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(16,185,129,.1);
+  color: $green;
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  ion-icon { font-size: 14px; }
 }
 
-.work-desc {
-  margin: 0;
-  font-size: 13px;
+.work-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.work-duration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: $text-3;
+  ion-icon { font-size: 14px; opacity: .7; }
+
+  .present-label {
+    font-weight: 700;
+    color: $green;
+  }
+}
+
+.work-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: $text-2;
   line-height: 1.55;
 }
 
 .work-actions {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid $border;
   background: $bg-card;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all .15s ease;
+  color: $text-2;
+  
   ion-icon { font-size: 16px; }
-  &.edit-action   { color: $blue; }
-  &.delete-action { color: $red; }
-  &:active { opacity: .7; }
+
+  &.edit-action {
+    color: $blue;
+    border-color: rgba(14,165,233,.2);
+    &:active { background: rgba(14,165,233,.08); }
+  }
+
+  &.delete-action {
+    color: $red;
+    border-color: rgba(239,68,68,.2);
+    &:active { background: rgba(239,68,68,.08); }
+  }
+
+  &:hover {
+    border-color: currentColor;
+    opacity: .8;
+  }
+}
+
+// ── Timeline for Past Jobs ─────────────────────────────────
+.work-timeline {
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.work-card.past-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 12px;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-left: 2px solid $border;
+  background: transparent;
+  position: relative;
+
+  &:first-child { border-radius: 10px 10px 0 0; }
+  &:last-child {
+    border-radius: 0 0 10px 10px;
+    border-bottom: 2px solid $border;
+  }
+
+  &:not(:last-child) { border-bottom: none; }
+
+  &:hover { background: rgba(16,185,129,.03); }
+}
+
+.timeline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+  flex-shrink: 0;
+  position: relative;
+  width: 24px;
+  margin-left: -14px;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: $green;
+  border: 2px solid $bg-page;
+  box-shadow: 0 0 0 1px $border;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-line {
+  flex: 1;
+  width: 2px;
+  background: $border;
+  margin-top: 6px;
+  min-height: 40px;
+}
+
+.work-content {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.work-timeline {
+  padding: 0 12px;
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 // ── Modals ─────────────────────────────────────────────────
@@ -662,13 +990,51 @@ $bg-field:     #f9fafb;
   gap: 6px;
 }
 
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .form-label {
   font-size: 11px;
   font-weight: 800;
   color: $text-3;
   text-transform: uppercase;
   letter-spacing: .6px;
-  .optional { font-weight: 500; text-transform: none; letter-spacing: 0; }
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  
+  ion-icon { 
+    font-size: 13px; 
+    color: $blue;
+  }
+  
+  .optional { 
+    font-weight: 500; 
+    text-transform: none; 
+    letter-spacing: 0; 
+  }
+}
+
+// ── Character Counter ──────────────────────────────────────
+.char-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba($text-3, .06);
+  transition: all .2s ease;
+  white-space: nowrap;
+
+  &.warning {
+    color: #f59e0b;
+    background: rgba(#f59e0b, .1);
+    font-weight: 700;
+  }
 }
 
 .field-input {
@@ -689,17 +1055,76 @@ $bg-field:     #f9fafb;
 }
 
 .checkbox-field {
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px 14px;
   background: $bg-card;
   border: 1.5px solid $border;
   border-radius: 10px;
+  
   ion-checkbox {
     font-size: 14px;
     font-weight: 500;
     color: $text-2;
   }
+}
+
+// ── Validation Alerts ──────────────────────────────────────
+.error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+  ion-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+.warning-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 10px;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 500;
+  ion-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+// ── Field Hints & Helper Text ──────────────────────────────
+.field-hint {
+  font-size: 12px;
+  color: $text-3;
+  margin: 0;
+  padding: 0 2px;
+}
+
+.checkbox-hint {
+  font-size: 12px;
+  color: $text-3;
+  margin: 0;
+  padding: 0 2px;
+}
+
+// ── Required Indicator ─────────────────────────────────────
+.required {
+  color: $red;
+  font-weight: 700;
 }
 
 .remove-bio-btn {
@@ -814,6 +1239,156 @@ $bg-field:     #f9fafb;
   font-size: 16px;
   color: $text-3;
   flex-shrink: 0;
+}
+
+// ── INSPIRED Badge System ──────────────────────────────────
+.inspired-icon {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe) !important;
+  ion-icon { color: #7c3aed !important; }
+}
+
+.inspired-master {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 18px 4px;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 14px;
+  transition: all .3s ease;
+
+  &.inspired-master-earned {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #fbbf24;
+    box-shadow: 0 4px 18px rgba(251,191,36,.2);
+  }
+}
+
+.inspired-master-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  ion-icon { font-size: 24px; color: #9ca3af; }
+
+  .inspired-master-earned & {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 4px 12px rgba(251,191,36,.35);
+    ion-icon { color: #fff; }
+  }
+}
+
+.inspired-master-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.inspired-master-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: $text-1;
+}
+
+.inspired-master-sub {
+  font-size: 11.5px;
+  color: $text-3;
+  line-height: 1.4;
+}
+
+.inspired-master-check {
+  flex-shrink: 0;
+  ion-icon { font-size: 26px; color: #fbbf24; }
+}
+
+.inspired-list {
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inspired-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.inspired-letter {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 900;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.inspired-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.inspired-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspired-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $text-1;
+}
+
+.inspired-level-chip {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  flex-shrink: 0;
+
+  &.chip-none   { background: #f3f4f6; color: #9ca3af; }
+  &.chip-bronze { background: #fdf6ec; color: #b45309; }
+  &.chip-silver { background: #f3f4f6; color: #4b5563; }
+  &.chip-gold   { background: #fffbeb; color: #d97706; }
+}
+
+.inspired-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.inspired-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .7s ease;
+  min-width: 0;
+}
+
+.inspired-next {
+  font-size: 11px;
+  color: $text-3;
 }
 
 // ── Responsive ─────────────────────────────────────────────

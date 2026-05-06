@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
-  Firestore, collection, doc, setDoc, getDoc, addDoc, updateDoc,
+  Firestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, onSnapshot, serverTimestamp, increment
 } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
@@ -119,6 +119,11 @@ export class ChatService {
     } catch (err) {
       console.error('Error creating message notification:', err);
     }
+  }
+
+  /** Delete a conversation document for both users */
+  async deleteConversation(conversationId: string): Promise<void> {
+    await deleteDoc(doc(this.db, 'conversations', conversationId));
   }
 
   /** Reset unread count to 0 for the current user */

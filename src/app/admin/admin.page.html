@@ -33,7 +33,7 @@
           (click)="selectTab('departments')"
         >
           <ion-icon name="grid"></ion-icon>
-          <span>Departments & Courses</span>
+          <span>Schools & Courses</span>
         </button>
         <button
           class="nav-item"
@@ -85,6 +85,9 @@
       <!-- Top Bar -->
       <header class="top-bar">
         <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
+        <button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
+          <ion-icon name="refresh" [class.spinning]="isRefreshing"></ion-icon>
+        </button>
       </header>
 
       <!-- Content Area -->
@@ -429,13 +432,34 @@
           <div class="departments-admin-hero">
             <div>
               <p class="admin-eyebrow">Academic structure</p>
-              <h3>Departments & Courses</h3>
+              <h3>Schools & Courses</h3>
               <p>Maintain department records and organize the course options shown across the app.</p>
             </div>
             <button class="btn btn-primary btn-add-department" (click)="toggleDepartmentForm()">
               <ion-icon [name]="showDepartmentForm ? 'close-circle' : 'add-circle'"></ion-icon>
               {{ showDepartmentForm ? 'Close Form' : 'Add Department' }}
             </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="department-search-container">
+            <div class="search-input-wrapper">
+              <ion-icon name="search"></ion-icon>
+              <input
+                type="text"
+                [(ngModel)]="departmentSearchTerm"
+                placeholder="Search departments and courses..."
+                class="department-search-input"
+              />
+              <button
+                *ngIf="departmentSearchTerm"
+                class="clear-search-btn"
+                (click)="departmentSearchTerm = ''"
+                title="Clear search"
+              >
+                <ion-icon name="close-circle"></ion-icon>
+              </button>
+            </div>
           </div>
 
           <div class="department-admin-summary">
@@ -498,7 +522,7 @@
 
           <!-- Departments List -->
           <div class="departments-grid admin-departments-grid">
-            <div class="department-card admin-department-card" *ngFor="let dept of departments">
+            <div class="department-card admin-department-card" *ngFor="let dept of filteredDepartments">
               <div class="dept-header">
                 <div class="dept-title-wrap">
                   <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
@@ -515,6 +539,9 @@
                     [class.active]="selectedDepartmentId === dept.id"
                   >
                     <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove' : 'add'"></ion-icon>
+                  </button>
+                  <button class="btn-icon btn-edit" (click)="editDepartment(dept.id, dept.name)" title="Rename department">
+                    <ion-icon name="pencil"></ion-icon>
                   </button>
                   <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
                     <ion-icon name="trash"></ion-icon>
@@ -550,9 +577,14 @@
                       <ion-icon name="school-outline"></ion-icon>
                       {{ course }}
                     </span>
-                    <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
-                      <ion-icon name="close"></ion-icon>
-                    </button>
+                    <div class="course-item-actions">
+                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)" title="Rename course">
+                        <ion-icon name="pencil-outline"></ion-icon>
+                      </button>
+                      <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
+                        <ion-icon name="close"></ion-icon>
+                      </button>
+                    </div>
                   </div>
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
                     <ion-icon name="library-outline"></ion-icon>
@@ -569,10 +601,6 @@
           <div class="section-header">
             <h3>Alumni Management</h3>
             <div class="header-actions">
-              <button class="btn btn-secondary" (click)="toggleAlumniForm()">
-                <ion-icon name="add-circle"></ion-icon>
-                {{ showAlumniForm ? 'Cancel' : 'Add Manual Record' }}
-              </button>
               <button class="btn btn-primary" (click)="toggleCreateUserForm()">
                 <ion-icon name="person-add"></ion-icon>
                 {{ showCreateUserForm ? 'Cancel' : 'Create Account' }}
@@ -596,13 +624,13 @@
             <div class="form-group">
               <label class="form-label">Account Type</label>
               <div class="user-type-toggle">
-                <button class="type-btn" [class.active]="createUserData.userType === 'student'"
-                  (click)="createUserData.userType = 'student'">
-                  <ion-icon name="school"></ion-icon> Student
-                </button>
                 <button class="type-btn" [class.active]="createUserData.userType === 'alumni'"
                   (click)="createUserData.userType = 'alumni'">
                   <ion-icon name="briefcase"></ion-icon> Alumni
+                </button>
+                <button class="type-btn" [class.active]="createUserData.userType === 'hod'"
+                  (click)="createUserData.userType = 'hod'">
+                  <ion-icon name="shield-checkmark"></ion-icon> HOD
                 </button>
               </div>
             </div>
@@ -632,7 +660,7 @@
             </div>
 
             <div class="form-row-inline">
-              <div class="form-group">
+              <div class="form-group" *ngIf="createUserData.userType !== 'hod'">
                 <label class="form-label">Student Number <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="createUserData.studentNumber" placeholder="e.g. 2020-00001" class="form-input" />
               </div>
@@ -761,10 +789,6 @@
                 <ion-icon name="document-text"></ion-icon>
                 Export CSV
               </button>
-              <button class="btn btn-outline btn-export" (click)="exportExcel()">
-                <ion-icon name="grid"></ion-icon>
-                Export Excel
-              </button>
             </div>
           </div>
 
@@ -778,6 +802,9 @@
                     <th>Student Number</th>
                     <th>Name</th>
                     <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Sex</th>
+                    <th>Address</th>
                     <th>Department</th>
                     <th>Course</th>
                     <th>Batch</th>
@@ -794,6 +821,9 @@
                     <td>{{ alumnus.studentNumber }}</td>
                     <td>{{ alumnus.name }}</td>
                     <td>{{ alumnus.email }}</td>
+                    <td>{{ alumnus.contactNumber || '—' }}</td>
+                    <td>{{ alumnus.gender || '—' }}</td>
+                    <td class="address-cell">{{ alumnus.address || '—' }}</td>
                     <td>{{ getDepartmentName(alumnus.department) }}</td>
                     <td>{{ alumnus.course }}</td>
                     <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '—' }}</td>
@@ -808,7 +838,7 @@
                         <button class="btn-icon btn-edit" [disabled]="alumnus.source === 'registered'" (click)="editAlumni(alumnus.id)" [title]="alumnus.source === 'registered' ? 'Cannot edit registered users' : 'Edit alumni'">
                           <ion-icon name="pencil"></ion-icon>
                         </button>
-                        <button class="btn-icon btn-delete" [disabled]="alumnus.source === 'registered'" (click)="deleteAlumni(alumnus.id)" [title]="alumnus.source === 'registered' ? 'Cannot delete registered users' : 'Delete alumni'">
+                        <button class="btn-icon btn-delete" (click)="deleteAlumni(alumnus.id)" title="Delete user">
                           <ion-icon name="trash"></ion-icon>
                         </button>
                       </div>
@@ -868,6 +898,18 @@
                     <label>Batch/Graduation Year</label>
                     <p>{{ selectedAlumni.batch || 'N/A' }}</p>
                   </div>
+                  <div class="info-item">
+                    <label>Mobile Number</label>
+                    <p>{{ selectedAlumni.contactNumber || '—' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Sex</label>
+                    <p>{{ selectedAlumni.gender || '—' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Address</label>
+                    <p>{{ selectedAlumni.address || '—' }}</p>
+                  </div>
                   <div class="info-item" *ngIf="selectedAlumni.source === 'registered'">
                     <label>Status</label>
                     <p>
@@ -925,14 +967,24 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="action-buttons" *ngIf="selectedAlumni.source === 'manual'">
-                  <button class="btn btn-edit" (click)="editAlumni(selectedAlumni.id)">
+                <div class="action-buttons">
+                  <button class="btn btn-edit" *ngIf="selectedAlumni.source === 'manual'" (click)="editAlumni(selectedAlumni.id)">
                     <ion-icon name="pencil"></ion-icon>
-                    Edit Alumni
+                    Edit
+                  </button>
+                  <button
+                    class="btn btn-remind"
+                    *ngIf="hasIncompleteProfile(selectedAlumni)"
+                    (click)="remindUpdateProfile(selectedAlumni.id)"
+                    [disabled]="isReminding"
+                    title="Notify user to complete their profile"
+                  >
+                    <ion-icon name="notifications-outline"></ion-icon>
+                    Remind to Update
                   </button>
                   <button class="btn btn-delete" (click)="deleteAlumni(selectedAlumni.id)">
                     <ion-icon name="trash"></ion-icon>
-                    Delete Alumni
+                    Delete User
                   </button>
                 </div>
               </div>

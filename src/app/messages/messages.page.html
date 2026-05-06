@@ -29,48 +29,58 @@
     <!-- Conversations List -->
     <div class="conversations-section" *ngIf="!isLoading && filteredItems.length > 0">
       <ion-list class="conversations-list">
-        <ion-item
-          class="conversation-item"
-          *ngFor="let item of filteredItems"
-          (click)="openChat(item.otherUid)"
-          lines="none">
-          <div class="conversation-content">
+        <ion-item-sliding *ngFor="let item of filteredItems">
 
-            <!-- Avatar -->
-            <div class="avatar-container">
-              <ion-avatar class="conversation-avatar">
-                <div class="avatar-placeholder">{{ item.otherAvatar }}</div>
-              </ion-avatar>
-              <span class="unread-dot" *ngIf="item.unreadCount > 0"></span>
-            </div>
+          <ion-item
+            class="conversation-item"
+            (click)="openChat(item.otherUid)"
+            lines="none">
+            <div class="conversation-content">
 
-            <!-- Info -->
-            <div class="conversation-info">
-              <div class="conversation-header">
-                <h3 class="conversation-name" [class.unread-name]="item.unreadCount > 0">
-                  {{ item.otherName }}
-                </h3>
-                <span class="conversation-time" *ngIf="item.lastMessageAt">
-                  {{ formatTime(item.lastMessageAt) }}
-                </span>
+              <!-- Avatar -->
+              <div class="avatar-container">
+                <ion-avatar class="conversation-avatar">
+                  <div class="avatar-placeholder">{{ item.otherAvatar }}</div>
+                </ion-avatar>
+                <span class="unread-dot" *ngIf="item.unreadCount > 0"></span>
               </div>
 
-              <div class="conversation-preview">
-                <p class="last-message" *ngIf="item.lastMessage; else noMessage"
-                   [class.unread-preview]="item.unreadCount > 0">
-                  {{ item.lastMessage }}
-                </p>
-                <ng-template #noMessage>
-                  <p class="last-message placeholder-msg">Tap to start a conversation</p>
-                </ng-template>
-                <span class="unread-badge" *ngIf="item.unreadCount > 0">
-                  {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
-                </span>
-              </div>
-            </div>
+              <!-- Info -->
+              <div class="conversation-info">
+                <div class="conversation-header">
+                  <h3 class="conversation-name" [class.unread-name]="item.unreadCount > 0">
+                    {{ item.otherName }}
+                  </h3>
+                  <span class="conversation-time" *ngIf="item.lastMessageAt">
+                    {{ formatTime(item.lastMessageAt) }}
+                  </span>
+                </div>
 
-          </div>
-        </ion-item>
+                <div class="conversation-preview">
+                  <p class="last-message" *ngIf="item.lastMessage; else noMessage"
+                     [class.unread-preview]="item.unreadCount > 0">
+                    {{ item.lastMessage }}
+                  </p>
+                  <ng-template #noMessage>
+                    <p class="last-message placeholder-msg">Tap to start a conversation</p>
+                  </ng-template>
+                  <span class="unread-badge" *ngIf="item.unreadCount > 0">
+                    {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </ion-item>
+
+          <ion-item-options side="end">
+            <ion-item-option color="danger" (click)="removeConversation(item)">
+              <ion-icon slot="top" name="trash-outline"></ion-icon>
+              Delete
+            </ion-item-option>
+          </ion-item-options>
+
+        </ion-item-sliding>
       </ion-list>
     </div>
 

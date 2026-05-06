@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Auth, authState } from '@angular/fire/auth';
+import { filter, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 interface WorkExperience {
@@ -65,19 +65,21 @@ export class UserProfilePage implements OnInit {
   }
 
   get canSeeFullProfile(): boolean {
-    return !this.isPrivate || this.friendStatus === 'friend' || this.isOwnProfile;
+    return !this.isPrivate || this.isOwnProfile;
   }
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private auth: Auth,
     private authService: AuthService
   ) {}
 
   ngOnInit() {
     this.targetUid = this.route.snapshot.paramMap.get('uid') || '';
-    authState(this.auth).subscribe(async user => {
+    this.authService.currentUser$.pipe(
+      filter(user => !!user),
+      take(1)
+    ).subscribe(async user => {
       if (!user) { this.router.navigate(['/login']); return; }
       this.currentUid = user.uid;
       this.isOwnProfile = this.currentUid === this.targetUid;
@@ -136,9 +138,11 @@ export class UserProfilePage implements OnInit {
         this.workExperiences = ((targetData['workExperiences'] as WorkExperience[]) || []).slice().sort(sortWork);
       }
 
-      const friends: string[] = myProfile?.['friends'] || [];
+      const myFriends: string[] = myProfile?.['friends'] || [];
+      const theirFriends: string[] = targetData['friends'] || [];
       const sentRequests: string[] = myProfile?.['sentRequests'] || [];
-      if (friends.includes(this.targetUid)) {
+
+      if (myFriends.includes(this.targetUid) || theirFriends.includes(this.currentUid)) {
         this.friendStatus = 'friend';
       } else if (sentRequests.includes(this.targetUid)) {
         this.friendStatus = 'pending';
@@ -189,6 +193,10 @@ export class UserProfilePage implements OnInit {
     } finally {
       this.isProcessing = false;
     }
+  }
+
+  goToChat() {
+    this.router.navigate(['/chat', this.targetUid]);
   }
 
   goBack() {

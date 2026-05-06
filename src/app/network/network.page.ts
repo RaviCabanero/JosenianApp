@@ -29,25 +29,25 @@ interface FriendRequest {
   standalone: false
 })
 export class NetworkPage implements OnInit {
-  activeTab: 'friends' | 'department' | 'people' | 'requests' = 'friends';
+  activeTab: 'friends' | 'people' | 'requests' = 'friends';
 
   currentUserId = '';
   private friendIds = new Set<string>();
   private sentRequestIds = new Set<string>();
 
   friends: NetworkUser[] = [];
-  departmentUsers: NetworkUser[] = [];
-  departmentName = '';
+  filteredFriends: NetworkUser[] = [];
   allPeople: NetworkUser[] = [];
   filteredPeople: NetworkUser[] = [];
   incomingRequests: FriendRequest[] = [];
+  filteredRequests: FriendRequest[] = [];
 
+  searchQuery = '';
   isLoading = false;
   processingIds = new Set<string>();
 
   get friendsCount(): number { return this.friends.length; }
   get requestsCount(): number { return this.incomingRequests.length; }
-  get deptCount(): number { return this.departmentUsers.length; }
 
   constructor(
     private router: Router,
@@ -63,6 +63,8 @@ export class NetworkPage implements OnInit {
     });
   }
 
+  private deptMap: Record<string, string> = {};
+
   async loadAll() {
     this.isLoading = true;
     try {
@@ -73,13 +75,12 @@ export class NetworkPage implements OnInit {
         this.authService.getDepartments()
       ]);
 
+      this.deptMap = {};
+      departments.forEach((d: any) => { this.deptMap[d.id] = d.name; });
+
       this.friendIds = new Set<string>(myProfile?.['friends'] || []);
       this.sentRequestIds = new Set<string>(myProfile?.['sentRequests'] || []);
       this.incomingRequests = requests;
-
-      const myDeptId: string = myProfile?.['department'] || '';
-      const deptObj = departments.find((d: any) => d.id === myDeptId);
-      this.departmentName = deptObj?.name || '';
 
       const others = allUsers.filter((u: any) =>
         u.id !== this.currentUserId &&
@@ -91,17 +92,13 @@ export class NetworkPage implements OnInit {
         .filter((u: any) => this.friendIds.has(u.id))
         .map((u: any) => this.toNetworkUser(u, 'friend'));
 
-      this.departmentUsers = myDeptId
-        ? others
-            .filter((u: any) => u.department === myDeptId)
-            .map((u: any) => this.toNetworkUser(u, this.friendIds.has(u.id) ? 'friend' : this.sentRequestIds.has(u.id) ? 'pending' : 'none'))
-        : [];
-
       this.allPeople = others
         .filter((u: any) => !this.friendIds.has(u.id))
         .map((u: any) => this.toNetworkUser(u, this.sentRequestIds.has(u.id) ? 'pending' : 'none'));
 
+      this.filteredFriends = [...this.friends];
       this.filteredPeople = [...this.allPeople];
+      this.filteredRequests = [...this.incomingRequests];
     } catch (e) {
       console.error('Error loading network:', e);
     } finally {
@@ -114,19 +111,36 @@ export class NetworkPage implements OnInit {
     const lastName = u.lastName || '';
     const name = `${firstName} ${lastName}`.trim() || u.email || 'Unknown';
     const initials = name.split(' ').filter(Boolean).map((w: string) => w[0].toUpperCase()).join('').slice(0, 2) || '?';
-    return { uid: u.id, name, initials, department: u.department || 'No Department', userType: u.userType || 'student', course: u.course || '', isPrivate: u.isPrivate === true, friendStatus };
+    const deptId = u.department || '';
+    const department = this.deptMap[deptId] || deptId || '';
+    return { uid: u.id, name, initials, department, userType: u.userType || 'student', course: u.course || '', isPrivate: u.isPrivate === true, friendStatus };
   }
 
-  switchTab(tab: 'friends' | 'department' | 'people' | 'requests') {
+  switchTab(tab: 'friends' | 'people' | 'requests') {
     this.activeTab = tab;
+    this.searchQuery = '';
+    this.applySearch('');
   }
 
-  onSearchChange(event: any) {
+  onNetworkSearch(event: any) {
     const q = (event.detail?.value || '').toLowerCase();
+    this.searchQuery = q;
+    this.applySearch(q);
+  }
+
+  private applySearch(q: string) {
+    this.filteredFriends = this.friends.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.department.toLowerCase().includes(q) ||
+      u.userType.toLowerCase().includes(q)
+    );
     this.filteredPeople = this.allPeople.filter(u =>
       u.name.toLowerCase().includes(q) ||
       u.department.toLowerCase().includes(q) ||
       u.userType.toLowerCase().includes(q)
+    );
+    this.filteredRequests = this.incomingRequests.filter(r =>
+      r.fromName.toLowerCase().includes(q)
     );
   }
 
@@ -167,9 +181,7 @@ export class NetworkPage implements OnInit {
       this.friendIds.delete(user.uid);
       user.friendStatus = 'none';
       this.allPeople.unshift(user);
-      this.filteredPeople = [...this.allPeople];
-      const deptUser = this.departmentUsers.find(u => u.uid === user.uid);
-      if (deptUser) deptUser.friendStatus = 'none';
+      this.applySearch(this.searchQuery);
     } catch (e) {
       console.error(e);
     } finally {
@@ -189,10 +201,9 @@ export class NetworkPage implements OnInit {
         department: '', userType: 'student', course: '', isPrivate: false, friendStatus: 'friend'
       };
       this.friends.unshift(newFriend);
+      this.incomingRequests = this.incomingRequests.filter(r => r.fromId !== req.fromId);
       this.allPeople = this.allPeople.filter(u => u.uid !== req.fromId);
-      this.filteredPeople = this.filteredPeople.filter(u => u.uid !== req.fromId);
-      const deptUser = this.departmentUsers.find(u => u.uid === req.fromId);
-      if (deptUser) deptUser.friendStatus = 'friend';
+      this.applySearch(this.searchQuery);
     } catch (e) {
       console.error(e);
     } finally {
@@ -206,6 +217,7 @@ export class NetworkPage implements OnInit {
     try {
       await this.authService.declineFriendRequest(req.fromId);
       this.incomingRequests = this.incomingRequests.filter(r => r.fromId !== req.fromId);
+      this.applySearch(this.searchQuery);
     } catch (e) {
       console.error(e);
     } finally {
