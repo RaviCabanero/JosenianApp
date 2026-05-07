@@ -14,6 +14,7 @@ import {
 import { initializeApp, getApps } from 'firebase/app';
 import { environment } from '../../environments/environment';
 import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, increment, orderBy, limit, writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, FirebaseStorage } from 'firebase/storage';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -22,12 +23,14 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class AuthService {
   private auth: Auth;
   private firestore: Firestore;
+  private storage: FirebaseStorage;
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
 
   constructor(private firebaseService: FirebaseService) {
     this.auth = firebaseService.getAuth();
     this.firestore = firebaseService.getFirestore();
+    this.storage = firebaseService.getStorage();
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();
 
@@ -52,13 +55,15 @@ export class AuthService {
       department: string;
       course?: string;
       graduationYear?: string;
-      alumniIdBase64?: string;
+      alumniIdFile?: File;
+      alumniGradPhotoFile?: File;
       alumniIdFileName?: string;
       alumniIdVerificationStatus?: string;
     }
   ): Promise<any> {
     try {
       const result = await createUserWithEmailAndPassword(this.auth, email, password);
+      const uid = result.user.uid;
 
       const userData: any = {
         email: email,
@@ -75,19 +80,24 @@ export class AuthService {
         joinDate: new Date().toISOString().split('T')[0],
       };
 
-      if (profileData.alumniIdBase64) {
-        userData.alumniIdBase64 = profileData.alumniIdBase64;
+      if (profileData.alumniIdFile && profileData.alumniGradPhotoFile) {
+        const [alumniIdUrl, alumniGradPhotoUrl] = await Promise.all([
+          this.uploadFile(`alumni-ids/${uid}/alumni-id`, profileData.alumniIdFile),
+          this.uploadFile(`alumni-ids/${uid}/grad-photo`, profileData.alumniGradPhotoFile),
+        ]);
+        userData.alumniIdUrl = alumniIdUrl;
         userData.alumniIdFileName = profileData.alumniIdFileName || '';
+        userData.alumniGradPhotoUrl = alumniGradPhotoUrl;
         userData.alumniIdVerificationStatus = profileData.alumniIdVerificationStatus || 'pending';
       }
 
       // Create user profile in Firestore with all data
-      await setDoc(doc(this.firestore, 'users', result.user.uid), userData);
+      await setDoc(doc(this.firestore, 'users', uid), userData);
 
       // Automatically add user as member to their selected department
       await this.addMemberToDepartment(
         profileData.department,
-        result.user.uid,
+        uid,
         {
           name: `${profileData.firstName} ${profileData.lastName}`,
           email: email,
@@ -829,99 +839,10 @@ export class AuthService {
 
   // ==================== FILE UPLOAD ====================
 
-  // Upload alumni ID for verification - Store as base64 in Firestore
-  async uploadAlumniId(file: File): Promise<string> {
-    try {
-      const user = this.auth.currentUser;
-      
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-
-      // Convert file to base64
-      let base64Data = await this.fileToBase64(file);
-      
-      // Compress image if it's larger than 500KB
-      if (base64Data.length > 500000) {
-        console.log('Compressing large image...');
-        base64Data = await this.compressImage(file);
-      }
-
-      // Validate file size (max 1MB for Firestore)
-      if (base64Data.length > 1000000) {
-        throw new Error('Alumni ID file too large (max 1MB after compression)');
-      }
-
-      console.log(`Alumni ID converted to base64: ${base64Data.length} bytes`);
-      
-      // Return base64 string (will be stored in Firestore)
-      return base64Data;
-    } catch (error) {
-      console.error('Error processing alumni ID:', error);
-      throw error;
-    }
-  }
-
-  // Convert file to base64 string
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Extract base64 part (remove "data:image/...;base64," prefix)
-        const base64 = result.split(',')[1] || result;
-        resolve(base64);
-      };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Compress image using Canvas — tries progressively smaller sizes until under targetBytes
-  private compressImage(file: File, targetBytes = 380000): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) { reject(new Error('Canvas unavailable')); return; }
-
-          const passes = [
-            { maxDim: 1000, quality: 0.75 },
-            { maxDim: 800,  quality: 0.65 },
-            { maxDim: 650,  quality: 0.55 },
-            { maxDim: 500,  quality: 0.45 },
-            { maxDim: 400,  quality: 0.40 },
-          ];
-
-          for (const pass of passes) {
-            let w = img.width, h = img.height;
-            if (w > pass.maxDim || h > pass.maxDim) {
-              const ratio = Math.min(pass.maxDim / w, pass.maxDim / h);
-              w = Math.round(w * ratio);
-              h = Math.round(h * ratio);
-            }
-            canvas.width = w;
-            canvas.height = h;
-            ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', pass.quality);
-            const base64 = dataUrl.split(',')[1] || dataUrl;
-            if (base64.length <= targetBytes) { resolve(base64); return; }
-          }
-          // Last resort — return smallest attempt even if still large
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.35);
-          resolve(dataUrl.split(',')[1] || dataUrl);
-        };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = reader.result as string;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
+  async uploadFile(path: string, data: File | Blob): Promise<string> {
+    const storageRef = ref(this.storage, path);
+    await uploadBytes(storageRef, data);
+    return getDownloadURL(storageRef);
   }
 
   // ==================== ALUMNI ID VERIFICATION ====================
@@ -975,23 +896,15 @@ export class AuthService {
     idFileName: string,
     gradPhotoFile: File
   ): Promise<void> {
-    // Firestore doc limit ~1MB. Target 350KB base64 per image (~262KB binary).
-    const TARGET = 350000;
-
-    let idBase64 = await this.fileToBase64(idFile);
-    if (idBase64.length > TARGET) idBase64 = await this.compressImage(idFile, TARGET);
-
-    let gradBase64 = await this.fileToBase64(gradPhotoFile);
-    if (gradBase64.length > TARGET) gradBase64 = await this.compressImage(gradPhotoFile, TARGET);
-
-    if (idBase64.length + gradBase64.length > 800000) {
-      throw new Error('Images are still too large after compression. Please use photos under 3MB each.');
-    }
+    const [alumniIdUrl, alumniGradPhotoUrl] = await Promise.all([
+      this.uploadFile(`alumni-ids/${userId}/alumni-id`, idFile),
+      this.uploadFile(`alumni-ids/${userId}/grad-photo`, gradPhotoFile),
+    ]);
 
     await updateDoc(doc(this.firestore, 'users', userId), {
-      alumniIdBase64: idBase64,
+      alumniIdUrl,
       alumniIdFileName: idFileName,
-      alumniGradPhotoBase64: gradBase64,
+      alumniGradPhotoUrl,
       alumniIdVerificationStatus: 'pending',
       alumniIdSubmittedAt: new Date().toISOString(),
       alumniIdRejectionReason: ''
@@ -1221,15 +1134,30 @@ export class AuthService {
   async addGlobalEvent(eventData: {
     title: string; description: string; date: string; time: string;
     location: string; eventType: string; maxParticipants?: number | null;
-    coverImageBase64?: string; coverImageFileName?: string;
+    coverImageFile?: File; coverImageUrl?: string; coverImageFileName?: string;
+    eventCategory?: string; pointValue?: number;
   }): Promise<any> {
     try {
       const user = this.auth.currentUser;
-      const docRef = await addDoc(collection(this.firestore, 'events'), {
-        ...eventData,
+      const docRef = doc(collection(this.firestore, 'events'));
+
+      let coverImageUrl = eventData.coverImageUrl || '';
+      if (eventData.coverImageFile) {
+        coverImageUrl = await this.uploadFile(`event-covers/${docRef.id}`, eventData.coverImageFile);
+      }
+
+      await setDoc(docRef, {
+        title: eventData.title,
+        description: eventData.description,
+        date: eventData.date,
+        time: eventData.time,
+        location: eventData.location,
+        eventType: eventData.eventType,
         maxParticipants: eventData.maxParticipants || null,
-        coverImageBase64: eventData.coverImageBase64 || '',
+        coverImageUrl,
         coverImageFileName: eventData.coverImageFileName || '',
+        eventCategory: eventData.eventCategory || 'regular',
+        pointValue: eventData.pointValue ?? 10,
         attendees: [],
         createdBy: user?.uid || 'admin',
         createdAt: new Date(),
@@ -1241,7 +1169,7 @@ export class AuthService {
         'event',
         '/feeds'
       );
-      return { id: docRef.id, ...eventData, attendees: [] };
+      return { id: docRef.id, ...eventData, coverImageUrl, attendees: [] };
     } catch (error) {
       console.error('Error adding global event:', error);
       throw error;
@@ -1250,8 +1178,13 @@ export class AuthService {
 
   async updateGlobalEvent(eventId: string, eventData: any): Promise<void> {
     try {
+      const payload = { ...eventData };
+      if (payload.coverImageFile) {
+        payload.coverImageUrl = await this.uploadFile(`event-covers/${eventId}`, payload.coverImageFile);
+        delete payload.coverImageFile;
+      }
       await updateDoc(doc(this.firestore, 'events', eventId), {
-        ...eventData,
+        ...payload,
         updatedAt: new Date()
       });
     } catch (error) {

@@ -88,8 +88,8 @@
         <div class="feed-event-card" *ngFor="let ev of globalEvents">
           <!-- Cover -->
           <div class="feed-event-cover">
-            <img [src]="getEventCoverUrl(ev)" *ngIf="ev.coverImageBase64" alt="" class="feed-event-cover-img" />
-            <div class="feed-event-cover-placeholder" *ngIf="!ev.coverImageBase64">
+            <img [src]="getEventCoverUrl(ev)" *ngIf="hasEventCover(ev)" alt="" class="feed-event-cover-img" />
+            <div class="feed-event-cover-placeholder" *ngIf="!hasEventCover(ev)">
               <ion-icon name="calendar"></ion-icon>
             </div>
             <span class="feed-event-type">{{ ev.eventType || 'Global' }}</span>

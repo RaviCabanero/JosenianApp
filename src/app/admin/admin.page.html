@@ -374,10 +374,10 @@
                 </div>
 
                 <!-- Alumni ID Preview -->
-                <div class="alumni-id-preview" *ngIf="selectedUser.userType === 'alumni' && selectedUser.alumniIdBase64">
+                <div class="alumni-id-preview" *ngIf="selectedUser.userType === 'alumni' && hasAlumniImage(selectedUser)">
                   <label>Uploaded Alumni ID</label>
-                  <img 
-                    [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" 
+                  <img
+                    [src]="getImageSafeUrl(getAlumniImageUrl(selectedUser))"
                     alt="Alumni ID"
                     class="id-image"
                     (click)="expandedAlumniId = expandedAlumniId === selectedUser.id ? null : selectedUser.id"
@@ -407,7 +407,7 @@
                     <ion-icon name="close-circle"></ion-icon>
                     Reject
                   </button>
-                  <button class="btn btn-download" (click)="downloadAlumniId(selectedUser)" *ngIf="selectedUser.alumniIdBase64">
+                  <button class="btn btn-download" (click)="downloadAlumniId(selectedUser)" *ngIf="hasAlumniImage(selectedUser)">
                     <ion-icon name="download"></ion-icon>
                     Download ID
                   </button>
@@ -420,7 +420,7 @@
                   <button class="close-btn" (click)="expandedAlumniId = null">
                     <ion-icon name="close"></ion-icon>
                   </button>
-                  <img [src]="getImageSafeUrl(selectedUser.alumniIdBase64)" alt="Alumni ID - Full" />
+                  <img [src]="getImageSafeUrl(getAlumniImageUrl(selectedUser))" alt="Alumni ID - Full" />
                 </div>
               </div>
             </div>
@@ -1114,15 +1114,15 @@
             <!-- Cover Image -->
             <div class="form-group">
               <label class="form-label">Cover Image <span class="optional-label">(optional, max 2MB)</span></label>
-              <div class="cover-upload-area" *ngIf="!newEvent.coverImageBase64">
+              <div class="cover-upload-area" *ngIf="!hasNewEventCover()">
                 <input #coverInput type="file" accept="image/*" (change)="onCoverImageSelected($event)" style="display:none" />
                 <button class="btn btn-secondary cover-upload-btn" (click)="coverInput.click()">
                   <ion-icon name="image"></ion-icon>
                   Choose Image
                 </button>
               </div>
-              <div class="cover-preview" *ngIf="newEvent.coverImageBase64">
-                <img [src]="'data:image/jpeg;base64,' + newEvent.coverImageBase64" alt="Cover preview" class="cover-preview-img" />
+              <div class="cover-preview" *ngIf="hasNewEventCover()">
+                <img [src]="getNewEventCoverPreview()" alt="Cover preview" class="cover-preview-img" />
                 <div class="cover-preview-actions">
                   <span class="cover-file-name">{{ newEvent.coverImageFileName }}</span>
                   <button class="btn-icon btn-delete" (click)="removeCoverImage()" title="Remove image">
@@ -1154,8 +1154,8 @@
 
               <!-- Cover -->
               <div class="event-admin-cover">
-                <img [src]="'data:image/jpeg;base64,' + ev.coverImageBase64" *ngIf="ev.coverImageBase64" alt="" class="event-admin-cover-img" />
-                <div class="event-admin-cover-placeholder" *ngIf="!ev.coverImageBase64">
+                <img [src]="getEventCoverSrc(ev)" *ngIf="hasEventCover(ev)" alt="" class="event-admin-cover-img" />
+                <div class="event-admin-cover-placeholder" *ngIf="!hasEventCover(ev)">
                   <ion-icon name="calendar"></ion-icon>
                 </div>
                 <span class="event-type-pill">{{ ev.eventType || 'Global' }}</span>
@@ -1305,9 +1305,9 @@
               </div>
 
               <div class="verification-body">
-                <div class="alumni-id-container" *ngIf="alumnus.alumniIdBase64">
+                <div class="alumni-id-container" *ngIf="hasAlumniImage(alumnus)">
                   <img
-                    [src]="getImageSafeUrl(alumnus.alumniIdBase64)"
+                    [src]="getImageSafeUrl(getAlumniImageUrl(alumnus))"
                     alt="Alumni ID"
                     class="alumni-id-image"
                     (click)="expandedAlumniId = expandedAlumniId === alumnus.id ? null : alumnus.id"
@@ -1323,7 +1323,7 @@
                     <button class="close-btn" (click)="expandedAlumniId = null">
                       <ion-icon name="close"></ion-icon>
                     </button>
-                    <img [src]="getImageSafeUrl(alumnus.alumniIdBase64)" alt="Alumni ID - Expanded" class="expanded-image" />
+                    <img [src]="getImageSafeUrl(getAlumniImageUrl(alumnus))" alt="Alumni ID - Expanded" class="expanded-image" />
                   </div>
                 </div>
               </div>
@@ -1491,9 +1491,9 @@
 
               <!-- Event Summary Card -->
               <div class="att-event-card">
-                <div class="att-event-thumb" [class.att-thumb-placeholder]="!dashboardEvent.coverImageBase64">
-                  <img *ngIf="dashboardEvent.coverImageBase64" [src]="'data:image/jpeg;base64,' + dashboardEvent.coverImageBase64" [alt]="dashboardEvent.title">
-                  <ion-icon *ngIf="!dashboardEvent.coverImageBase64" name="calendar-outline"></ion-icon>
+                <div class="att-event-thumb" [class.att-thumb-placeholder]="!hasEventCover(dashboardEvent)">
+                  <img *ngIf="hasEventCover(dashboardEvent)" [src]="getEventCoverSrc(dashboardEvent)" [alt]="dashboardEvent.title">
+                  <ion-icon *ngIf="!hasEventCover(dashboardEvent)" name="calendar-outline"></ion-icon>
                 </div>
                 <div class="att-event-details">
                   <span class="att-event-type-badge">{{ dashboardEvent.eventType === 'global' ? 'Global Event' : 'Department Event' }}</span>

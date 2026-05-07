@@ -219,11 +219,9 @@ export class RegisterPage implements OnInit {
       // Handle alumni ID verification status
       if (this.userType === 'alumni') {
         if (this.hasAlumniId && this.alumniIdFile && this.gradPhotoFile) {
-          const alumniIdBase64 = await this.authService.uploadAlumniId(this.alumniIdFile);
-          const gradPhotoBase64 = await this.authService.uploadAlumniId(this.gradPhotoFile);
-          profileData.alumniIdBase64 = alumniIdBase64;
+          profileData.alumniIdFile = this.alumniIdFile;
+          profileData.alumniGradPhotoFile = this.gradPhotoFile;
           profileData.alumniIdFileName = this.alumniIdFileName;
-          profileData.alumniGradPhotoBase64 = gradPhotoBase64;
           profileData.alumniIdVerificationStatus = 'pending';
         } else {
           profileData.alumniIdVerificationStatus = 'unverified';

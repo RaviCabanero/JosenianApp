@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { AlertController } from '@ionic/angular';
@@ -54,6 +54,7 @@ export class FeedsPage implements OnInit {
   suggestedUsers: User[] = [];
   newPostContent: string = '';
   newPostImage: string | null = null;
+  private newPostImageFile: File | null = null;
   showPostForm: boolean = false;
 
   feedStats = {
@@ -190,9 +191,10 @@ export class FeedsPage implements OnInit {
       if (!this.currentUserUid) {
         throw new Error('No user UID available');
       }
-      
+
       const postsRef = collection(this.firestore, `users/${this.currentUserUid}/posts`);
-      // Create a copy of the post without undefined fields
+      const docRef = doc(postsRef); // Pre-generate ID so we can use it as the Storage path
+
       const postData: any = {
         userId: this.currentUser?.id || 1,
         content: post.content,
@@ -204,11 +206,19 @@ export class FeedsPage implements OnInit {
         privacy: post.privacy || 'public'
       };
 
-      if (post.image) {
+      if (this.newPostImageFile) {
+        const imageUrl = await this.authService.uploadFile(
+          `post-images/${this.currentUserUid}/${docRef.id}`,
+          this.newPostImageFile
+        );
+        postData.image = imageUrl;
+        post.image = imageUrl; // Update in-memory post with the Storage URL
+        this.newPostImageFile = null;
+      } else if (post.image) {
         postData.image = post.image;
       }
-      
-      const docRef = await addDoc(postsRef, postData);
+
+      await setDoc(docRef, postData);
       post.id = docRef.id;
       return docRef.id;
     } catch (error) {
@@ -320,7 +330,13 @@ export class FeedsPage implements OnInit {
   }
 
   getEventCoverUrl(event: any): string {
-    return event.coverImageBase64 ? `data:image/jpeg;base64,${event.coverImageBase64}` : '';
+    if (event.coverImageUrl) return event.coverImageUrl;
+    if (event.coverImageBase64) return `data:image/jpeg;base64,${event.coverImageBase64}`;
+    return '';
+  }
+
+  hasEventCover(event: any): boolean {
+    return !!(event.coverImageUrl || event.coverImageBase64);
   }
 
   formatEventDate(event: any): string {
@@ -377,9 +393,10 @@ export class FeedsPage implements OnInit {
   onImageSelected(event: any) {
     const file = event.target.files?.[0];
     if (file) {
+      this.newPostImageFile = file;
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        this.newPostImage = e.target.result; // Base64 string
+        this.newPostImage = e.target.result; // Keep for local preview only
       };
       reader.readAsDataURL(file);
     }
@@ -387,6 +404,7 @@ export class FeedsPage implements OnInit {
 
   removeImage() {
     this.newPostImage = null;
+    this.newPostImageFile = null;
   }
 
   async createPost() {
@@ -425,6 +443,7 @@ export class FeedsPage implements OnInit {
     
     this.newPostContent = '';
     this.newPostImage = null;
+    this.newPostImageFile = null;
     this.newPostPrivacy = 'public';
     this.showPostForm = false;
   }
@@ -445,6 +464,7 @@ export class FeedsPage implements OnInit {
     if (!this.showPostForm) {
       this.newPostContent = '';
       this.newPostImage = null;
+      this.newPostImageFile = null;
       this.newPostPrivacy = 'public';
     }
   }

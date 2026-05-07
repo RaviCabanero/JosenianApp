@@ -276,7 +276,15 @@ export class ProfilePage implements OnInit {
             this.updateCurrentJobStatus();
             this.alumniIdVerificationStatus = profile.alumniIdVerificationStatus || 'unverified';
             this.alumniIdRejectionReason = profile.alumniIdRejectionReason || '';
-            this.alumniGradPhotoBase64 = profile.alumniGradPhotoBase64 || '';
+            // Support both legacy base64 field and new Storage URL field
+            const rawGradPhoto = profile.alumniGradPhotoUrl || profile.alumniGradPhotoBase64 || '';
+            if (rawGradPhoto.startsWith('http') || rawGradPhoto.startsWith('data:')) {
+              this.alumniGradPhotoBase64 = rawGradPhoto;
+            } else if (rawGradPhoto) {
+              this.alumniGradPhotoBase64 = `data:image/jpeg;base64,${rawGradPhoto}`;
+            } else {
+              this.alumniGradPhotoBase64 = '';
+            }
           }
 
           this.inspiredPoints = profile.inspiredPoints || {};
@@ -330,28 +338,24 @@ export class ProfilePage implements OnInit {
     input.click();
   }
 
-  private handlePhotoFile(e: Event) {
+  private async handlePhotoFile(e: Event) {
     const file = (e.target as HTMLInputElement)?.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       console.error('File exceeds 5 MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async (ev: any) => {
-      try {
-        const base64 = ev.target.result as string;
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser) {
-          await this.authService.updateUserProfile(currentUser.uid, { photoUrl: base64 });
-          this.userProfile.photoUrl = base64;
-          await this.photoModal.dismiss();
-        }
-      } catch (err) {
-        console.error('Error saving photo:', err);
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        const photoUrl = await this.authService.uploadFile(`profile-pictures/${currentUser.uid}`, file);
+        await this.authService.updateUserProfile(currentUser.uid, { photoUrl });
+        this.userProfile.photoUrl = photoUrl;
+        await this.photoModal.dismiss();
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error saving photo:', err);
+    }
   }
 
   async removeProfilePicture() {

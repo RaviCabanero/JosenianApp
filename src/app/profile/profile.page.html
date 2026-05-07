@@ -557,7 +557,7 @@
       <div class="did-body">
         <div class="did-photo-wrap">
           <div class="did-photo"
-            [style.backgroundImage]="alumniGradPhotoBase64 ? 'url(data:image/jpeg;base64,' + alumniGradPhotoBase64 + ')' : 'none'">
+            [style.backgroundImage]="alumniGradPhotoBase64 ? 'url(' + alumniGradPhotoBase64 + ')' : 'none'">
             <span *ngIf="!alumniGradPhotoBase64" class="did-photo-initials">{{ userProfile.initials }}</span>
           </div>
           <span class="did-verified-tag">

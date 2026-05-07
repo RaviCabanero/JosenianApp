@@ -83,9 +83,13 @@ export class AdminPage implements OnInit {
   newEvent = {
     title: '', description: '', date: '', time: '',
     location: '', eventType: 'global', maxParticipants: '',
-    coverImageBase64: '', coverImageFileName: '',
+    coverImageBase64: '',  // Local preview only (newly selected image)
+    coverImageUrl: '',     // Existing Storage URL (when editing)
+    coverImageFileName: '',
     eventCategory: 'regular', pointValue: 10
   };
+
+  private coverImageFile: File | null = null;
 
   searchTerm: string = '';
   filterByRole: string = '';
@@ -318,13 +322,46 @@ export class AdminPage implements OnInit {
     }
   }
 
-  getImageSafeUrl(base64: string): SafeUrl {
-    return this.imageService.base64ToSafeUrl(base64, 'image/jpeg');
+  getImageSafeUrl(value: string): SafeUrl {
+    return this.imageService.base64ToSafeUrl(value, 'image/jpeg');
+  }
+
+  getAlumniImageUrl(record: any): string {
+    return record.alumniIdUrl || record.alumniIdBase64 || '';
+  }
+
+  hasAlumniImage(record: any): boolean {
+    return !!(record.alumniIdUrl || record.alumniIdBase64);
+  }
+
+  getEventCoverSrc(ev: any): string {
+    if (ev.coverImageUrl) return ev.coverImageUrl;
+    if (ev.coverImageBase64) return `data:image/jpeg;base64,${ev.coverImageBase64}`;
+    return '';
+  }
+
+  hasEventCover(ev: any): boolean {
+    return !!(ev.coverImageUrl || ev.coverImageBase64);
+  }
+
+  getNewEventCoverPreview(): string {
+    if (this.newEvent.coverImageBase64) return `data:image/jpeg;base64,${this.newEvent.coverImageBase64}`;
+    if (this.newEvent.coverImageUrl) return this.newEvent.coverImageUrl;
+    return '';
+  }
+
+  hasNewEventCover(): boolean {
+    return !!(this.newEvent.coverImageBase64 || this.newEvent.coverImageUrl);
   }
 
   downloadAlumniId(alumniId: any) {
-    if (alumniId.alumniIdBase64 && alumniId.alumniIdFileName) {
-      this.imageService.downloadBase64File(alumniId.alumniIdBase64, alumniId.alumniIdFileName, 'image/jpeg');
+    const url = alumniId.alumniIdUrl || alumniId.alumniIdBase64 || '';
+    const fileName = alumniId.alumniIdFileName || 'alumni-id.jpg';
+    if (!url) return;
+    if (url.startsWith('http')) {
+      window.open(url, '_blank');
+    } else {
+      this.imageService.downloadBase64File(url, fileName, 'image/jpeg');
     }
   }
 
@@ -784,53 +821,31 @@ export class AdminPage implements OnInit {
     this.newEvent = {
       title: '', description: '', date: '', time: '',
       location: '', eventType: 'global', maxParticipants: '',
-      coverImageBase64: '', coverImageFileName: '',
+      coverImageBase64: '', coverImageUrl: '', coverImageFileName: '',
       eventCategory: 'regular', pointValue: 10
     };
+    this.coverImageFile = null;
     this.editingEventId = null;
   }
 
   onCoverImageSelected(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      this.showAlert('File Too Large', 'Please select an image under 2MB.');
-      return;
-    }
+    this.coverImageFile = file;
+    this.newEvent.coverImageFileName = file.name;
+    this.newEvent.coverImageUrl = ''; // Clear existing URL when new file selected
     const reader = new FileReader();
     reader.onload = (e: any) => {
-      this.compressEventImage(e.target.result).then(base64 => {
-        this.newEvent.coverImageBase64 = base64;
-        this.newEvent.coverImageFileName = file.name;
-      });
+      this.newEvent.coverImageBase64 = e.target.result.split(',')[1] || '';
     };
     reader.readAsDataURL(file);
   }
 
-  private compressEventImage(dataUrl: string): Promise<string> {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          const ratio = Math.min(MAX / w, MAX / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
-        }
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
-      };
-      img.src = dataUrl;
-    });
-  }
-
   removeCoverImage() {
     this.newEvent.coverImageBase64 = '';
+    this.newEvent.coverImageUrl = '';
     this.newEvent.coverImageFileName = '';
+    this.coverImageFile = null;
   }
 
   async saveEvent() {
@@ -841,7 +856,7 @@ export class AdminPage implements OnInit {
     }
     this.isSubmittingEvent = true;
     try {
-      const payload = {
+      const payload: any = {
         title: this.newEvent.title.trim(),
         description: this.newEvent.description.trim(),
         date: this.newEvent.date,
@@ -849,9 +864,15 @@ export class AdminPage implements OnInit {
         location: this.newEvent.location.trim(),
         eventType: this.newEvent.eventType,
         maxParticipants: this.newEvent.maxParticipants ? Number(this.newEvent.maxParticipants) : null,
-        coverImageBase64: this.newEvent.coverImageBase64,
-        coverImageFileName: this.newEvent.coverImageFileName
+        coverImageFileName: this.newEvent.coverImageFileName,
+        eventCategory: this.newEvent.eventCategory,
+        pointValue: this.newEvent.pointValue
       };
+      if (this.coverImageFile) {
+        payload.coverImageFile = this.coverImageFile;
+      } else {
+        payload.coverImageUrl = this.newEvent.coverImageUrl || '';
+      }
       if (this.editingEventId) {
         await this.authService.updateGlobalEvent(this.editingEventId, payload);
       } else {
@@ -879,11 +900,13 @@ export class AdminPage implements OnInit {
       location: ev.location || '',
       eventType: ev.eventType || 'global',
       maxParticipants: ev.maxParticipants || '',
-      coverImageBase64: ev.coverImageBase64 || '',
+      coverImageBase64: '',
+      coverImageUrl: ev.coverImageUrl || '',
       coverImageFileName: ev.coverImageFileName || '',
       eventCategory: ev.eventCategory || 'regular',
       pointValue: ev.pointValue ?? 10
     };
+    this.coverImageFile = null;
     this.editingEventId = eventId;
     this.showEventForm = true;
     this.selectedEvent = null;
