@@ -15,8 +15,8 @@
     <ion-card class="create-post-card" *ngIf="currentUser">
       <ion-card-content>
         <div class="create-post-header">
-          <div class="user-avatar-sm" [class.has-photo]="currentUser.photoUrl" [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : 'none'">
-            <span *ngIf="!currentUser.photoUrl">{{ currentUser.avatar }}</span>
+          <div class="user-avatar-sm" [class.has-photo]="currentUser.photoUrl" [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : null">
+            <ion-icon name="person" *ngIf="!currentUser.photoUrl"></ion-icon>
           </div>
           <input
             type="text"
@@ -125,7 +125,7 @@
                   </span>
                 </button>
                 <button class="feed-scan-btn"
-                        *ngIf="isAttending(ev) && isEventToday(ev)"
+                        *ngIf="isAttending(ev) && isEventActive(ev)"
                         (click)="navigateToScanner(ev)">
                   <ion-icon name="qr-code-outline"></ion-icon>
                   Scan QR
@@ -148,8 +148,8 @@
           <div class="user-card" *ngFor="let user of suggestedUsers">
             <div class="card-content">
               <div class="user-avatar-large" (click)="viewProfile(user.uid)" style="cursor:pointer"
-                   [class.has-photo]="user.photoUrl" [style.backgroundImage]="user.photoUrl ? 'url(' + user.photoUrl + ')' : 'none'">
-                <span *ngIf="!user.photoUrl">{{ user.avatar }}</span>
+                   [class.has-photo]="user.photoUrl" [style.backgroundImage]="user.photoUrl ? 'url(' + user.photoUrl + ')' : null">
+                <ion-icon name="person" *ngIf="!user.photoUrl"></ion-icon>
               </div>
               <h5>{{ user.name }}</h5>
               <p class="mutual-friends">{{ user.mutualFriends || 0 }} mutual friends</p>
@@ -176,8 +176,8 @@
           <div class="post-header">
             <div class="author-info">
               <div class="author-avatar" (click)="viewProfile(item.user.uid); $event.stopPropagation()" style="cursor:pointer"
-                   [class.has-photo]="item.user.photoUrl" [style.backgroundImage]="item.user.photoUrl ? 'url(' + item.user.photoUrl + ')' : 'none'">
-                <span *ngIf="!item.user.photoUrl">{{ item.user.avatar }}</span>
+                   [class.has-photo]="item.user.photoUrl" [style.backgroundImage]="item.user.photoUrl ? 'url(' + item.user.photoUrl + ')' : null">
+                <ion-icon name="person" *ngIf="!item.user.photoUrl"></ion-icon>
               </div>
               <div>
                 <h4>{{ item.user.name }}</h4>
@@ -254,7 +254,11 @@
             <!-- Comment list -->
             <ng-container *ngIf="loadingComments !== item.post.id">
               <div class="comment-item" *ngFor="let c of postComments[item.post.id!] || []">
-                <div class="comment-avatar">{{ c.authorAvatar }}</div>
+                <div class="comment-avatar"
+                     [class.has-photo]="c.authorPhotoUrl"
+                     [style.backgroundImage]="c.authorPhotoUrl ? 'url(' + c.authorPhotoUrl + ')' : null">
+                  <ion-icon name="person" *ngIf="!c.authorPhotoUrl"></ion-icon>
+                </div>
                 <div class="comment-body">
                   <div class="comment-meta">
                     <span class="comment-author">{{ c.authorName }}</span>
@@ -272,8 +276,8 @@
             <!-- Comment input -->
             <div class="comment-input-row" *ngIf="currentUser">
               <div class="comment-input-avatar" [class.has-photo]="currentUser.photoUrl"
-                   [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : 'none'">
-                <span *ngIf="!currentUser.photoUrl">{{ currentUser.avatar }}</span>
+                   [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : null">
+                <ion-icon name="person" *ngIf="!currentUser.photoUrl"></ion-icon>
               </div>
               <input
                 type="text"

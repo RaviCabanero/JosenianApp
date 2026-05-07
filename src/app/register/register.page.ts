@@ -337,7 +337,9 @@ export class RegisterPage implements OnInit {
   // Capitalize first letter of name fields
   capitalizeFirstLetter(value: string): string {
     if (!value) return '';
-    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    return value.split(' ').map(word =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1) : ''
+    ).join(' ');
   }
 
   // Handle first name input - capitalize first letter

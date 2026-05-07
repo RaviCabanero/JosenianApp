@@ -18,6 +18,7 @@ export interface ConversationItem {
   otherUid: string;
   otherName: string;
   otherAvatar: string;
+  otherPhotoUrl: string;
   lastMessage: string;
   lastMessageAt: Date | null;
   unreadCount: number;

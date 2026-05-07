@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionGroup, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { AlertController } from '@ionic/angular';
@@ -25,6 +25,7 @@ interface Comment {
   userUid: string;
   authorName: string;
   authorAvatar: string;
+  authorPhotoUrl?: string;
   content: string;
   timestamp: Timestamp | Date;
 }
@@ -99,6 +100,12 @@ export class FeedsPage implements OnInit {
     });
   }
 
+  ionViewWillEnter() {
+    if (this.currentUserUid) {
+      this.loadGlobalEvents();
+    }
+  }
+
   async initializeCurrentUser() {
     if (!this.currentUserUid) return;
     try {
@@ -128,7 +135,7 @@ export class FeedsPage implements OnInit {
     if (!this.currentUserUid) return;
 
     try {
-      // Load own posts
+      // Own posts
       const ownPostsSnap = await getDocs(collection(this.firestore, `users/${this.currentUserUid}/posts`));
       if (this.currentUser) {
         this.currentUser.posts = ownPostsSnap.docs.map(d => {
@@ -137,11 +144,11 @@ export class FeedsPage implements OnInit {
         });
       }
 
-      // Load friend UIDs
+      // Friend list
       const userDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
       const friendUids: string[] = userDoc.exists() ? userDoc.data()['friends'] || [] : [];
 
-      // Load each friend's profile + posts in parallel
+      // Friends' posts (all privacy — friends may see private posts)
       const friendUsers: User[] = await Promise.all(
         friendUids.map(async (uid, index) => {
           const friendDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -149,18 +156,44 @@ export class FeedsPage implements OnInit {
           const firstName = fd['firstName'] || '';
           const lastName = fd['lastName'] || '';
           const name = `${firstName} ${lastName}`.trim() || fd['email'] || 'User';
-
           const friendPostsSnap = await getDocs(collection(this.firestore, `users/${uid}/posts`));
           const posts: Post[] = friendPostsSnap.docs.map(d => {
             const data = d.data();
             return { id: d.id, ...data, privacy: data['privacy'] || 'public', timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
           });
-
           return { id: index + 1, uid, name, avatar: firstName.charAt(0).toUpperCase() || 'U', photoUrl: fd['photoUrl'] || '', posts } as User;
         })
       );
 
-      this.friends = [this.currentUser!, ...friendUsers];
+      // Non-friends' public posts via collectionGroup
+      const knownUids = new Set([this.currentUserUid, ...friendUids]);
+      const publicSnap = await getDocs(
+        query(collectionGroup(this.firestore, 'posts'), where('privacy', '==', 'public'))
+      );
+
+      const nonFriendPostMap = new Map<string, Post[]>();
+      for (const d of publicSnap.docs) {
+        const authorUid = d.ref.parent.parent?.id;
+        if (!authorUid || knownUids.has(authorUid)) continue;
+        const data = d.data();
+        const post = { id: d.id, ...data, privacy: 'public' as const, timestamp: data['timestamp']?.toDate?.() || new Date(data['timestamp']) } as Post;
+        if (!nonFriendPostMap.has(authorUid)) nonFriendPostMap.set(authorUid, []);
+        nonFriendPostMap.get(authorUid)!.push(post);
+      }
+
+      // Fetch profiles for non-friend authors
+      const nonFriendUsers: User[] = await Promise.all(
+        Array.from(nonFriendPostMap.entries()).map(async ([uid, posts], index) => {
+          const profileDoc = await getDoc(doc(this.firestore, 'users', uid));
+          const pd = profileDoc.exists() ? profileDoc.data() : {};
+          const firstName = pd['firstName'] || '';
+          const lastName = pd['lastName'] || '';
+          const name = `${firstName} ${lastName}`.trim() || pd['email'] || 'User';
+          return { id: friendUids.length + index + 2, uid, name, avatar: firstName.charAt(0).toUpperCase() || 'U', photoUrl: pd['photoUrl'] || '', posts } as User;
+        })
+      );
+
+      this.friends = [this.currentUser!, ...friendUsers, ...nonFriendUsers];
       this.refreshPosts();
     } catch (error) {
       console.error('Error loading posts from Firestore:', error);
@@ -273,6 +306,7 @@ export class FeedsPage implements OnInit {
             uid: d.id,
             name,
             avatar: firstName.charAt(0).toUpperCase() || '?',
+            photoUrl: data['photoUrl'] || '',
             mutualFriends,
             posts: []
           };
@@ -285,6 +319,16 @@ export class FeedsPage implements OnInit {
   async loadGlobalEvents() {
     try {
       this.globalEvents = await this.authService.getGlobalEvents();
+      const today = new Date().toISOString().split('T')[0];
+      this.globalEvents = this.globalEvents.filter(ev => {
+        if (ev.date > today) return true;
+        if (ev.date < today) return false;
+        if (!ev.time) return true;
+        const [h, m] = ev.time.split(':').map(Number);
+        const end = new Date();
+        end.setHours(h + 3, m, 0, 0);
+        return new Date() < end;
+      });
     } catch (error) {
       console.error('Error loading global events:', error);
     }
@@ -318,9 +362,17 @@ export class FeedsPage implements OnInit {
     }
   }
 
-  isEventToday(event: any): boolean {
+  isEventActive(event: any): boolean {
     if (!event.date) return false;
-    return event.date === new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    if (event.date !== today) return false;
+    if (!event.time) return true;
+    const [h, m] = event.time.split(':').map(Number);
+    const start = new Date();
+    start.setHours(h, m, 0, 0);
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+    const now = new Date();
+    return now >= start && now < end;
   }
 
   navigateToScanner(event: any) {
@@ -582,6 +634,7 @@ export class FeedsPage implements OnInit {
         userUid: this.currentUserUid!,
         authorName: this.currentUser.name,
         authorAvatar: this.currentUser.avatar,
+        authorPhotoUrl: this.currentUser.photoUrl || '',
         content: text,
         timestamp: new Date()
       };

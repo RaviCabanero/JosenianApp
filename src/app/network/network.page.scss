@@ -151,6 +151,15 @@ $bg:       #f3f4f6;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+
+  ion-icon { font-size: 24px; }
+
+  &.has-photo {
+    background-size: cover;
+    background-position: center;
+    background-color: transparent;
+    span, ion-icon { display: none; }
+  }
 }
 
 .req-avatar {

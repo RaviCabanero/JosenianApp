@@ -93,6 +93,8 @@ export class AdminPage implements OnInit {
 
   searchTerm: string = '';
   filterByRole: string = '';
+  filterByDepartment: string = '';
+  filterByBatch: string = '';
   filteredUsers: any[] = [];
   paginatedUsers: any[] = [];
   currentPage: number = 1;
@@ -218,6 +220,13 @@ export class AdminPage implements OnInit {
     return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
   }
 
+  get batchYears(): number[] {
+    const current = new Date().getFullYear();
+    const years: number[] = [];
+    for (let y = current; y >= 1990; y--) years.push(y);
+    return years;
+  }
+
   filterAndPaginateUsers() {
     this.filteredUsers = this.pendingUsers.filter(user => {
       const fullName = (user.firstName + ' ' + user.lastName).toLowerCase();
@@ -227,7 +236,10 @@ export class AdminPage implements OnInit {
         fullName.includes(searchLower) ||
         email.includes(searchLower);
       const matchesRole = !this.filterByRole || user.userType === this.filterByRole;
-      return matchesSearch && matchesRole;
+      const matchesDept = !this.filterByDepartment || user.department === this.filterByDepartment;
+      const matchesBatch = !this.filterByBatch ||
+        String(user.graduationYear) === this.filterByBatch;
+      return matchesSearch && matchesRole && matchesDept && matchesBatch;
     });
     this.totalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1;
     if (this.currentPage > this.totalPages) this.currentPage = 1;
@@ -848,7 +860,16 @@ export class AdminPage implements OnInit {
     this.coverImageFile = null;
   }
 
+  get todayDate(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
   async saveEvent() {
+    const today = new Date().toISOString().split('T')[0];
+    if (this.newEvent.date && this.newEvent.date < today) {
+      await this.showAlert('Invalid Date', 'Event date cannot be in the past.');
+      return;
+    }
     const { title, description, date, location } = this.newEvent;
     if (!title.trim() || !description.trim() || !date || !location.trim()) {
       await this.showAlert('Required', 'Please fill in Title, Description, Date, and Location.');

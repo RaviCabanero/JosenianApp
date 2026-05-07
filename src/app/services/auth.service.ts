@@ -1434,6 +1434,21 @@ export class AuthService {
         }
       }
 
+      if (event['time']) {
+        const [h, m] = (event['time'] as string).split(':').map(Number);
+        const start = new Date();
+        start.setHours(h, m, 0, 0);
+        const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+        const now = new Date();
+        if (now < start) {
+          return { success: false, message: `This event hasn't started yet. Check-in opens at ${event['time']}.` };
+        }
+        if (now >= end) {
+          await updateDoc(doc(this.firestore, 'events', eventId), { qrToken: null });
+          return { success: false, message: 'This event has ended and the QR code has expired.' };
+        }
+      }
+
       const attendees: string[] = event['attendees'] || [];
       if (!attendees.includes(userId)) {
         return { success: false, message: 'You must join this event before scanning the QR code.' };

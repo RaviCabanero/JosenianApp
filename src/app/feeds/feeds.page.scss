@@ -31,7 +31,8 @@
     flex-shrink: 0;
     overflow: hidden;
 
-    &.has-photo span { display: none; }
+    &.has-photo span, &.has-photo ion-icon { display: none; }
+    ion-icon { font-size: 22px; }
   }
 
   .post-input {
@@ -274,7 +275,8 @@
       overflow: hidden;
       flex-shrink: 0;
 
-      &.has-photo span { display: none; }
+      &.has-photo span, &.has-photo ion-icon { display: none; }
+      ion-icon { font-size: 22px; }
     }
 
     h4 {
@@ -544,6 +546,8 @@
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1E5128, #143C1C);
+  background-size: cover;
+  background-position: center;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -551,6 +555,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+
+  &.has-photo span, &.has-photo ion-icon { display: none; }
+  ion-icon { font-size: 18px; }
 }
 
 .comment-body {
@@ -608,7 +616,8 @@
   flex-shrink: 0;
   overflow: hidden;
 
-  &.has-photo span { display: none; }
+  &.has-photo span, &.has-photo ion-icon { display: none; }
+  ion-icon { font-size: 18px; }
 }
 
 .comment-input {
@@ -728,7 +737,8 @@
       flex-shrink: 0;
       overflow: hidden;
 
-      &.has-photo span { display: none; }
+      &.has-photo span, &.has-photo ion-icon { display: none; }
+      ion-icon { font-size: 30px; }
     }
 
     h5 {

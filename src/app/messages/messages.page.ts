@@ -60,6 +60,7 @@ export class MessagesPage implements OnInit, OnDestroy {
           otherUid: u.id,
           otherName: `${firstName} ${lastName}`.trim() || u.email || 'User',
           otherAvatar: firstName.charAt(0).toUpperCase() || '?',
+          otherPhotoUrl: u.photoUrl || '',
           lastMessage: '',
           lastMessageAt: null,
           unreadCount: 0,
@@ -152,6 +153,35 @@ export class MessagesPage implements OnInit, OnDestroy {
             } catch (err) {
               console.error('Error deleting conversation:', err);
             }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async startNewConversation() {
+    if (this.allItems.length === 0) {
+      const alert = await this.alertCtrl.create({
+        header: 'No Friends Yet',
+        message: 'Connect with people in My Network to start messaging.',
+        buttons: ['OK']
+      });
+      return alert.present();
+    }
+    const alert = await this.alertCtrl.create({
+      header: 'New Conversation',
+      inputs: this.allItems.map(item => ({
+        type: 'radio' as const,
+        label: item.otherName,
+        value: item.otherUid
+      })),
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Open',
+          handler: (uid: string) => {
+            if (uid) this.openChat(uid);
           }
         }
       ]
