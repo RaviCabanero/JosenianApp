@@ -1,7 +1,5 @@
-<div class="admin-wrapper">
-  <!-- Dashboard Page -->
+﻿<div class="admin-wrapper">
   <div class="dashboard-layout" *ngIf="isLoggedIn">
-    <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
@@ -80,9 +78,7 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Top Bar -->
       <header class="top-bar">
         <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
         <button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
@@ -90,9 +86,7 @@
         </button>
       </header>
 
-      <!-- Content Area -->
       <div class="content-area">
-        <!-- Admin Dashboard Tab -->
         <section class="tab-content admin-dashboard-tab" *ngIf="activeTab === 'dashboard'">
           <div class="summary-cards dashboard-summary">
             <div class="stat-card">
@@ -175,9 +169,7 @@
           </div>
         </section>
 
-        <!-- Account Approval Tab -->
         <section class="tab-content approval-tab" *ngIf="activeTab === 'approval'">
-          <!-- Summary Cards -->
           <div class="summary-cards">
             <div class="stat-card">
               <div class="stat-icon pending">
@@ -217,9 +209,7 @@
             </div>
           </div>
 
-          <!-- Main Approval Layout (Two Columns) -->
           <div class="approval-layout">
-            <!-- Left Panel: Request Table -->
             <div class="requests-panel">
               <div class="panel-header">
                 <h3>Pending Requests</h3>
@@ -229,7 +219,6 @@
                 </button>
               </div>
 
-              <!-- Search and Filter Bar -->
               <div class="search-filter-bar">
                 <div class="search-input-wrapper">
                   <ion-icon name="search"></ion-icon>
@@ -264,21 +253,20 @@
 
               <div class="requests-table-wrapper" *ngIf="paginatedUsers.length > 0">
                 <div class="requests-list">
-                  <!-- Table Header -->
                   <div class="request-header">
                     <div class="header-cell">Name</div>
                     <div class="header-cell">Role</div>
                     <div class="header-cell">Department</div>
+                    <div class="header-cell">Birthdate</div>
                     <div class="header-cell">Submitted</div>
                     <div class="header-cell">Status</div>
                   </div>
-                  
-                  <!-- Table Rows -->
-                  <div class="request-row" *ngFor="let user of paginatedUsers" 
+
+                  <div class="request-row" *ngFor="let user of paginatedUsers"
                        [class.active]="selectedUser?.id === user.id"
                        (click)="selectUserForDetail(user)">
                     <div class="row-name">
-                      {{ user.firstName }} {{ user.lastName }}
+                      {{ user.firstName }} {{ user.middleName ? user.middleName + ' ' : '' }}{{ user.lastName }}
                     </div>
                     <div class="row-role">
                       <span class="role-badge" [ngClass]="user.userType?.toLowerCase()">
@@ -287,6 +275,9 @@
                     </div>
                     <div class="row-department">
                       {{ getDepartmentName(user.department) }}
+                    </div>
+                    <div class="row-birthdate">
+                      {{ user.birthdate ? (user.birthdate | date:'MMM dd, yyyy') : 'â€”' }}
                     </div>
                     <div class="row-submitted">
                       {{ user.joinDate || user.createdAt | date: 'MMM dd, yyyy' }}
@@ -300,7 +291,6 @@
                 </div>
               </div>
 
-              <!-- Pagination Controls -->
               <div class="pagination-controls" *ngIf="totalPages > 1">
                 <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage === 1">
                   <ion-icon name="chevron-back"></ion-icon>
@@ -326,14 +316,12 @@
               </div>
             </div>
 
-            <!-- Right Panel: User Detail -->
             <div class="detail-panel" *ngIf="selectedUser">
               <div class="detail-header">
                 <h3>User Details</h3>
               </div>
 
               <div class="detail-content">
-                <!-- Profile Section -->
                 <div class="profile-section profile-section-horizontal">
                   <div class="profile-avatar-lg">
                     {{ (selectedUser.firstName?.charAt(0) || 'U').toUpperCase() }}
@@ -352,7 +340,6 @@
                   </div>
                 </div>
 
-                <!-- Info Grid -->
                 <div class="info-grid">
                   <div class="info-item">
                     <label>Department</label>
@@ -361,6 +348,14 @@
                   <div class="info-item">
                     <label>Student/Alumni ID</label>
                     <p>{{ selectedUser.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Middle Name</label>
+                    <p>{{ selectedUser.middleName || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item">
+                    <label>Date of Birth</label>
+                    <p>{{ selectedUser.birthdate ? (selectedUser.birthdate | date:'MMMM d, yyyy') : 'N/A' }}</p>
                   </div>
                   <div class="info-item" *ngIf="selectedUser.userType === 'student'">
                     <label>Course</label>
@@ -384,7 +379,6 @@
                   </div>
                 </div>
 
-                <!-- Alumni ID Preview -->
                 <div class="alumni-id-preview" *ngIf="selectedUser.userType === 'alumni' && hasAlumniImage(selectedUser)">
                   <label>Uploaded Alumni ID</label>
                   <img
@@ -398,7 +392,6 @@
                   </p>
                 </div>
 
-                <!-- Admin Notes -->
                 <div class="notes-section">
                   <label>Admin Notes</label>
                   <textarea 
@@ -408,7 +401,6 @@
                   </textarea>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="action-buttons">
                   <button class="btn btn-approve" (click)="approveUser(selectedUser.id)">
                     <ion-icon name="checkmark-circle"></ion-icon>
@@ -425,7 +417,6 @@
                 </div>
               </div>
 
-              <!-- Expanded Image View -->
               <div class="expanded-view" *ngIf="expandedAlumniId === selectedUser.id" (click)="expandedAlumniId = null">
                 <div class="expanded-container" (click)="$event.stopPropagation()">
                   <button class="close-btn" (click)="expandedAlumniId = null">
@@ -438,7 +429,6 @@
           </div>
         </section>
 
-        <!-- Departments Tab -->
         <section class="tab-content" *ngIf="activeTab === 'departments'">
           <div class="departments-admin-hero">
             <div>
@@ -452,7 +442,6 @@
             </button>
           </div>
 
-          <!-- Search Bar -->
           <div class="department-search-container">
             <div class="search-input-wrapper">
               <ion-icon name="search"></ion-icon>
@@ -503,7 +492,6 @@
             </div>
           </div>
 
-          <!-- Add Department Form -->
           <div class="form-card department-form-card" *ngIf="showDepartmentForm">
             <div class="form-card-header">
               <div class="form-card-icon">
@@ -531,7 +519,6 @@
             </div>
           </div>
 
-          <!-- Departments List -->
           <div class="departments-grid admin-departments-grid">
             <div class="department-card admin-department-card" *ngFor="let dept of filteredDepartments">
               <div class="dept-header">
@@ -560,14 +547,12 @@
                 </div>
               </div>
 
-              <!-- Courses List -->
               <div class="courses-section">
                 <div class="courses-header">
                   <span class="courses-label">Courses</span>
                   <span class="courses-count">{{ dept.courses.length }}</span>
                 </div>
 
-                <!-- Add Course Form -->
                 <div class="add-course-form" *ngIf="selectedDepartmentId === dept.id && showCourseForm">
                   <input
                     type="text"
@@ -581,7 +566,6 @@
                   </button>
                 </div>
 
-                <!-- Courses List -->
                 <div class="courses-list">
                   <div class="course-item" *ngFor="let course of dept.courses; let i = index">
                     <span class="course-name">
@@ -607,7 +591,6 @@
           </div>
         </section>
 
-        <!-- Alumni Tab -->
         <section class="tab-content" *ngIf="activeTab === 'alumni'">
           <div class="section-header">
             <h3>Alumni Management</h3>
@@ -619,7 +602,6 @@
             </div>
           </div>
 
-          <!-- Create Account Form (Admin-populated user) -->
           <div class="form-card create-user-card" *ngIf="showCreateUserForm">
             <div class="form-card-header">
               <div class="form-card-icon">
@@ -631,7 +613,6 @@
               </div>
             </div>
 
-            <!-- User Type Toggle -->
             <div class="form-group">
               <label class="form-label">Account Type</label>
               <div class="user-type-toggle">
@@ -696,7 +677,6 @@
             </button>
           </div>
 
-          <!-- Add/Edit Alumni Form -->
           <div class="form-card" *ngIf="showAlumniForm">
             <h4>{{ editingAlumniId ? 'Edit Alumni' : 'New Alumni' }}</h4>
             <div class="form-group">
@@ -753,7 +733,6 @@
             </button>
           </div>
 
-          <!-- Alumni Search & Filter -->
           <div class="filter-section">
             <div class="filter-group">
               <input
@@ -789,7 +768,6 @@
             </div>
           </div>
 
-          <!-- Export Bar -->
           <div class="export-bar" *ngIf="filteredAlumni.length > 0">
             <span class="export-label">
               <ion-icon name="people"></ion-icon>
@@ -803,16 +781,16 @@
             </div>
           </div>
 
-          <!-- Alumni Table & Detail Panel Container -->
           <div class="table-and-detail-container" *ngIf="filteredAlumni.length > 0">
-            <!-- Alumni Table -->
             <div class="table-wrapper">
               <table class="alumni-table">
                 <thead>
                   <tr>
                     <th>Student Number</th>
                     <th>Name</th>
+                    <th>Middle Name</th>
                     <th>Email</th>
+                    <th>Birthdate</th>
                     <th>Mobile</th>
                     <th>Sex</th>
                     <th>Address</th>
@@ -831,13 +809,15 @@
                       (click)="selectAlumniForDetail(alumnus)">
                     <td>{{ alumnus.studentNumber }}</td>
                     <td>{{ alumnus.name }}</td>
+                    <td>{{ alumnus.middleName || 'â€”' }}</td>
                     <td>{{ alumnus.email }}</td>
-                    <td>{{ alumnus.contactNumber || '—' }}</td>
-                    <td>{{ alumnus.gender || '—' }}</td>
-                    <td class="address-cell">{{ alumnus.address || '—' }}</td>
+                    <td>{{ alumnus.birthdate ? (alumnus.birthdate | date:'MMM dd, yyyy') : 'â€”' }}</td>
+                    <td>{{ alumnus.contactNumber || 'â€”' }}</td>
+                    <td>{{ alumnus.gender || 'â€”' }}</td>
+                    <td class="address-cell">{{ alumnus.address || 'â€”' }}</td>
                     <td>{{ getDepartmentName(alumnus.department) }}</td>
                     <td>{{ alumnus.course }}</td>
-                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '—' }}</td>
+                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : 'â€”' }}</td>
                     <td>
                       <span class="type-badge" [class.alumni]="alumnus.userType === 'alumni'" [class.student]="alumnus.userType === 'student'">
                         {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
@@ -864,7 +844,6 @@
               </table>
             </div>
 
-            <!-- Alumni Detail Panel -->
             <div class="detail-panel alumni-detail-panel" *ngIf="selectedAlumni">
               <div class="detail-header">
                 <h3>Alumni Details</h3>
@@ -874,7 +853,6 @@
               </div>
 
               <div class="detail-content">
-                <!-- Profile Section -->
                 <div class="profile-section">
                   <div class="profile-avatar-lg">
                     {{ (selectedAlumni.name?.charAt(0) || 'A').toUpperCase() }}
@@ -891,11 +869,14 @@
                   </div>
                 </div>
 
-                <!-- Info Grid -->
                 <div class="info-grid">
                   <div class="info-item">
                     <label>Student/Alumni ID</label>
                     <p>{{ selectedAlumni.studentNumber || 'N/A' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.middleName">
+                    <label>Middle Name</label>
+                    <p>{{ selectedAlumni.middleName }}</p>
                   </div>
                   <div class="info-item">
                     <label>Department</label>
@@ -911,15 +892,19 @@
                   </div>
                   <div class="info-item">
                     <label>Mobile Number</label>
-                    <p>{{ selectedAlumni.contactNumber || '—' }}</p>
+                    <p>{{ selectedAlumni.contactNumber || 'â€”' }}</p>
                   </div>
                   <div class="info-item">
                     <label>Sex</label>
-                    <p>{{ selectedAlumni.gender || '—' }}</p>
+                    <p>{{ selectedAlumni.gender || 'â€”' }}</p>
+                  </div>
+                  <div class="info-item" *ngIf="selectedAlumni.birthdate">
+                    <label>Date of Birth</label>
+                    <p>{{ selectedAlumni.birthdate | date:'MMMM d, yyyy' }}</p>
                   </div>
                   <div class="info-item">
                     <label>Address</label>
-                    <p>{{ selectedAlumni.address || '—' }}</p>
+                    <p>{{ selectedAlumni.address || 'â€”' }}</p>
                   </div>
                   <div class="info-item" *ngIf="selectedAlumni.source === 'registered'">
                     <label>Status</label>
@@ -935,7 +920,6 @@
                   </div>
                 </div>
 
-                <!-- Work Experience -->
                 <div class="work-exp-section" *ngIf="selectedAlumni.workExperiences?.length > 0">
                   <h4>
                     <ion-icon name="briefcase-outline"></ion-icon>
@@ -949,14 +933,13 @@
                       </div>
                       <span class="work-company">{{ job.company }}</span>
                       <span class="work-years">
-                        {{ job.startYear }}–{{ job.isCurrent ? 'Present' : job.endYear }}
+                        {{ job.startYear }}â€“{{ job.isCurrent ? 'Present' : job.endYear }}
                       </span>
                       <p class="work-desc" *ngIf="job.description">{{ job.description }}</p>
                     </div>
                   </div>
                 </div>
 
-                <!-- Role Assignment — inline, alumni only -->
                 <div class="role-management-section" *ngIf="selectedAlumni.source === 'registered' && selectedAlumni.userType === 'alumni'">
                   <h4>
                     <ion-icon name="shield-checkmark"></ion-icon>
@@ -981,7 +964,6 @@
                   </button>
                 </div>
 
-                <!-- Points Management -->
                 <div class="points-mgmt-section" *ngIf="selectedAlumni.source === 'registered'">
                   <h4 class="points-mgmt-title">
                     <ion-icon name="star-outline"></ion-icon>
@@ -998,7 +980,6 @@
                   </div>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="action-buttons">
                   <button class="btn btn-edit" *ngIf="selectedAlumni.source === 'manual'" (click)="editAlumni(selectedAlumni.id)">
                     <ion-icon name="pencil"></ion-icon>
@@ -1023,7 +1004,6 @@
             </div>
           </div>
 
-          <!-- Empty State -->
           <div class="empty-state" *ngIf="filteredAlumni.length === 0">
             <ion-icon name="people" class="empty-icon"></ion-icon>
             <h4>No Alumni Records</h4>
@@ -1032,10 +1012,8 @@
 
         </section>
 
-        <!-- Manage Events Tab -->
         <section class="tab-content" *ngIf="activeTab === 'events'">
 
-          <!-- Header -->
           <div class="section-header">
             <h3>Manage Events</h3>
             <button class="btn btn-primary" (click)="toggleEventForm()">
@@ -1044,7 +1022,6 @@
             </button>
           </div>
 
-          <!-- Event Form -->
           <div class="form-card event-form-card" *ngIf="showEventForm">
             <div class="form-card-header">
               <div class="form-card-icon">
@@ -1056,19 +1033,16 @@
               </div>
             </div>
 
-            <!-- Title -->
             <div class="form-group">
               <label class="form-label">Event Title <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newEvent.title" placeholder="e.g. Alumni Homecoming 2025" class="form-input" />
             </div>
 
-            <!-- Description -->
             <div class="form-group">
               <label class="form-label">Description <span class="required">*</span></label>
               <textarea [(ngModel)]="newEvent.description" placeholder="Describe the event..." class="form-input event-textarea" rows="3"></textarea>
             </div>
 
-            <!-- Date + Time -->
             <div class="form-row-inline">
               <div class="form-group">
                 <label class="form-label">Date <span class="required">*</span></label>
@@ -1080,13 +1054,11 @@
               </div>
             </div>
 
-            <!-- Location -->
             <div class="form-group">
               <label class="form-label">Location <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newEvent.location" placeholder="e.g. USJ-R Gymnasium" class="form-input" />
             </div>
 
-            <!-- Event Type + Max Participants -->
             <div class="form-row-inline">
               <div class="form-group">
                 <label class="form-label">Event Type</label>
@@ -1103,7 +1075,6 @@
               </div>
             </div>
 
-            <!-- Event Category + Points -->
             <div class="form-row-inline">
               <div class="form-group">
                 <label class="form-label">Event Category <span class="points-badge-hint">affects points awarded</span></label>
@@ -1122,7 +1093,6 @@
               </div>
             </div>
 
-            <!-- Cover Image -->
             <div class="form-group">
               <label class="form-label">Cover Image <span class="optional-label">(optional, max 2MB)</span></label>
               <div class="cover-upload-area" *ngIf="!hasNewEventCover()">
@@ -1143,7 +1113,6 @@
               </div>
             </div>
 
-            <!-- Submit -->
             <button class="btn btn-primary btn-create-submit" (click)="saveEvent()" [disabled]="isSubmittingEvent">
               <ion-spinner name="crescent" *ngIf="isSubmittingEvent"></ion-spinner>
               <ion-icon name="checkmark-circle" *ngIf="!isSubmittingEvent"></ion-icon>
@@ -1151,19 +1120,16 @@
             </button>
           </div>
 
-          <!-- Events Summary -->
           <div class="events-summary" *ngIf="events.length > 0">
             <span class="events-count">{{ events.length }} event{{ events.length !== 1 ? 's' : '' }} total</span>
           </div>
 
-          <!-- Events Grid -->
           <div class="events-grid" *ngIf="events.length > 0">
             <div class="event-admin-card" *ngFor="let ev of events"
                  [class.active]="selectedEvent?.id === ev.id"
                  [class.past]="isEventPast(ev)"
                  (click)="selectEventDetail(ev)">
 
-              <!-- Cover -->
               <div class="event-admin-cover">
                 <img [src]="getEventCoverSrc(ev)" *ngIf="hasEventCover(ev)" alt="" class="event-admin-cover-img" />
                 <div class="event-admin-cover-placeholder" *ngIf="!hasEventCover(ev)">
@@ -1174,13 +1140,12 @@
                 <span class="event-past-pill" *ngIf="isEventPast(ev)">Past</span>
               </div>
 
-              <!-- Info -->
               <div class="event-admin-info">
                 <h4 class="event-admin-title">{{ ev.title }}</h4>
                 <p class="event-admin-meta">
                   <ion-icon name="calendar-outline"></ion-icon>
                   {{ formatEventDate(ev) }}
-                  <span *ngIf="ev.time"> · {{ formatEventTime(ev) }}</span>
+                  <span *ngIf="ev.time"> Â· {{ formatEventTime(ev) }}</span>
                 </p>
                 <p class="event-admin-meta" *ngIf="ev.location">
                   <ion-icon name="location-outline"></ion-icon>
@@ -1203,14 +1168,12 @@
                 </div>
               </div>
 
-              <!-- Expanded detail panel -->
               <div class="event-admin-detail" *ngIf="selectedEvent?.id === ev.id" (click)="$event.stopPropagation()">
                 <p class="event-detail-desc">{{ ev.description }}</p>
                 <p class="event-detail-meta" *ngIf="ev.maxParticipants">
                   <strong>Max Participants:</strong> {{ ev.maxParticipants }}
                 </p>
 
-                <!-- QR Code button -->
                 <div class="qr-action-row">
                   <button class="btn-show-qr" (click)="showEventQR(ev)">
                     <ion-icon name="qr-code-outline"></ion-icon>
@@ -1222,14 +1185,12 @@
                   </span>
                 </div>
 
-                <!-- Participants toggle -->
                 <button class="btn-participants-toggle" (click)="toggleParticipants(ev)">
                   <ion-icon name="people"></ion-icon>
                   {{ showParticipantsForEvent === ev.id ? 'Hide' : 'View' }} Participants
                   <span class="participants-count-pill">{{ ev.attendees?.length || 0 }}</span>
                 </button>
 
-                <!-- Participants list -->
                 <div class="participants-panel" *ngIf="showParticipantsForEvent === ev.id">
                   <div class="participants-loading" *ngIf="loadingParticipants">
                     <ion-spinner name="crescent"></ion-spinner>
@@ -1260,22 +1221,19 @@
             </div>
           </div>
 
-          <!-- Empty State -->
           <div class="empty-state" *ngIf="events.length === 0 && !showEventForm">
             <ion-icon name="calendar" class="empty-icon"></ion-icon>
             <h4>No Events Yet</h4>
-            <p>Create your first event — it will be published to the Feeds page immediately.</p>
+            <p>Create your first event â€” it will be published to the Feeds page immediately.</p>
           </div>
 
         </section>
 
-        <!-- Alumni ID Verification Tab -->
         <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
           <div class="section-header">
             <h3>Alumni ID Verification</h3>
           </div>
 
-          <!-- Verification Summary Stats -->
           <div class="summary-cards verification-summary">
             <div class="stat-card">
               <div class="stat-icon pending">
@@ -1297,7 +1255,6 @@
             </div>
           </div>
 
-          <!-- Pending Section -->
           <div class="verif-section-label">
             <ion-icon name="hourglass-outline"></ion-icon>
             Pending Review
@@ -1317,16 +1274,16 @@
 
               <div class="verification-body">
                 <div class="alumni-id-container" *ngIf="hasAlumniImage(alumnus)">
+                  <p class="file-name" style="margin-bottom:6px;">
+                    <ion-icon name="image-outline"></ion-icon>
+                    Graduation Photo
+                  </p>
                   <img
                     [src]="getImageSafeUrl(getAlumniImageUrl(alumnus))"
-                    alt="Alumni ID"
+                    alt="Graduation Photo"
                     class="alumni-id-image"
                     (click)="expandedAlumniId = expandedAlumniId === alumnus.id ? null : alumnus.id"
                   />
-                  <p class="file-name" *ngIf="alumnus.alumniIdFileName">
-                    <ion-icon name="document"></ion-icon>
-                    {{ alumnus.alumniIdFileName }}
-                  </p>
                 </div>
 
                 <div class="expanded-view" *ngIf="expandedAlumniId === alumnus.id" (click)="expandedAlumniId = null">
@@ -1334,8 +1291,17 @@
                     <button class="close-btn" (click)="expandedAlumniId = null">
                       <ion-icon name="close"></ion-icon>
                     </button>
-                    <img [src]="getImageSafeUrl(getAlumniImageUrl(alumnus))" alt="Alumni ID - Expanded" class="expanded-image" />
+                    <img [src]="getImageSafeUrl(getAlumniImageUrl(alumnus))" alt="Graduation Photo - Expanded" class="expanded-image" />
                   </div>
+                </div>
+
+                <div class="verif-meta" *ngIf="alumnus.alumniTermGraduated" style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:13px;">
+                  <ion-icon name="calendar-outline"></ion-icon>
+                  <span>Term Graduated: <strong>{{ alumnus.alumniTermGraduated }}</strong></span>
+                </div>
+                <div class="verif-meta" *ngIf="alumnus.alumniSocialMedia" style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:13px;">
+                  <ion-icon name="share-social-outline"></ion-icon>
+                  <a [href]="alumnus.alumniSocialMedia" target="_blank" rel="noopener noreferrer" style="color:#1a6fbd;word-break:break-all;">{{ alumnus.alumniSocialMedia }}</a>
                 </div>
               </div>
 
@@ -1362,7 +1328,6 @@
             <p>All submitted alumni IDs have been reviewed.</p>
           </div>
 
-          <!-- Verified Alumni List -->
           <div class="verif-section-label verif-section-label--verified">
             <ion-icon name="shield-checkmark-outline"></ion-icon>
             Verified Alumni
@@ -1376,7 +1341,7 @@
                 <input
                   type="text"
                   [(ngModel)]="verifiedAlumniSearch"
-                  placeholder="Search by name, email, student no. or department…"
+                  placeholder="Search by name, email, student no. or departmentâ€¦"
                   class="search-input"
                 />
                 <button *ngIf="verifiedAlumniSearch" class="clear-search-btn" (click)="verifiedAlumniSearch = ''">
@@ -1406,9 +1371,9 @@
                   </td>
                   <td>{{ a.email }}</td>
                   <td>{{ getDepartmentName(a.department) }}</td>
-                  <td>{{ a.graduationYear || '—' }}</td>
-                  <td>{{ a.studentNumber || '—' }}</td>
-                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : '—' }}</td>
+                  <td>{{ a.graduationYear || 'â€”' }}</td>
+                  <td>{{ a.studentNumber || 'â€”' }}</td>
+                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : 'â€”' }}</td>
                 </tr>
                 <tr *ngIf="filteredVerifiedAlumni.length === 0">
                   <td colspan="6" class="verif-no-results">
@@ -1429,10 +1394,8 @@
 
         </section>
 
-        <!-- ── Attendance Dashboard Tab ──────────────────────── -->
         <section class="tab-content att-tab" *ngIf="activeTab === 'attendance'">
 
-          <!-- Leaderboard -->
           <div class="ldb-card">
             <div class="ldb-header">
               <div>
@@ -1471,19 +1434,17 @@
             </div>
           </div>
 
-          <!-- Event Selector -->
           <div class="att-selector-bar">
             <div class="att-selector-label">
               <ion-icon name="calendar-outline"></ion-icon>
               <span>Select Event</span>
             </div>
             <select class="att-event-select" [(ngModel)]="activeDashboardEventId" (change)="selectDashboardEvent(activeDashboardEventId)">
-              <option value="">— Choose an event to view attendance —</option>
-              <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} · {{ formatEventDate(ev) }}</option>
+              <option value="">â€” Choose an event to view attendance â€”</option>
+              <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} Â· {{ formatEventDate(ev) }}</option>
             </select>
           </div>
 
-          <!-- Empty state -->
           <div class="att-empty-state" *ngIf="!dashboardEvent">
             <div class="att-empty-icon"><ion-icon name="scan-circle-outline"></ion-icon></div>
             <h3>No Event Selected</h3>
@@ -1492,15 +1453,13 @@
 
           <ng-container *ngIf="dashboardEvent">
 
-            <!-- Loading -->
             <div class="att-loading-state" *ngIf="isLoadingDashboard">
               <ion-spinner name="crescent" color="primary"></ion-spinner>
-              <p>Loading attendance data…</p>
+              <p>Loading attendance dataâ€¦</p>
             </div>
 
             <ng-container *ngIf="!isLoadingDashboard">
 
-              <!-- Event Summary Card -->
               <div class="att-event-card">
                 <div class="att-event-thumb" [class.att-thumb-placeholder]="!hasEventCover(dashboardEvent)">
                   <img *ngIf="hasEventCover(dashboardEvent)" [src]="getEventCoverSrc(dashboardEvent)" [alt]="dashboardEvent.title">
@@ -1530,7 +1489,6 @@
                 </button>
               </div>
 
-              <!-- Statistics -->
               <div class="att-stats-grid">
                 <div class="att-stat-card att-stat-blue">
                   <div class="att-stat-icon-wrap">
@@ -1570,7 +1528,6 @@
                 </div>
               </div>
 
-              <!-- Rate Progress Bar -->
               <div class="att-rate-bar-card">
                 <div class="att-rate-bar-header">
                   <span>Attendance Rate</span>
@@ -1581,7 +1538,6 @@
                 </div>
               </div>
 
-              <!-- Line Chart -->
               <div class="att-chart-card">
                 <div class="att-chart-head">
                   <div>
@@ -1621,7 +1577,6 @@
                 </div>
               </div>
 
-              <!-- Attendees Table -->
               <div class="att-table-card">
                 <div class="att-table-head">
                   <div class="att-table-title-wrap">
@@ -1631,7 +1586,7 @@
                   <div class="att-table-controls">
                     <div class="att-search-box">
                       <ion-icon name="search-outline"></ion-icon>
-                      <input type="text" placeholder="Search name…" [(ngModel)]="dashboardSearch" (input)="filterDashboardList()" class="att-search-input">
+                      <input type="text" placeholder="Search nameâ€¦" [(ngModel)]="dashboardSearch" (input)="filterDashboardList()" class="att-search-input">
                     </div>
                     <select class="att-status-filter" [(ngModel)]="dashboardStatusFilter" (change)="filterDashboardList()">
                       <option value="all">All Status</option>
@@ -1665,8 +1620,8 @@
                           <span class="att-name-text">{{ u.name }}</span>
                         </td>
                         <td class="att-course-col">
-                          <span class="att-course">{{ u.course || '—' }}</span>
-                          <span class="att-dept">{{ getDepartmentName(u.department) || '—' }}</span>
+                          <span class="att-course">{{ u.course || 'â€”' }}</span>
+                          <span class="att-dept">{{ getDepartmentName(u.department) || 'â€”' }}</span>
                         </td>
                         <td>
                           <span class="att-role-pill" [class.role-alumni]="u.userType === 'alumni'" [class.role-student]="u.userType === 'student'">
@@ -1698,11 +1653,9 @@
   </div>
 </div>
 
-<!-- ── QR Code Modal Overlay ───────────────────────────────── -->
 <div class="qr-overlay" *ngIf="showQRModal" (click)="closeQRModal()">
   <div class="qr-modal" (click)="$event.stopPropagation()">
 
-    <!-- Header -->
     <div class="qr-modal-header">
       <div class="qr-modal-title-group">
         <ion-icon name="qr-code-outline" class="qr-header-icon"></ion-icon>
@@ -1716,7 +1669,6 @@
       </button>
     </div>
 
-    <!-- Event meta -->
     <div class="qr-event-meta">
       <span *ngIf="qrModalEvent?.date">
         <ion-icon name="calendar-outline"></ion-icon>
@@ -1732,22 +1684,19 @@
       </span>
     </div>
 
-    <!-- QR Image -->
     <div class="qr-image-wrap">
       <div class="qr-generating" *ngIf="isGeneratingQR">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Generating QR…</p>
+        <p>Generating QRâ€¦</p>
       </div>
       <img *ngIf="!isGeneratingQR && qrCodeDataUrl" [src]="qrCodeDataUrl" alt="Event QR Code" class="qr-image" />
     </div>
 
-    <!-- Validity note -->
     <p class="qr-validity-note" *ngIf="!isGeneratingQR">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
-      Valid only on the event date · Registered users only
+      Valid only on the event date Â· Registered users only
     </p>
 
-    <!-- Stats row -->
     <div class="qr-stats-row">
       <div class="qr-stat">
         <span class="qr-stat-num">{{ qrModalEvent?.attendees?.length || 0 }}</span>
@@ -1767,7 +1716,6 @@
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="qr-actions">
       <button class="qr-btn-refresh" (click)="refreshQRCode()" [disabled]="isGeneratingQR">
         <ion-icon name="refresh-outline"></ion-icon>
@@ -1779,11 +1727,10 @@
       </button>
     </div>
 
-    <!-- Attendance list -->
     <div class="qr-attendance-list" *ngIf="showAttendanceInModal">
       <div class="qr-attendance-loading" *ngIf="isLoadingAttendance">
         <ion-spinner name="crescent"></ion-spinner>
-        <span>Loading attendance…</span>
+        <span>Loading attendanceâ€¦</span>
       </div>
 
       <div class="qr-attendance-empty" *ngIf="!isLoadingAttendance && attendanceList.length === 0">

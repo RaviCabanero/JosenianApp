@@ -34,22 +34,24 @@ export class AuthService {
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();
 
-    // Listen to authentication state changes
+
     onAuthStateChanged(this.auth, (user: User | null) => {
       this.currentUserSubject.next(user);
       console.log('User auth state changed:', user?.email);
     });
   }
 
-  // ==================== AUTHENTICATION ====================
 
-  // Register new user with profile data
+
+
   async registerWithProfile(
     email: string,
     password: string,
     profileData: {
       firstName: string;
       lastName: string;
+      middleName?: string;
+      birthdate?: string;
       userType: 'student' | 'alumni';
       studentNumber?: string;
       department: string;
@@ -69,6 +71,8 @@ export class AuthService {
         email: email,
         firstName: profileData.firstName,
         lastName: profileData.lastName,
+        middleName: profileData.middleName || '',
+        birthdate: profileData.birthdate || '',
         userType: profileData.userType,
         studentNumber: profileData.studentNumber || '',
         department: profileData.department,
@@ -91,10 +95,10 @@ export class AuthService {
         userData.alumniIdVerificationStatus = profileData.alumniIdVerificationStatus || 'pending';
       }
 
-      // Create user profile in Firestore with all data
+
       await setDoc(doc(this.firestore, 'users', uid), userData);
 
-      // Automatically add user as member to their selected department
+
       await this.addMemberToDepartment(
         profileData.department,
         uid,
@@ -115,15 +119,15 @@ export class AuthService {
     }
   }
 
-  // Register new user (basic)
+
   async register(email: string, password: string): Promise<any> {
     try {
       const result = await createUserWithEmailAndPassword(this.auth, email, password);
       
-      // Create user profile in Firestore
+
       await setDoc(doc(this.firestore, 'users', result.user.uid), {
         email: email,
-        role: 'user', // Default role
+        role: 'user',
         status: 'pending',
         createdAt: new Date(),
         displayName: '',
@@ -135,15 +139,15 @@ export class AuthService {
     }
   }
 
-  // Login user
+
   async login(email: string, password: string): Promise<any> {
     try {
       const result = await signInWithEmailAndPassword(this.auth, email, password);
       
-      // Verify user exists and is registered
+
       const userDoc = await getDoc(doc(this.firestore, 'users', result.user.uid));
       if (!userDoc.exists()) {
-        // User exists in Auth but not in Firestore - create profile
+
         await setDoc(doc(this.firestore, 'users', result.user.uid), {
           email: email,
           role: 'user',
@@ -153,7 +157,7 @@ export class AuthService {
         });
       }
       
-      // Check user status
+
       const userData = userDoc.exists() ? userDoc.data() : await getDoc(doc(this.firestore, 'users', result.user.uid)).then(d => d.data());
       const userStatus = userData?.['status'] || 'pending';
       
@@ -173,12 +177,12 @@ export class AuthService {
     }
   }
 
-  // Admin login
+
   async adminLogin(email: string, password: string): Promise<any> {
     try {
       const result = await signInWithEmailAndPassword(this.auth, email, password);
       
-      // Check if user has admin role
+
       const userDoc = await getDoc(doc(this.firestore, 'users', result.user.uid));
       
       if (!userDoc.exists()) {
@@ -198,9 +202,9 @@ export class AuthService {
     }
   }
 
-  // ==================== USER MANAGEMENT ====================
 
-  // Get pending users from Firestore (for admin approval)
+
+
   async getPendingUsers(): Promise<any[]> {
     try {
       const q = query(
@@ -233,7 +237,7 @@ export class AuthService {
     }
   }
 
-  // Get all users (for statistics)
+
   async getAllUsers(): Promise<any[]> {
     try {
       const q = query(collection(this.firestore, 'users'));
@@ -256,9 +260,9 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENTS & COURSES ====================
 
-  // Get all departments from Firestore
+
+
   async getDepartments(): Promise<any[]> {
     try {
       const querySnapshot = await getDocs(collection(this.firestore, 'departments'));
@@ -275,7 +279,7 @@ export class AuthService {
         });
       });
       
-      // Sort by name
+
       departments.sort((a, b) => a.name.localeCompare(b.name));
       
       return departments;
@@ -285,7 +289,7 @@ export class AuthService {
     }
   }
 
-  // Add new department to Firestore
+
   async addDepartment(departmentName: string): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'departments'), {
@@ -308,12 +312,12 @@ export class AuthService {
     }
   }
 
-  // Rename a department
+
   async updateDepartment(departmentId: string, newName: string): Promise<void> {
     await updateDoc(doc(this.firestore, 'departments', departmentId), { name: newName });
   }
 
-  // Delete department from Firestore
+
   async deleteDepartment(departmentId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'departments', departmentId));
@@ -324,7 +328,7 @@ export class AuthService {
     }
   }
 
-  // Add course to a department
+
   async addCourse(departmentId: string, courseName: string): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -345,7 +349,7 @@ export class AuthService {
     }
   }
 
-  // Rename a course in a department
+
   async updateCourse(departmentId: string, courseIndex: number, newName: string): Promise<void> {
     const deptRef = doc(this.firestore, 'departments', departmentId);
     const deptDoc = await getDoc(deptRef);
@@ -356,7 +360,7 @@ export class AuthService {
     }
   }
 
-  // Delete course from a department
+
   async deleteCourse(departmentId: string, courseIndex: number): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -377,7 +381,7 @@ export class AuthService {
     }
   }
 
-  // Get courses for a specific department
+
   async getCoursesByDepartment(departmentId: string): Promise<string[]> {
     try {
       const deptDoc = await getDoc(doc(this.firestore, 'departments', departmentId));
@@ -391,7 +395,7 @@ export class AuthService {
     }
   }
 
-  // Add member to a department
+
   async addMemberToDepartment(
     departmentId: string,
     userId: string,
@@ -412,7 +416,7 @@ export class AuthService {
       if (deptDoc.exists()) {
         const members = deptDoc.data()['members'] || [];
         
-        // Check if user is already a member
+
         const memberExists = members.some((m: any) => m.userId === userId);
         
         if (!memberExists) {
@@ -439,7 +443,7 @@ export class AuthService {
     }
   }
 
-  // Get members of a department
+
   async getDepartmentMembers(departmentId: string): Promise<any[]> {
     try {
       const deptDoc = await getDoc(doc(this.firestore, 'departments', departmentId));
@@ -453,7 +457,7 @@ export class AuthService {
     }
   }
 
-  // Remove member from department
+
   async removeMemberFromDepartment(departmentId: string, userId: string): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -472,7 +476,7 @@ export class AuthService {
     }
   }
 
-  // ==================== ADMIN USER CREATION ====================
+
 
   async adminCreateUser(
     email: string,
@@ -538,16 +542,16 @@ export class AuthService {
     return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
-  // ==================== ADMIN CHECKS ====================
 
-  // ==================== ALUMNI MANAGEMENT ====================
 
-  // Get alumni and student records for the admin management list
+
+
+
   async getAlumni(): Promise<any[]> {
     try {
       const alumniList: any[] = [];
       
-      // Fetch registered student and alumni users from the users collection
+
       const q = query(collection(this.firestore, 'users'));
       
       const querySnapshot = await getDocs(q);
@@ -577,7 +581,7 @@ export class AuthService {
         });
       });
 
-      // Also fetch manually managed alumni from the alumni collection
+
       try {
         const manualAlumniSnapshot = await getDocs(collection(this.firestore, 'alumni'));
         manualAlumniSnapshot.forEach((doc) => {
@@ -596,11 +600,11 @@ export class AuthService {
           });
         });
       } catch (error) {
-        // Alumni collection might not exist, that's okay
+
         console.log('Alumni collection not found or empty');
       }
       
-      // Sort by batch (newest first), then by name
+
       alumniList.sort((a, b) => {
         const batchA = parseInt(a.batch) || 0;
         const batchB = parseInt(b.batch) || 0;
@@ -616,7 +620,7 @@ export class AuthService {
     }
   }
 
-  // Add new alumni to Firestore
+
   async addAlumni(alumniData: any): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'alumni'), {
@@ -642,7 +646,7 @@ export class AuthService {
     }
   }
 
-  // Update alumni record in Firestore
+
   async updateAlumni(alumniId: string, alumniData: any): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'alumni', alumniId), {
@@ -661,7 +665,7 @@ export class AuthService {
     }
   }
 
-  // Delete alumni record from Firestore
+
   async deleteAlumni(alumniId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'alumni', alumniId));
@@ -672,7 +676,7 @@ export class AuthService {
     }
   }
 
-  // Delete a registered user's Firestore document (admin action)
+
   async deleteRegisteredUser(userId: string): Promise<void> {
     const userSnap = await getDoc(doc(this.firestore, 'users', userId));
     const departmentId: string = userSnap.data()?.['department'] || '';
@@ -682,7 +686,7 @@ export class AuthService {
     await deleteDoc(doc(this.firestore, 'users', userId));
   }
 
-  // Get alumni by search criteria
+
   async searchAlumni(searchTerm: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -697,7 +701,7 @@ export class AuthService {
     }
   }
 
-  // Get alumni by department
+
   async getAlumniByDepartment(department: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -708,7 +712,7 @@ export class AuthService {
     }
   }
 
-  // Get alumni by batch
+
   async getAlumniByBatch(batch: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -719,9 +723,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ADMIN CHECKS ====================
 
-  // Check if current user is admin
+
+
   async isAdmin(): Promise<boolean> {
     const user = this.currentUserSubject.value;
     if (!user) return false;
@@ -735,7 +739,7 @@ export class AuthService {
     }
   }
 
-  // Get user role
+
   async getUserRole(uid: string): Promise<string> {
     try {
       const userDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -746,7 +750,7 @@ export class AuthService {
     }
   }
 
-  // Update user role (e.g., to HOD, admin, or user)
+
   async updateUserRole(uid: string, newRole: string): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'users', uid), {
@@ -760,19 +764,19 @@ export class AuthService {
     }
   }
 
-  // ==================== AUTH STATE ====================
 
-  // Logout user
+
+
   async logout(): Promise<void> {
     return signOut(this.auth);
   }
 
-  // Get current user
+
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  // Check if user is logged in
+
   isLoggedIn(): boolean {
     return this.currentUserSubject.value !== null;
   }
@@ -788,7 +792,7 @@ export class AuthService {
     }
   }
 
-  // Get user profile from Firestore
+
   async getUserProfile(uid: string): Promise<any> {
     try {
       const userDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -802,7 +806,7 @@ export class AuthService {
     }
   }
 
-  // Update user profile
+
   async updateUserProfile(uid: string, data: any): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'users', uid), data);
@@ -813,9 +817,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ERROR HANDLING ====================
 
-  // Handle Firebase auth errors
+
+
   private handleAuthError(error: AuthError): Error {
     console.error('Auth error:', error.code);
     
@@ -837,7 +841,7 @@ export class AuthService {
     }
   }
 
-  // ==================== FILE UPLOAD ====================
+
 
   async uploadFile(path: string, data: File | Blob): Promise<string> {
     const storageRef = ref(this.storage, path);
@@ -845,9 +849,9 @@ export class AuthService {
     return getDownloadURL(storageRef);
   }
 
-  // ==================== ALUMNI ID VERIFICATION ====================
 
-  // Get all alumni awaiting ID verification
+
+
   async getPendingAlumniVerification() {
     try {
       const usersRef = collection(this.firestore, 'users');
@@ -873,7 +877,7 @@ export class AuthService {
     }
   }
 
-  // Get all alumni with approved ID verification
+
   async getVerifiedAlumni(): Promise<any[]> {
     try {
       const q = query(
@@ -889,29 +893,26 @@ export class AuthService {
     }
   }
 
-  // Request alumni ID verification (from profile page, post-registration)
+
   async requestAlumniIdVerification(
     userId: string,
-    idFile: File,
-    idFileName: string,
-    gradPhotoFile: File
+    gradPhotoFile: File,
+    termGraduated: string,
+    socialMediaLink: string
   ): Promise<void> {
-    const [alumniIdUrl, alumniGradPhotoUrl] = await Promise.all([
-      this.uploadFile(`alumni-ids/${userId}/alumni-id`, idFile),
-      this.uploadFile(`alumni-ids/${userId}/grad-photo`, gradPhotoFile),
-    ]);
+    const alumniGradPhotoUrl = await this.uploadFile(`alumni-ids/${userId}/grad-photo`, gradPhotoFile);
 
     await updateDoc(doc(this.firestore, 'users', userId), {
-      alumniIdUrl,
-      alumniIdFileName: idFileName,
       alumniGradPhotoUrl,
       alumniIdVerificationStatus: 'pending',
       alumniIdSubmittedAt: new Date().toISOString(),
-      alumniIdRejectionReason: ''
+      alumniIdRejectionReason: '',
+      alumniTermGraduated: termGraduated,
+      alumniSocialMedia: socialMediaLink,
     });
   }
 
-  // Verify (approve or reject) alumni ID
+
   async verifyAlumniId(userId: string, status: 'approved' | 'rejected', rejectionReason: string = '') {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -951,9 +952,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ACCOUNT APPROVAL ====================
 
-  // Approve user account
+
+
   async approveUser(userId: string): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -981,7 +982,7 @@ export class AuthService {
     }
   }
 
-  // Reject user account
+
   async rejectUser(userId: string, rejectionReason: string = ''): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -1009,7 +1010,7 @@ export class AuthService {
     }
   }
 
-  // Create notification for user
+
   async createNotification(
     userId: string,
     title: string,
@@ -1046,7 +1047,7 @@ export class AuthService {
     await this.notifyAllApprovedUsers(title, message, 'system', '/home');
   }
 
-  // Get notifications for user
+
   async getNotifications(userId: string): Promise<any[]> {
     try {
       const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
@@ -1068,7 +1069,7 @@ export class AuthService {
     }
   }
 
-  // Mark notification as read
+
   async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
     try {
       const notifRef = doc(this.firestore, 'users', userId, 'notifications', notificationId);
@@ -1078,7 +1079,7 @@ export class AuthService {
     }
   }
 
-  // Mark all notifications as read
+
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     try {
       const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
@@ -1090,7 +1091,7 @@ export class AuthService {
     }
   }
 
-  // Delete a notification
+
   async deleteNotification(userId: string, notificationId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'users', userId, 'notifications', notificationId));
@@ -1100,9 +1101,9 @@ export class AuthService {
     }
   }
 
-  // ==================== EVENTS ====================
 
-  // Get all events from Firestore
+
+
   async getEvents(): Promise<any[]> {
     try {
       const snapshot = await getDocs(collection(this.firestore, 'events'));
@@ -1243,7 +1244,7 @@ export class AuthService {
     }
   }
 
-  // Add an event to Firestore
+
   async addEvent(eventData: { title: string; date: string; type: string; description?: string; attendees?: number }): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'events'), {
@@ -1258,7 +1259,7 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENT EVENTS ====================
+
 
   async getDepartmentEvents(departmentId: string): Promise<any[]> {
     try {
@@ -1339,7 +1340,7 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENT WALL ====================
+
 
   async getDepartmentWallPosts(departmentId: string): Promise<any[]> {
     try {
@@ -1401,7 +1402,7 @@ export class AuthService {
     }
   }
 
-  // ==================== QR ATTENDANCE ====================
+
 
   async generateEventQRToken(eventId: string): Promise<string> {
     const token = this.generateSecureToken();
@@ -1474,7 +1475,7 @@ export class AuthService {
         attendanceCount: increment(1)
       });
 
-      // Award points based on event category
+
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
       await Promise.all([
@@ -1652,7 +1653,7 @@ export class AuthService {
     }
   }
 
-  // ==================== POINTS & REWARDS ====================
+
 
   private readonly POINTS_MAP: { [key: string]: number } = {
     regular: 10, special: 20, volunteer: 30,
@@ -1682,7 +1683,7 @@ export class AuthService {
   async awardEventPoints(userId: string, eventId: string, eventTitle: string, points: number, category: string): Promise<void> {
     try {
       const historyRef = doc(this.firestore, 'users', userId, 'pointsHistory', eventId);
-      if ((await getDoc(historyRef)).exists()) return; // already awarded
+      if ((await getDoc(historyRef)).exists()) return;
 
       await setDoc(historyRef, {
         eventId, eventTitle, points, category,
@@ -1691,7 +1692,7 @@ export class AuthService {
       });
       await updateDoc(doc(this.firestore, 'users', userId), { totalPoints: increment(points) });
 
-      // Refresh badges
+
       const profile = await this.getUserProfile(userId);
       const newTotal = (profile?.['totalPoints'] || 0) + points;
       const histSnap = await getDocs(collection(this.firestore, 'users', userId, 'pointsHistory'));
@@ -1771,7 +1772,7 @@ export class AuthService {
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
-  // ==================== INSPIRED BADGE SYSTEM ====================
+
 
   private readonly INSPIRED_NAMES: Readonly<Record<string, string>> = {
     interiority: 'Interiority',
@@ -1839,7 +1840,7 @@ export class AuthService {
     await this.awardInspiredPoints(userId, 'interiority', 10, 'Completed profile with all details', 'interiority_complete');
   }
 
-  // ── Friend System ─────────────────────────────────────────────
+
 
   async sendFriendRequest(toUserId: string): Promise<void> {
     const currentUser = this.getCurrentUser();
@@ -1916,7 +1917,7 @@ export class AuthService {
     await batch.commit();
   }
 
-  // Auto-approve user if email domain is @usj.edu.ph
+
   async autoApproveIfEligible(userId: string): Promise<boolean> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -1927,7 +1928,7 @@ export class AuthService {
       const userData = userDoc.data();
       const email = userData?.['email'] || '';
       
-      // Auto-approve if email ends with @usj.edu.ph
+
       if (email.endsWith('@usj.edu.ph')) {
         await this.approveUser(userId);
         console.log('Auto-approved user with @usj.edu.ph email:', userId);

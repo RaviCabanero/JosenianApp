@@ -83,8 +83,8 @@ export class AdminPage implements OnInit {
   newEvent = {
     title: '', description: '', date: '', time: '',
     location: '', eventType: 'global', maxParticipants: '',
-    coverImageBase64: '',  // Local preview only (newly selected image)
-    coverImageUrl: '',     // Existing Storage URL (when editing)
+    coverImageBase64: '',
+    coverImageUrl: '',
     coverImageFileName: '',
     eventCategory: 'regular', pointValue: 10
   };
@@ -137,8 +137,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  // ==================== PRIVATE DIALOG HELPERS ====================
-
   private async showAlert(header: string, message: string): Promise<void> {
     const alert = await this.alertCtrl.create({ header, message, buttons: ['OK'] });
     await alert.present();
@@ -171,8 +169,6 @@ export class AdminPage implements OnInit {
       await alert.present();
     });
   }
-
-  // ==================== ACCOUNT APPROVAL ====================
 
   async loadPendingUsers() {
     try {
@@ -321,8 +317,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  // ==================== ALUMNI ID VERIFICATION ====================
-
   async loadPendingAlumniVerification() {
     try {
       [this.pendingAlumniVerification, this.verifiedAlumni] = await Promise.all([
@@ -334,16 +328,18 @@ export class AdminPage implements OnInit {
     }
   }
 
-  getImageSafeUrl(value: string): SafeUrl {
+  getImageSafeUrl(value: string): SafeUrl | string {
+    if (!value) return '';
+    if (value.startsWith('http')) return value;
     return this.imageService.base64ToSafeUrl(value, 'image/jpeg');
   }
 
   getAlumniImageUrl(record: any): string {
-    return record.alumniIdUrl || record.alumniIdBase64 || '';
+    return record.alumniGradPhotoUrl || record.alumniIdUrl || record.alumniIdBase64 || '';
   }
 
   hasAlumniImage(record: any): boolean {
-    return !!(record.alumniIdUrl || record.alumniIdBase64);
+    return !!(record.alumniGradPhotoUrl || record.alumniIdUrl || record.alumniIdBase64);
   }
 
   getEventCoverSrc(ev: any): string {
@@ -404,8 +400,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  // ==================== DEPARTMENTS ====================
-
   async loadDepartments() {
     try {
       this.isLoadingDepts = true;
@@ -453,12 +447,10 @@ export class AdminPage implements OnInit {
     const searchLower = this.departmentSearchTerm.toLowerCase();
     return this.departments
       .map((dept: any) => {
-        // Filter courses based on search term
         const filteredCourses = dept.courses.filter((course: string) =>
           course.toLowerCase().includes(searchLower)
         );
 
-        // Include department if it matches the search or has matching courses
         if (
           dept.name.toLowerCase().includes(searchLower) ||
           filteredCourses.length > 0
@@ -466,8 +458,8 @@ export class AdminPage implements OnInit {
           return {
             ...dept,
             courses: dept.name.toLowerCase().includes(searchLower)
-              ? dept.courses // Show all courses if department matches
-              : filteredCourses // Show only matching courses if department doesn't match
+              ? dept.courses
+              : filteredCourses
           };
         }
         return null;
@@ -573,8 +565,6 @@ export class AdminPage implements OnInit {
       await this.showAlert('Error', 'Failed to rename course.');
     }
   }
-
-  // ==================== ALUMNI MANAGEMENT ====================
 
   async loadAlumni() {
     try {
@@ -814,8 +804,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  // ==================== MANAGE EVENTS ====================
-
   async loadEvents() {
     try {
       this.events = await this.authService.getGlobalEvents();
@@ -845,7 +833,7 @@ export class AdminPage implements OnInit {
     if (!file) return;
     this.coverImageFile = file;
     this.newEvent.coverImageFileName = file.name;
-    this.newEvent.coverImageUrl = ''; // Clear existing URL when new file selected
+    this.newEvent.coverImageUrl = '';
     const reader = new FileReader();
     reader.onload = (e: any) => {
       this.newEvent.coverImageBase64 = e.target.result.split(',')[1] || '';
@@ -950,7 +938,6 @@ export class AdminPage implements OnInit {
   loadingParticipants: boolean = false;
   showParticipantsForEvent: string | null = null;
 
-  // QR Attendance
   showQRModal: boolean = false;
   qrModalEvent: any = null;
   qrCodeDataUrl: string = '';
@@ -1003,8 +990,6 @@ export class AdminPage implements OnInit {
     if (!event.date) return false;
     return new Date(`${event.date}T${event.time || '23:59'}`) < new Date();
   }
-
-  // ==================== QR ATTENDANCE ====================
 
   async showEventQR(event: any) {
     this.isGeneratingQR = true;
@@ -1092,8 +1077,6 @@ export class AdminPage implements OnInit {
     });
   }
 
-  // ==================== POINTS MANAGEMENT ====================
-
   adjustPointsUserId: string = '';
   adjustPointsAmount: number = 0;
   adjustPointsReason: string = '';
@@ -1129,8 +1112,6 @@ export class AdminPage implements OnInit {
       this.isLoadingLeaderboard = false;
     }
   }
-
-  // ==================== ATTENDANCE DASHBOARD ====================
 
   activeDashboardEventId: string = '';
   dashboardEvent: any = null;
@@ -1290,8 +1271,6 @@ export class AdminPage implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  // ==================== EXPORT ====================
-
   exportCSV() {
     const headers = ['Student Number', 'Name', 'Email', 'Department', 'Course', 'Batch/Year', 'Type', 'Status', 'Source'];
     const rows = this.filteredAlumni.map(a => [
@@ -1335,8 +1314,6 @@ export class AdminPage implements OnInit {
     XLSX.utils.book_append_sheet(wb, ws, 'Alumni');
     XLSX.writeFile(wb, `alumni-${new Date().toISOString().split('T')[0]}.xlsx`);
   }
-
-  // ==================== NAVIGATION ====================
 
   selectTab(tab: string) {
     this.activeTab = tab;

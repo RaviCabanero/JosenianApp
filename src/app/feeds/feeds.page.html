@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+﻿<ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -6,12 +6,31 @@
       </ion-button>
     </ion-buttons>
     <ion-title>Feeds</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleSearch()">
+        <ion-icon slot="icon-only" [name]="showSearch ? 'close' : 'search-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar *ngIf="showSearch" class="search-toolbar">
+    <div class="search-bar-wrap">
+      <ion-icon name="search-outline" class="search-icon"></ion-icon>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search posts or people…"
+        [(ngModel)]="searchQuery"
+        autofocus
+      />
+      <button class="search-clear-btn" *ngIf="searchQuery" (click)="searchQuery = ''">
+        <ion-icon name="close-circle"></ion-icon>
+      </button>
+    </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <div class="page-container">
-    <!-- Create Post Section -->
     <ion-card class="create-post-card" *ngIf="currentUser">
       <ion-card-content>
         <div class="create-post-header">
@@ -30,7 +49,6 @@
           </button>
         </div>
 
-        <!-- Post Form -->
         <div class="post-form" *ngIf="showPostForm">
           <textarea
             [(ngModel)]="newPostContent"
@@ -38,7 +56,6 @@
             class="post-textarea"
           ></textarea>
 
-          <!-- Image Preview -->
           <div class="image-preview" *ngIf="newPostImage">
             <img [src]="newPostImage" alt="preview" />
             <button class="remove-img-btn" (click)="removeImage()">
@@ -47,7 +64,6 @@
           </div>
 
           <div class="form-actions">
-            <!-- Image Upload Input -->
             <label class="image-upload-label">
               <ion-icon name="image"></ion-icon>
               <input
@@ -58,7 +74,6 @@
               />
             </label>
 
-            <!-- Privacy Toggle -->
             <button class="privacy-toggle-btn" [class.private]="newPostPrivacy === 'private'"
                     (click)="newPostPrivacy = newPostPrivacy === 'public' ? 'private' : 'public'">
               <ion-icon [name]="newPostPrivacy === 'private' ? 'lock-closed' : 'globe-outline'"></ion-icon>
@@ -77,7 +92,6 @@
       </ion-card-content>
     </ion-card>
 
-    <!-- Global Events Section -->
     <div *ngIf="globalEvents.length > 0" class="events-section">
       <div class="section-header">
         <h2>Upcoming Events</h2>
@@ -86,7 +100,6 @@
 
       <div class="events-scroll">
         <div class="feed-event-card" *ngFor="let ev of globalEvents">
-          <!-- Cover -->
           <div class="feed-event-cover">
             <img [src]="getEventCoverUrl(ev)" *ngIf="hasEventCover(ev)" alt="" class="feed-event-cover-img" />
             <div class="feed-event-cover-placeholder" *ngIf="!hasEventCover(ev)">
@@ -95,12 +108,11 @@
             <span class="feed-event-type">{{ ev.eventType || 'Global' }}</span>
           </div>
 
-          <!-- Info -->
           <div class="feed-event-info">
             <h4 class="feed-event-title">{{ ev.title }}</h4>
             <p class="feed-event-meta">
               <ion-icon name="calendar-outline"></ion-icon>
-              {{ formatEventDate(ev) }}<span *ngIf="ev.time"> · {{ formatEventTime(ev) }}</span>
+              {{ formatEventDate(ev) }}<span *ngIf="ev.time"> Â· {{ formatEventTime(ev) }}</span>
             </p>
             <p class="feed-event-meta" *ngIf="ev.location">
               <ion-icon name="location-outline"></ion-icon>
@@ -121,7 +133,7 @@
                         [disabled]="joiningEventId === ev.id || (isFull(ev) && !isAttending(ev))">
                   <ion-spinner name="crescent" *ngIf="joiningEventId === ev.id" style="width:14px;height:14px;"></ion-spinner>
                   <span *ngIf="joiningEventId !== ev.id">
-                    {{ isAttending(ev) ? '✓ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
+                    {{ isAttending(ev) ? 'âœ“ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
                   </span>
                 </button>
                 <button class="feed-scan-btn"
@@ -137,7 +149,6 @@
       </div>
     </div>
 
-    <!-- Suggested Friends Section (Always show if there are suggestions) -->
     <div *ngIf="suggestedUsers.length > 0">
       <div class="section-header">
         <h2>Suggested Friends</h2>
@@ -163,16 +174,19 @@
       </div>
     </div>
 
-    <!-- Feed Section -->
     <div *ngIf="allPosts.length > 0">
       <div class="section-header">
         <h2>Posts</h2>
+        <span class="events-badge" *ngIf="searchQuery">{{ filteredPosts.length }}</span>
       </div>
 
-      <!-- Posts List -->
+      <div class="no-results" *ngIf="filteredPosts.length === 0 && searchQuery">
+        <ion-icon name="search-outline"></ion-icon>
+        <p>No posts match "{{ searchQuery }}"</p>
+      </div>
+
       <div class="posts-list">
-        <ion-card class="post-card" *ngFor="let item of allPosts; trackBy: trackByPostId" (click)="item.post.id && viewPost(item.post.id)">
-          <!-- Post Header -->
+        <ion-card class="post-card" *ngFor="let item of filteredPosts; trackBy: trackByPostId" (click)="item.post.id && viewPost(item.post.id)">
           <div class="post-header">
             <div class="author-info">
               <div class="author-avatar" (click)="viewProfile(item.user.uid); $event.stopPropagation()" style="cursor:pointer"
@@ -200,17 +214,14 @@
             </div>
           </div>
 
-          <!-- Post Image -->
           <div class="post-image" *ngIf="item.post.image">
             <img [src]="item.post.image" alt="post image" />
           </div>
 
-          <!-- Post Content -->
           <div class="post-content" *ngIf="editingPostId !== item.post.id">
             <p>{{ item.post.content }}</p>
           </div>
 
-          <!-- Inline Edit Form -->
           <div class="post-edit-form" *ngIf="editingPostId === item.post.id" (click)="$event.stopPropagation()">
             <textarea class="post-edit-textarea" [(ngModel)]="editingContent" rows="3" autofocus></textarea>
             <div class="post-edit-actions">
@@ -229,7 +240,6 @@
             </div>
           </div>
 
-          <!-- Post Actions -->
           <div class="post-actions">
             <button class="action-btn" (click)="item.post.id && toggleLike(item.post.id); $event.stopPropagation()">
               <ion-icon [name]="item.post.liked ? 'heart' : 'heart-outline'" [color]="item.post.liked ? 'danger' : 'medium'"></ion-icon>
@@ -242,16 +252,13 @@
             </button>
           </div>
 
-          <!-- Comments Section -->
           <div class="comments-section" *ngIf="expandedPostId === item.post.id" (click)="$event.stopPropagation()">
 
-            <!-- Loading -->
             <div class="comments-loading" *ngIf="loadingComments === item.post.id">
               <ion-spinner name="crescent" style="width:18px;height:18px;"></ion-spinner>
-              <span>Loading comments…</span>
+              <span>Loading commentsâ€¦</span>
             </div>
 
-            <!-- Comment list -->
             <ng-container *ngIf="loadingComments !== item.post.id">
               <div class="comment-item" *ngFor="let c of postComments[item.post.id!] || []">
                 <div class="comment-avatar"
@@ -273,7 +280,6 @@
               </p>
             </ng-container>
 
-            <!-- Comment input -->
             <div class="comment-input-row" *ngIf="currentUser">
               <div class="comment-input-avatar" [class.has-photo]="currentUser.photoUrl"
                    [style.backgroundImage]="currentUser.photoUrl ? 'url(' + currentUser.photoUrl + ')' : null">
@@ -282,7 +288,7 @@
               <input
                 type="text"
                 class="comment-input"
-                placeholder="Write a comment…"
+                placeholder="Write a commentâ€¦"
                 [(ngModel)]="commentInputs[item.post.id!]"
                 (keyup.enter)="submitComment(item.post, item.user.uid, $event)"
               />

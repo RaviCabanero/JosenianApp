@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
@@ -31,17 +31,14 @@ export class HistoryPage implements OnInit {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Build department name map
       const depts = await this.authService.getDepartments();
       depts.forEach((d: any) => { this.departmentMap[d.id] = d.name; });
 
-      // Global past events the user joined
       const allGlobal = await this.authService.getEvents();
       const joinedGlobal = allGlobal
         .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') < today)
         .map(e => ({ ...e, source: 'global' }));
 
-      // Department past events the user joined
       const profile = await this.authService.getUserProfile(user.uid);
       const deptIds: string[] = [];
       if (profile?.department) deptIds.push(profile.department);

@@ -1,5 +1,4 @@
-// ── Variables ──────────────────────────────────────────────
-$green:        #1E5128;
+﻿$green:        #1E5128;
 $green-dark:   #143C1C;
 $green-light:  #C8E6C9;
 $blue:         #0ea5e9;
@@ -12,7 +11,6 @@ $bg-page:      #f3f4f6;
 $bg-card:      #ffffff;
 $bg-field:     #f9fafb;
 
-// ── Header ─────────────────────────────────────────────────
 .profile-header-top {
   ion-toolbar {
     --background: #ffffff;
@@ -26,7 +24,6 @@ $bg-field:     #f9fafb;
   --color: #{$green};
 }
 
-// ── Page ───────────────────────────────────────────────────
 .profile-content { --background: #{$bg-page}; }
 
 .profile-container {
@@ -38,7 +35,6 @@ $bg-field:     #f9fafb;
   gap: 12px;
 }
 
-// ── Loading ────────────────────────────────────────────────
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -49,7 +45,6 @@ $bg-field:     #f9fafb;
   p { color: $text-3; font-size: 14px; margin: 0; }
 }
 
-// ── Hero ───────────────────────────────────────────────────
 .profile-hero {
   position: relative;
   padding: 28px 20px 20px;
@@ -73,7 +68,6 @@ $bg-field:     #f9fafb;
   gap: 18px;
 }
 
-// Avatar
 .avatar-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -120,7 +114,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// Hero gold band
 .hero-gold-band {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -128,7 +121,6 @@ $bg-field:     #f9fafb;
   background: linear-gradient(90deg, #F5B800, #C49500);
 }
 
-// Hero info
 .hero-info { flex: 1; min-width: 0; }
 
 .hero-course {
@@ -182,7 +174,6 @@ $bg-field:     #f9fafb;
   white-space: nowrap;
 }
 
-// Hero stats strip
 .hero-stats {
   display: flex;
   align-items: center;
@@ -222,7 +213,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// Hero edit button
 .hero-edit-btn {
   display: flex;
   align-items: center;
@@ -242,7 +232,6 @@ $bg-field:     #f9fafb;
   &:active { background: rgba(255,255,255,.22); }
 }
 
-// Bio inside hero
 .hero-bio {
   position: relative;
   margin-top: 16px;
@@ -273,7 +262,6 @@ $bg-field:     #f9fafb;
   ion-icon { font-size: 16px; }
 }
 
-// ── Info List (replaces field-grid) ───────────────────────
 .info-list { padding: 4px 0; }
 
 .info-row {
@@ -331,7 +319,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Edit Profile Button ────────────────────────────────────
 .edit-profile-btn {
   --background: #{$green};
   --background-activated: #{$green-dark};
@@ -343,7 +330,6 @@ $bg-field:     #f9fafb;
   margin: 4px 16px 0;
 }
 
-// ── Alumni ID Verification Card ────────────────────────────
 .alumni-id-card { margin-bottom: 14px; }
 
 .alumni-id-icon { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; }
@@ -433,7 +419,6 @@ $bg-field:     #f9fafb;
   font-weight: 700;
 }
 
-// ── Digital Alumni ID Modal ─────────────────────────────────
 .digital-id-overlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
@@ -528,7 +513,6 @@ $bg-field:     #f9fafb;
   p { font-size: 9.5px; color: rgba(255,255,255,.35); margin: 0; line-height: 1.4; }
 }
 
-// ── Logout ──────────────────────────────────────────────────
 .logout-btn {
   --border-radius: 12px;
   --color: #{$red};
@@ -537,7 +521,6 @@ $bg-field:     #f9fafb;
   margin: 8px 16px 24px;
 }
 
-// ── Points & Rewards ───────────────────────────────────────
 .pts-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); ion-icon { color: #f59e0b; } }
 
 .pts-loading { display: flex; justify-content: center; padding: 24px; }
@@ -546,7 +529,7 @@ $bg-field:     #f9fafb;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0 12px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid $border;
   margin-bottom: 14px;
 }
@@ -599,12 +582,11 @@ $bg-field:     #f9fafb;
 }
 
 .pts-progress-track {
-  width: 100%;
   height: 8px;
   background: #f3f4f6;
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin: 0 18px 16px;
 }
 
 .pts-progress-fill {
@@ -621,10 +603,10 @@ $bg-field:     #f9fafb;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: $text-3;
-  margin: 0 0 10px 0;
+  margin: 0 18px 10px;
 }
 
-.pts-badges-wrap { margin-bottom: 16px; }
+.pts-badges-wrap { padding: 0 18px; margin-bottom: 16px; }
 
 .pts-badges-list {
   display: flex;
@@ -652,7 +634,7 @@ $bg-field:     #f9fafb;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
+  padding: 10px 18px;
   border-bottom: 1px solid #f3f4f6;
   &:last-child { border-bottom: none; }
 }
@@ -702,14 +684,13 @@ $bg-field:     #f9fafb;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 20px;
+  padding: 20px 18px;
   color: $text-3;
   font-size: 13px;
   margin: 0;
   ion-icon { font-size: 18px; }
 }
 
-// ── Section Cards ──────────────────────────────────────────
 .section-card {
   margin: 0 16px;
   background: $bg-card;
@@ -755,7 +736,6 @@ $bg-field:     #f9fafb;
   color: $text-3;
 }
 
-// ── Field Grid ─────────────────────────────────────────────
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -799,7 +779,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Add button (work card header) ──────────────────────────
 .add-btn {
   --color: #{$green};
   --border-color: #{$green};
@@ -810,7 +789,6 @@ $bg-field:     #f9fafb;
   margin: 0;
 }
 
-// ── Empty State ────────────────────────────────────────────
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -844,7 +822,6 @@ $bg-field:     #f9fafb;
   font-weight: 700;
 }
 
-// ── Work Company Logo ──────────────────────────────────────
 .work-company-logo {
   width: 40px;
   height: 40px;
@@ -860,8 +837,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// ── Work Timeline ──────────────────────────────────────────
-// ── Work Experience ────────────────────────────────────────
 .work-experience-container {
   padding: 12px 0;
   display: flex;
@@ -898,7 +873,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Current Job Card ───────────────────────────────────────
 .work-card {
   display: flex;
   flex-direction: column;
@@ -1034,7 +1008,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Timeline for Past Jobs ─────────────────────────────────
 .work-timeline {
   padding: 0 12px;
   display: flex;
@@ -1110,9 +1083,6 @@ $bg-field:     #f9fafb;
   overflow: hidden;
 }
 
-// ── Modals ─────────────────────────────────────────────────
-// Sheet modals (breakpoints=[0,1]) slide up full-height from the bottom.
-// --border-radius rounds the top corners; toolbar styles below override Ionic defaults.
 .form-modal {
   --border-radius: 20px 20px 0 0;
 
@@ -1169,7 +1139,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Character Counter ──────────────────────────────────────
 .char-counter {
   font-size: 11px;
   font-weight: 600;
@@ -1219,7 +1188,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Validation Alerts ──────────────────────────────────────
 .error-alert {
   display: flex;
   align-items: flex-start;
@@ -1256,7 +1224,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Field Hints & Helper Text ──────────────────────────────
 .field-hint {
   font-size: 12px;
   color: $text-3;
@@ -1271,7 +1238,6 @@ $bg-field:     #f9fafb;
   padding: 0 2px;
 }
 
-// ── Required Indicator ─────────────────────────────────────
 .required {
   color: $red;
   font-weight: 700;
@@ -1294,7 +1260,6 @@ $bg-field:     #f9fafb;
   &:active { opacity: .75; }
 }
 
-// ── Photo Modal ────────────────────────────────────────────
 .photo-modal {
   --border-radius: 20px 20px 0 0;
 
@@ -1391,7 +1356,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// ── INSPIRED Badge System ──────────────────────────────────
 .inspired-icon {
   background: linear-gradient(135deg, #ede9fe, #ddd6fe) !important;
   ion-icon { color: #7c3aed !important; }
@@ -1541,7 +1505,6 @@ $bg-field:     #f9fafb;
   color: $text-3;
 }
 
-// ── Responsive ─────────────────────────────────────────────
 @media (max-width: 480px) {
   .profile-hero {
     border-radius: 0;
@@ -1575,7 +1538,6 @@ $bg-field:     #f9fafb;
   .camera-btn { width: 34px; height: 34px; ion-icon { font-size: 17px; } }
 }
 
-// ── Privacy Settings ────────────────────────────────────────
 .privacy-compact-row {
   padding: 14px 18px;
   display: flex;

@@ -1,5 +1,4 @@
-// USJ-R Brand
-$green:       #1E5128;
+﻿$green:       #1E5128;
 $green-dark:  #143C1C;
 $green-mid:   #276836;
 $gold:        #F5B800;
@@ -10,7 +9,6 @@ $text-light:  #6b7280;
 $border:      #e5e7eb;
 $white:       #ffffff;
 
-// ── Header ──────────────────────────────────────────────────
 .header-sticky {
   box-shadow: 0 2px 16px rgba(20, 60, 28, 0.35);
 
@@ -122,14 +120,12 @@ $white:       #ffffff;
   line-height: 18px;
 }
 
-// ── Page ────────────────────────────────────────────────────
 .page-container {
   padding: 0 0 32px;
   max-width: 800px;
   margin: 0 auto;
 }
 
-// ── Welcome Banner ──────────────────────────────────────────
 .welcome-banner {
   position: relative;
   background: linear-gradient(140deg, $green-dark 0%, $green 55%, $green-mid 100%);
@@ -204,7 +200,6 @@ $white:       #ffffff;
   opacity: .18;
 }
 
-// ── Stats Strip ─────────────────────────────────────────────
 .stats-strip {
   display: flex;
   background: $white;
@@ -248,7 +243,6 @@ $white:       #ffffff;
   padding: 0 4px;
 }
 
-// ── Section Row ─────────────────────────────────────────────
 .section-row {
   display: flex;
   align-items: center;
@@ -273,7 +267,6 @@ $white:       #ffffff;
   white-space: nowrap;
 }
 
-// ── Quick Actions Grid ──────────────────────────────────────
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -323,7 +316,6 @@ $white:       #ffffff;
   text-align: center;
 }
 
-// ── Nav Cards ───────────────────────────────────────────────
 .nav-cards {
   display: flex;
   flex-direction: column;
@@ -405,7 +397,6 @@ $white:       #ffffff;
   color: #d1d5db;
 }
 
-// ── Responsive ──────────────────────────────────────────────
 @media (max-width: 360px) {
   .quick-grid { grid-template-columns: repeat(2, 1fr); }
   .qg-icon    { width: 40px; height: 40px; ion-icon { font-size: 20px; } }

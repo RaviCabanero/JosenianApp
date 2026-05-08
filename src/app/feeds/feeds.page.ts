@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Firestore, collection, collectionGroup, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc } from '@angular/fire/firestore';
 import { Timestamp } from '@angular/fire/firestore';
@@ -78,6 +78,23 @@ export class FeedsPage implements OnInit {
 
   newPostPrivacy: 'public' | 'private' = 'public';
 
+  showSearch = false;
+  searchQuery = '';
+
+  get filteredPosts() {
+    if (!this.searchQuery.trim()) return this.allPosts;
+    const q = this.searchQuery.toLowerCase();
+    return this.allPosts.filter(item =>
+      item.post.content?.toLowerCase().includes(q) ||
+      item.user.name?.toLowerCase().includes(q)
+    );
+  }
+
+  toggleSearch() {
+    this.showSearch = !this.showSearch;
+    if (!this.showSearch) this.searchQuery = '';
+  }
+
   constructor(
     private router: Router,
     private firestore: Firestore,
@@ -130,12 +147,10 @@ export class FeedsPage implements OnInit {
     }
   }
 
-  // Load posts from Firestore using the user's UID
   async loadPostsFromFirestore() {
     if (!this.currentUserUid) return;
 
     try {
-      // Own posts
       const ownPostsSnap = await getDocs(collection(this.firestore, `users/${this.currentUserUid}/posts`));
       if (this.currentUser) {
         this.currentUser.posts = ownPostsSnap.docs.map(d => {
@@ -144,11 +159,9 @@ export class FeedsPage implements OnInit {
         });
       }
 
-      // Friend list
       const userDoc = await getDoc(doc(this.firestore, 'users', this.currentUserUid));
       const friendUids: string[] = userDoc.exists() ? userDoc.data()['friends'] || [] : [];
 
-      // Friends' posts (all privacy — friends may see private posts)
       const friendUsers: User[] = await Promise.all(
         friendUids.map(async (uid, index) => {
           const friendDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -165,7 +178,6 @@ export class FeedsPage implements OnInit {
         })
       );
 
-      // Non-friends' public posts via collectionGroup
       const knownUids = new Set([this.currentUserUid, ...friendUids]);
       const publicSnap = await getDocs(
         query(collectionGroup(this.firestore, 'posts'), where('privacy', '==', 'public'))
@@ -181,7 +193,6 @@ export class FeedsPage implements OnInit {
         nonFriendPostMap.get(authorUid)!.push(post);
       }
 
-      // Fetch profiles for non-friend authors
       const nonFriendUsers: User[] = await Promise.all(
         Array.from(nonFriendPostMap.entries()).map(async ([uid, posts], index) => {
           const profileDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -218,7 +229,6 @@ export class FeedsPage implements OnInit {
     return item.post.id || String(item.post.timestamp);
   }
 
-  // Save post to Firestore using the user's UID
   async savePostToFirestore(post: Post) {
     try {
       if (!this.currentUserUid) {
@@ -260,7 +270,6 @@ export class FeedsPage implements OnInit {
     }
   }
 
-  // Update post in Firestore using the user's UID
   async updatePostInFirestore(post: Post) {
     try {
       if (!post.id || !this.currentUserUid) return;
@@ -420,7 +429,6 @@ export class FeedsPage implements OnInit {
       if (post) {
         post.liked = !post.liked;
         post.likes += post.liked ? 1 : -1;
-        // Save updated post to Firestore
         this.updatePostInFirestore(post);
         return;
       }

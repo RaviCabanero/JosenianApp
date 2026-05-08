@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+﻿<ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -11,7 +11,7 @@
   <ion-toolbar class="search-toolbar">
     <ion-searchbar
       (ionChange)="onSearchChange($event)"
-      placeholder="Search friends…"
+      placeholder="Search friendsâ€¦"
       class="search-bar">
     </ion-searchbar>
   </ion-toolbar>
@@ -20,13 +20,11 @@
 <ion-content [fullscreen]="true">
   <div class="messages-container">
 
-    <!-- Loading -->
     <div class="loading-state" *ngIf="isLoading">
       <ion-spinner name="crescent"></ion-spinner>
-      <p>Loading conversations…</p>
+      <p>Loading conversationsâ€¦</p>
     </div>
 
-    <!-- Conversations List -->
     <div class="conversations-section" *ngIf="!isLoading && filteredItems.length > 0">
       <ion-list class="conversations-list">
         <ion-item-sliding *ngFor="let item of filteredItems">
@@ -37,7 +35,6 @@
             lines="none">
             <div class="conversation-content">
 
-              <!-- Avatar -->
               <div class="avatar-container">
                 <ion-avatar class="conversation-avatar">
                   <div class="avatar-placeholder"
@@ -49,7 +46,6 @@
                 <span class="unread-dot" *ngIf="item.unreadCount > 0"></span>
               </div>
 
-              <!-- Info -->
               <div class="conversation-info">
                 <div class="conversation-header">
                   <h3 class="conversation-name" [class.unread-name]="item.unreadCount > 0">
@@ -88,7 +84,6 @@
       </ion-list>
     </div>
 
-    <!-- Empty: no friends yet -->
     <div class="empty-state" *ngIf="!isLoading && allItems.length === 0">
       <ion-icon name="people-outline"></ion-icon>
       <h2>No connections yet</h2>
@@ -98,7 +93,6 @@
       </ion-button>
     </div>
 
-    <!-- Empty: search returned nothing -->
     <div class="empty-state" *ngIf="!isLoading && allItems.length > 0 && filteredItems.length === 0">
       <ion-icon name="search-outline"></ion-icon>
       <h2>No results</h2>

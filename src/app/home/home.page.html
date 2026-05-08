@@ -1,4 +1,4 @@
-<!-- Header -->
+﻿
 <ion-header [translucent]="true" class="header-sticky">
   <ion-toolbar>
     <div class="header-content">
@@ -29,7 +29,7 @@
 <ion-content [fullscreen]="true">
   <div class="page-container">
 
-    <!-- Date + welcome banner -->
+    
     <div class="welcome-banner">
       <div class="banner-bg-deco"></div>
       <div class="banner-body">
@@ -45,15 +45,9 @@
       </div>
     </div>
 
-    <!-- Stats strip -->
-    <div class="stats-strip">
-      <div class="stat-item" *ngFor="let card of dashboardCards" (click)="goToCard(card.id)">
-        <span class="stat-value">{{ card.value }}</span>
-        <span class="stat-label">{{ card.shortLabel || card.title }}</span>
-      </div>
-    </div>
+    
 
-    <!-- Quick Actions -->
+    
     <div class="section-row">
       <h2 class="section-label">Quick Actions</h2>
     </div>
@@ -77,7 +71,7 @@
       </button>
     </div>
 
-    <!-- Overview cards -->
+    
     <div class="section-row">
       <h2 class="section-label">Overview</h2>
     </div>

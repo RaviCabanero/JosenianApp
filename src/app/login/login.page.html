@@ -1,22 +1,18 @@
-<ion-content [fullscreen]="true" class="login-content">
+﻿<ion-content [fullscreen]="true" class="login-content">
   <div class="login-container">
-    <!-- Logo/Header Section -->
     <div class="logo-section">
       <img src="assets/logo2.2.png" alt="Josenian Logo" class="logo-image" />
       <h1 class="app-name">JosenianLink</h1>
       <p class="app-tagline">Network & Connect</p>
     </div>
 
-    <!-- Login Form Card -->
     <ion-card class="login-card">
       <ion-card-content>
-        <!-- Error Message -->
         <div class="error-message" *ngIf="loginError">
           <ion-icon name="alert-circle"></ion-icon>
           <span>{{ loginError }}</span>
         </div>
 
-        <!-- Username Field -->
         <div class="form-group">
           <label class="form-label">Username or Email</label>
           <div class="input-wrapper">
@@ -31,7 +27,6 @@
           </div>
         </div>
 
-        <!-- Password Field -->
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-wrapper">
@@ -56,14 +51,12 @@
           </div>
         </div>
 
-        <!-- Forgot Password Link -->
         <div class="forgot-password">
           <ion-button fill="clear" color="medium" class="link-button">
             Forgot Password?
           </ion-button>
         </div>
 
-        <!-- Login Button -->
         <ion-button
           expand="block"
           class="login-button"
@@ -74,12 +67,10 @@
           <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
         </ion-button>
 
-        <!-- Divider -->
         <div class="divider">
           <span>Don't have an account?</span>
         </div>
 
-        <!-- Register Button -->
         <ion-button
           expand="block"
           fill="outline"

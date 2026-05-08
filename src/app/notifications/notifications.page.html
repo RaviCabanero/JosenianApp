@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+﻿<ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -13,7 +13,6 @@
     </ion-buttons>
   </ion-toolbar>
 
-  <!-- Filter Tabs -->
   <ion-toolbar class="filter-toolbar">
     <ion-segment value="all" (ionChange)="onSegmentChange($event)">
       <ion-segment-button value="all">
@@ -34,7 +33,6 @@
 
 <ion-content [fullscreen]="true">
   <div class="notifications-container">
-    <!-- Notifications List -->
     <div class="notifications-section" *ngIf="filteredNotifications.length > 0">
       <ion-list class="notifications-list">
         <ion-item-sliding
@@ -47,7 +45,6 @@
             class="notification-content"
             (click)="openNotification(notification.id)"
           >
-            <!-- Left: Status indicator and avatar -->
             <div class="notification-left">
               <div class="unread-indicator" *ngIf="!notification.read"></div>
               <ion-avatar class="notification-avatar" [ngClass]="'avatar-' + notification.type">
@@ -55,20 +52,17 @@
               </ion-avatar>
             </div>
 
-            <!-- Center: Notification info -->
             <div class="notification-middle">
               <h3 class="notification-title">{{ notification.title }}</h3>
               <p class="notification-message">{{ notification.message }}</p>
               <span class="notification-time">{{ notification.timestamp }}</span>
             </div>
 
-            <!-- Right: Read badge -->
             <div class="notification-right" *ngIf="!notification.read">
               <ion-badge color="primary" class="new-badge">New</ion-badge>
             </div>
           </ion-item>
 
-          <!-- Sliding actions -->
           <ion-item-options side="end">
             <ion-item-option
               color="danger"
@@ -81,7 +75,6 @@
       </ion-list>
     </div>
 
-    <!-- Empty State -->
     <div class="empty-state" *ngIf="filteredNotifications.length === 0">
       <ion-icon name="notifications-off-outline"></ion-icon>
       <h2>No notifications</h2>

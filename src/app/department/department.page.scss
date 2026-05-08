@@ -1,5 +1,4 @@
-// ── Variables ──────────────────────────────────────────────
-$green:      #1E5128;
+﻿$green:      #1E5128;
 $green-dk:   #143C1C;
 $green-lt:   #C8E6C9;
 $text-1:     #111827;
@@ -9,7 +8,6 @@ $border:     #e5e7eb;
 $bg-page:    #f3f4f6;
 $bg-card:    #ffffff;
 
-// ── Department color palette ───────────────────────────────
 @mixin dept-color($bg, $fg) { background: $bg; color: $fg; }
 .c-blue   { @include dept-color(#eff6ff, #2563eb); }
 .c-green  { @include dept-color(#f0fdf4, #16a34a); }
@@ -20,7 +18,6 @@ $bg-card:    #ffffff;
 .c-amber  { @include dept-color(#fffbeb, #d97706); }
 .c-pink   { @include dept-color(#fdf2f8, #db2777); }
 
-// ── Header ─────────────────────────────────────────────────
 .dept-header ion-toolbar {
   --background: #{$bg-card};
   --color: #{$text-1};
@@ -28,7 +25,6 @@ $bg-card:    #ffffff;
   ion-title { font-weight: 700; }
 }
 
-// ── Content ────────────────────────────────────────────────
 .dept-content { --background: #{$bg-page}; }
 
 .page-body {
@@ -37,7 +33,6 @@ $bg-card:    #ffffff;
   padding-bottom: 48px;
 }
 
-// ── States ─────────────────────────────────────────────────
 .state-box {
   display: flex;
   flex-direction: column;
@@ -65,7 +60,6 @@ $bg-card:    #ffffff;
 
 .error-box .state-icon ion-icon { color: #ef4444; }
 
-// ── Hero Banner ────────────────────────────────────────────
 .hero-banner {
   position: relative;
   padding: 28px 20px 20px;
@@ -156,7 +150,6 @@ $bg-card:    #ffffff;
   background: rgba(255,255,255,.25);
 }
 
-// ── Department List ────────────────────────────────────────
 .dept-list { padding: 16px 16px 0; }
 
 .list-heading {
@@ -261,7 +254,6 @@ $bg-card:    #ffffff;
   ion-icon { font-size: 18px; color: $text-3; }
 }
 
-// ── Modal ──────────────────────────────────────────────────
 ion-modal { --border-radius: 20px 20px 0 0; }
 
 .modal-toolbar {
@@ -317,7 +309,6 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   &.chip-primary { background: $green-lt; color: $green-dk; font-weight: 700; }
 }
 
-// Tabs
 .modal-tabs {
   display: flex;
   background: $bg-card;
@@ -355,7 +346,6 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   }
 }
 
-// Tab body
 .tab-body {
   padding: 16px;
   display: flex;
@@ -364,7 +354,6 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   padding-bottom: 100px;
 }
 
-// Overview
 .info-section { display: flex; flex-direction: column; gap: 8px; }
 
 .info-section-label {
@@ -422,7 +411,6 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   small { color: $text-3; font-size: 12px; }
 }
 
-// Members
 .member-list { display: flex; flex-direction: column; }
 
 .member-row {
@@ -482,7 +470,6 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   &.badge-alumni { background: #fdf4ff; color: #9333ea; }
 }
 
-// HOD row in dept list card
 .dept-hod {
   display: inline-flex;
   align-items: center;
@@ -494,14 +481,12 @@ ion-modal { --border-radius: 20px 20px 0 0; }
   ion-icon { font-size: 13px; }
 }
 
-// HOD chip in modal banner
 .chip-hod {
   background: rgba(255,255,255,.6);
   color: $text-2;
   font-weight: 700;
 }
 
-// Events
 .events-tab-head {
   display: flex;
   align-items: center;
@@ -690,7 +675,6 @@ select.ef-input { appearance: none; cursor: pointer; }
 .btn-join  { background: $green; color: #ffffff; }
 .btn-leave { background: #f3f4f6; color: $text-2; }
 
-// Attendee section
 .attendee-section {
   margin-top: 10px;
   border-top: 1px dashed $border;
@@ -729,7 +713,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   flex-shrink: 0;
 }
 
-// Modal footer
 .modal-footer {
   position: sticky;
   bottom: 0;
@@ -746,7 +729,6 @@ select.ef-input { appearance: none; cursor: pointer; }
 .register-btn { --background: #{$green}; --background-activated: #{$green-dk}; --color: #ffffff; }
 .registered-btn { --background: #{$green-lt}; --color: #{$green-dk}; opacity: 1 !important; }
 
-// ── Wall ───────────────────────────────────────────────────
 .wall-tab { gap: 0; padding: 0 0 100px; }
 
 .wall-compose {
@@ -936,7 +918,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   }
 }
 
-// ── Follower access banner ─────────────────────────────────
 .follower-access-banner {
   background: #fefce8;
   border: 1px solid #fde68a;
@@ -974,7 +955,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   }
 }
 
-// ── Wall follower notice ────────────────────────────────────
 .wall-follower-notice {
   display: flex;
   align-items: center;
@@ -990,7 +970,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   ion-icon { font-size: 18px; color: #d97706; flex-shrink: 0; }
 }
 
-// ── HOD summary card ───────────────────────────────────────
 .hod-summary-card {
   display: flex;
   align-items: center;
@@ -1032,7 +1011,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   flex-shrink: 0;
 }
 
-// ── Personal stats chip ────────────────────────────────────
 .my-stats-chip {
   display: flex;
   align-items: center;
@@ -1077,7 +1055,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   min-width: 3px;
 }
 
-// ── Type filter chips ──────────────────────────────────────
 .type-filter-row {
   display: flex;
   gap: 6px;
@@ -1104,7 +1081,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   }
 }
 
-// ── Capacity bar ───────────────────────────────────────────
 .capacity-row {
   display: flex;
   align-items: center;
@@ -1137,7 +1113,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   &.capacity-full-label { color: #ef4444; }
 }
 
-// ── Pinned event ───────────────────────────────────────────
 .event-card.is-pinned {
   border-color: #fbbf24;
   background: #fffbeb;
@@ -1194,7 +1169,6 @@ select.ef-input { appearance: none; cursor: pointer; }
 
 .ev-qr-btn ion-icon { color: #2563eb; }
 
-// ── QR Modal ───────────────────────────────────────────────
 .dept-qr-overlay {
   position: fixed;
   inset: 0;
@@ -1412,7 +1386,6 @@ select.ef-input { appearance: none; cursor: pointer; }
   flex-shrink: 0;
 }
 
-// ── Responsive ─────────────────────────────────────────────
 @media (max-width: 480px) {
   .hero-banner { padding: 20px 16px 16px; }
   .dept-list { padding: 12px 12px 0; }

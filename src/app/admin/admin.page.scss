@@ -1,5 +1,4 @@
-// Color Scheme — USJ-R Brand
-$primary-color: #1E5128;
+﻿$primary-color: #1E5128;
 $primary-dark: #143C1C;
 $secondary-color: #276836;
 $success-color: #1E5128;
@@ -27,7 +26,6 @@ $bg-light: #f3f4f6;
   background-color: $bg-gray;
 }
 
-// ========== LOGIN PAGE ==========
 .login-page {
   display: flex;
   align-items: center;
@@ -240,7 +238,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== DASHBOARD LAYOUT ==========
 .dashboard-layout {
   display: flex;
   width: 100%;
@@ -248,7 +245,6 @@ $bg-light: #f3f4f6;
   background-color: $bg-gray;
 }
 
-// ========== SIDEBAR ==========
 .sidebar {
   width: 260px;
   background: #1e7e5d;
@@ -350,7 +346,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== MAIN CONTENT ==========
 .main-content {
   flex: 1;
   display: flex;
@@ -422,7 +417,6 @@ $bg-light: #f3f4f6;
   padding: 30px;
 }
 
-// ========== TAB CONTENT ==========
 .tab-content {
   animation: fadeIn 0.3s ease-in;
 }
@@ -457,7 +451,6 @@ $bg-light: #f3f4f6;
   font-weight: 700;
 }
 
-// ========== ACCOUNT APPROVAL TAB (ENHANCED) ==========
 .header-actions {
   display: flex;
   align-items: center;
@@ -497,14 +490,12 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== MODERN APPROVAL TAB STYLES ==========
 .approval-tab {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-// Summary Cards
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -777,7 +768,6 @@ $bg-light: #f3f4f6;
   padding: 36px 20px;
 }
 
-// Two-Column Approval Layout
 .approval-layout {
   display: grid;
   grid-template-columns: 1fr 380px;
@@ -810,7 +800,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Search and Filter Bar
 .search-filter-bar {
   display: flex;
   gap: 12px;
@@ -881,7 +870,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Pagination Controls
 .pagination-controls {
   display: flex;
   justify-content: center;
@@ -1091,7 +1079,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Detail Panel
 .detail-panel {
   background: $bg-white;
   border: 1px solid $light-border;
@@ -1230,7 +1217,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// HOD role badge — shown in alumni profile section
 .hod-badge {
   display: inline-flex;
   align-items: center;
@@ -1245,7 +1231,6 @@ $bg-light: #f3f4f6;
   border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
-// Global badge-status (used in info-grids and profile sections)
 .badge-status {
   display: inline-block;
   padding: 4px 10px;
@@ -1270,7 +1255,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Horizontal profile layout for approval detail panel
 .profile-section-horizontal {
   display: flex !important;
   flex-direction: row !important;
@@ -1488,7 +1472,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Expanded Image Modal
 .expanded-view {
   position: fixed;
   inset: 0;
@@ -2110,7 +2093,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== DEPARTMENTS TAB ==========
 .form-card {
   background: $bg-white;
   border-radius: 12px;
@@ -2228,9 +2210,7 @@ $bg-light: #f3f4f6;
   gap: 12px;
 }
 
-// ========== RESPONSIVE DESIGN ==========
 
-// Tablet (768px - 1024px)
 @media (max-width: 1024px) {
   .approval-layout {
     grid-template-columns: 1fr 300px;
@@ -2252,7 +2232,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Mobile Large (480px - 768px)
 @media (max-width: 768px) {
   .dashboard-layout {
     flex-direction: column;
@@ -2443,7 +2422,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Mobile Small (< 480px)
 @media (max-width: 480px) {
   .sidebar {
     height: auto;
@@ -2676,7 +2654,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== ATTENDANCE DASHBOARD TAB ==========
 
 .att-tab {
   display: flex;
@@ -2684,7 +2661,6 @@ $bg-light: #f3f4f6;
   gap: 20px;
 }
 
-// ── Event Selector ─────────────────────────────
 .att-selector-bar {
   display: flex;
   align-items: center;
@@ -2726,7 +2702,6 @@ $bg-light: #f3f4f6;
   &:focus { border-color: $primary-color; }
 }
 
-// ── Empty / Loading States ─────────────────────
 .att-empty-state {
   display: flex;
   flex-direction: column;
@@ -2766,7 +2741,6 @@ $bg-light: #f3f4f6;
   p { font-size: 13px; color: $text-light; margin: 0; }
 }
 
-// ── Event Summary Card ─────────────────────────
 .att-event-card {
   display: flex;
   align-items: flex-start;
@@ -2856,7 +2830,6 @@ $bg-light: #f3f4f6;
   ion-icon { font-size: 15px; }
 }
 
-// ── Stats Grid ─────────────────────────────────
 .att-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2921,7 +2894,6 @@ $bg-light: #f3f4f6;
   color: $text-light;
 }
 
-// ── Rate Progress Bar ──────────────────────────
 .att-rate-bar-card {
   background: $bg-white;
   border: 1px solid $light-border;
@@ -2962,7 +2934,6 @@ $bg-light: #f3f4f6;
   min-width: 2px;
 }
 
-// ── Chart ──────────────────────────────────────
 .att-chart-card {
   background: $bg-white;
   border: 1px solid $light-border;
@@ -3030,7 +3001,6 @@ $bg-light: #f3f4f6;
   p { font-size: 13px; margin: 0; }
 }
 
-// ── Attendees Table ────────────────────────────
 .att-table-card {
   background: $bg-white;
   border: 1px solid $light-border;
@@ -3262,7 +3232,6 @@ $bg-light: #f3f4f6;
   font-size: 13px;
 }
 
-// ── Leaderboard ────────────────────────────────
 .ldb-card {
   background: $bg-white;
   border: 1px solid $light-border;
@@ -3364,7 +3333,6 @@ $bg-light: #f3f4f6;
   color: $text-dark;
 }
 
-// ── Points badge on event cards ─────────────
 .event-points-pill {
   position: absolute;
   bottom: 8px;
@@ -3377,7 +3345,6 @@ $bg-light: #f3f4f6;
   border-radius: 999px;
 }
 
-// ── Event form points hint ──────────────────
 .points-badge-hint {
   display: inline-block;
   margin-left: 6px;
@@ -3389,7 +3356,6 @@ $bg-light: #f3f4f6;
   font-weight: 600;
 }
 
-// ── Points adjustment in alumni panel ──────
 .points-mgmt-section {
   padding: 12px;
   background: $bg-gray;
@@ -3417,7 +3383,6 @@ $bg-light: #f3f4f6;
   .pts-input { flex: 1; min-width: 100px; font-size: 12px; padding: 7px 10px; }
 }
 
-// Responsive
 @media (max-width: 768px) {
   .att-event-card { flex-wrap: wrap; }
   .att-view-event-btn { width: 100%; justify-content: center; }
@@ -3457,7 +3422,6 @@ $bg-light: #f3f4f6;
   font-style: italic;
 }
 
-// ========== ALUMNI TAB ==========
 .filter-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -3548,7 +3512,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Separated action groups in alumni table cell
 .action-group {
   display: flex;
   align-items: center;
@@ -3641,7 +3604,6 @@ $bg-light: #f3f4f6;
   letter-spacing: 0.3px;
 }
 
-// Alumni Table and Detail Panel Container
 .table-and-detail-container {
   display: flex;
   gap: 20px;
@@ -3658,7 +3620,6 @@ $bg-light: #f3f4f6;
   border-right: 1px solid $light-border;
 }
 
-// Detail Panel for Alumni
 .detail-panel {
   flex: 0 0 350px;
   display: flex;
@@ -4045,7 +4006,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// Modal Styles
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -4192,7 +4152,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== ANIMATIONS ==========
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -4224,7 +4183,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== RESPONSIVE ==========
 @media (max-width: 1024px) {
   .departments-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -4331,7 +4289,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== ALUMNI ID VERIFICATION STYLES ==========
 .verification-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -4627,7 +4584,6 @@ $bg-light: #f3f4f6;
     }
   }
 
-  // Responsive Approval Cards
   .header-actions {
     flex-direction: column;
     align-items: stretch;
@@ -4682,7 +4638,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== DEPARTMENTS & COURSES TAB REFINEMENT ==========
 .departments-admin-hero {
   display: flex;
   align-items: flex-end;
@@ -5088,14 +5043,12 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== HEADER ACTIONS (multiple buttons) ==========
 .header-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-// ========== BTN SECONDARY ==========
 .btn-secondary {
   background: $bg-white;
   color: $text-dark;
@@ -5115,7 +5068,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== CREATE USER FORM ==========
 .create-user-card {
   .form-label {
     font-size: 13px;
@@ -5187,7 +5139,6 @@ $bg-light: #f3f4f6;
   font-size: 14px;
 }
 
-// ========== EXPORT BAR ==========
 .export-bar {
   display: flex;
   align-items: center;
@@ -5240,7 +5191,6 @@ $bg-light: #f3f4f6;
   padding: 6px 12px;
 }
 
-// ========== EVENT FORM ==========
 .event-form-card {
   .optional-label { font-size: 11px; color: $text-light; font-weight: 400; }
 
@@ -5278,7 +5228,6 @@ $bg-light: #f3f4f6;
 .cover-preview-actions { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .cover-file-name { font-size: 12px; color: $text-light; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
-// ========== EVENTS GRID ==========
 .events-summary { margin-bottom: 12px; font-size: 13px; color: $text-light; }
 
 .events-grid {
@@ -5341,7 +5290,6 @@ $bg-light: #f3f4f6;
 .event-detail-desc { font-size: 13px; color: $text-dark; margin: 0 0 6px; line-height: 1.5; }
 .event-detail-meta { font-size: 12px; color: $text-light; margin: 0 0 10px; }
 
-// ========== PARTICIPANTS ==========
 .btn-participants-toggle {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
   padding: 6px 12px; border-radius: 8px; border: 1.5px solid $primary-color;
@@ -5403,7 +5351,6 @@ $bg-light: #f3f4f6;
   ion-icon { font-size: 16px; }
 }
 
-// ── QR Action Row ──────────────────────────────────────────
 .qr-action-row {
   display: flex;
   align-items: center;
@@ -5442,7 +5389,6 @@ $bg-light: #f3f4f6;
   ion-icon { font-size: 13px; }
 }
 
-// ── QR Overlay Modal ───────────────────────────────────────
 .qr-overlay {
   position: fixed;
   inset: 0;
@@ -5731,7 +5677,6 @@ $bg-light: #f3f4f6;
   font-weight: 500;
 }
 
-// ========== VERIFICATION SECTION LABELS ==========
 .verif-section-label {
   display: flex;
   align-items: center;
@@ -5768,7 +5713,6 @@ $bg-light: #f3f4f6;
   }
 }
 
-// ========== VERIFIED ALUMNI TABLE ==========
 .verified-alumni-table-wrap {
   overflow-x: auto;
   background: $bg-white;
@@ -5836,7 +5780,6 @@ $bg-light: #f3f4f6;
   margin-bottom: 8px;
 }
 
-// ========== VERIFIED ALUMNI SEARCH BAR ==========
 .verified-search-bar {
   display: flex;
   align-items: center;

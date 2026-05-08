@@ -1,4 +1,4 @@
-$green:    #1E5128;
+﻿$green:    #1E5128;
 $green-dk: #143C1C;
 $text-1:   #111827;
 $text-2:   #374151;
@@ -21,7 +21,6 @@ $bg:       #f3f4f6;
   padding: 20px 16px 48px;
 }
 
-// ── Loading ─────────────────────────────────────────────────
 .state-box {
   display: flex;
   flex-direction: column;
@@ -31,7 +30,6 @@ $bg:       #f3f4f6;
   p { color: $text-3; margin: 0; font-size: 14px; }
 }
 
-// ── Stats Row ────────────────────────────────────────────────
 .stats-row {
   display: flex;
   align-items: center;
@@ -72,7 +70,6 @@ $bg:       #f3f4f6;
   flex-shrink: 0;
 }
 
-// ── Tab Bar ──────────────────────────────────────────────────
 .tab-bar {
   display: flex;
   background: #fff;
@@ -119,7 +116,6 @@ $bg:       #f3f4f6;
   }
 }
 
-// ── User List ────────────────────────────────────────────────
 .user-list {
   display: flex;
   flex-direction: column;
@@ -208,7 +204,6 @@ $bg:       #f3f4f6;
 
 .user-actions { flex-shrink: 0; }
 
-// ── Action Buttons ───────────────────────────────────────────
 .btn-add {
   display: flex;
   align-items: center;
@@ -297,7 +292,6 @@ $bg:       #f3f4f6;
   &:disabled { opacity: .6; }
 }
 
-// ── Empty State ──────────────────────────────────────────────
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -311,7 +305,6 @@ $bg:       #f3f4f6;
   p { font-size: 13px; color: $text-3; margin: 0; max-width: 240px; }
 }
 
-// ── Private Profile ──────────────────────────────────────────
 .private-card {
   background: #fafafa;
   border: 1px dashed #d1d5db;
@@ -330,7 +323,6 @@ $bg:       #f3f4f6;
   ion-icon { font-size: 13px; }
 }
 
-// ── Department Tab ───────────────────────────────────────────
 .dept-header-row {
   display: flex;
   align-items: center;
@@ -373,7 +365,6 @@ $bg:       #f3f4f6;
 
 .net-search { margin-bottom: 12px; --padding-start: 0; --padding-end: 0; }
 
-// ── Responsive ───────────────────────────────────────────────
 @media (max-width: 480px) {
   .tab-btn { font-size: 11px; padding: 10px 4px; gap: 3px; }
   .user-name { font-size: 14px; }

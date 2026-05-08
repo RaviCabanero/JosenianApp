@@ -1,5 +1,4 @@
-// USJ-R Brand
-$green:       #1E5128;
+﻿$green:       #1E5128;
 $green-dark:  #143C1C;
 $green-mid:   #276836;
 $gold:        #F5B800;
@@ -22,7 +21,6 @@ $border:      #e5e7eb;
   background: linear-gradient(160deg, #143C1C 0%, #1E5128 45%, #276836 100%);
 }
 
-// Logo Section
 .logo-section {
   text-align: center;
   margin-bottom: 32px;
@@ -66,7 +64,6 @@ $border:      #e5e7eb;
   letter-spacing: 0.3px;
 }
 
-// Gold divider accent under tagline
 .logo-section::after {
   content: '';
   display: block;
@@ -77,7 +74,6 @@ $border:      #e5e7eb;
   margin: 12px auto 0;
 }
 
-// Login Card
 .login-card {
   width: 100%;
   max-width: 400px;
@@ -92,7 +88,6 @@ $border:      #e5e7eb;
   }
 }
 
-// Error Message
 .error-message {
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.25);
@@ -108,7 +103,6 @@ $border:      #e5e7eb;
   ion-icon { font-size: 18px; flex-shrink: 0; }
 }
 
-// Form Group
 .form-group {
   margin-bottom: 18px;
 }
@@ -123,7 +117,6 @@ $border:      #e5e7eb;
   letter-spacing: 0.8px;
 }
 
-// Input Wrapper
 .input-wrapper {
   display: flex;
   align-items: center;
@@ -168,7 +161,6 @@ $border:      #e5e7eb;
   font-size: 18px;
 }
 
-// Forgot Password
 .forgot-password {
   text-align: right;
   margin: 10px 0 22px 0;
@@ -183,7 +175,6 @@ $border:      #e5e7eb;
   height: auto;
 }
 
-// Login Button
 .login-button {
   --background: linear-gradient(135deg, #{$green} 0%, #{$green-dark} 100%);
   --color: #ffffff;
@@ -206,7 +197,6 @@ $border:      #e5e7eb;
   ion-spinner { width: 20px; height: 20px; }
 }
 
-// Divider
 .divider {
   display: flex;
   align-items: center;
@@ -217,7 +207,6 @@ $border:      #e5e7eb;
   font-weight: 500;
 }
 
-// Register Button
 .register-button {
   --color: #{$green};
   --border-color: #{$green};
@@ -232,7 +221,6 @@ $border:      #e5e7eb;
   &:hover { --background: rgba(30, 81, 40, 0.06); }
 }
 
-// Animations
 @keyframes slideInDown {
   from { opacity: 0; transform: translateY(-24px); }
   to   { opacity: 1; transform: translateY(0); }
