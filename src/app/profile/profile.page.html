@@ -18,7 +18,7 @@
 
   <div *ngIf="isLoading" class="loading-container">
     <ion-spinner color="primary"></ion-spinner>
-    <p>Loading profileâ€¦</p>
+    <p>Loading profile...</p>
   </div>
 
   <div *ngIf="!isLoading" class="profile-container">
@@ -154,7 +154,7 @@
           <div class="info-icon-wrap"><ion-icon name="male-female-outline"></ion-icon></div>
           <div class="info-content">
             <span class="info-label">Sex</span>
-            <span class="info-value" [class.empty-value]="!userProfile.gender">{{ userProfile.gender || 'â€”' }}</span>
+            <span class="info-value" [class.empty-value]="!userProfile.gender">{{ userProfile.gender || '--' }}</span>
           </div>
         </div>
 
@@ -220,7 +220,7 @@
             <div class="work-meta">
               <span class="work-duration">
                 <ion-icon name="calendar-outline"></ion-icon>
-                {{ currentJob.startYear }} â€“ <span class="present-label">Present</span>
+                {{ currentJob.startYear }} -- <span class="present-label">Present</span>
               </span>
             </div>
             <p class="work-description" *ngIf="currentJob.description">{{ currentJob.description }}</p>
@@ -258,7 +258,7 @@
                 <div class="work-meta">
                   <span class="work-duration">
                     <ion-icon name="calendar-outline"></ion-icon>
-                    {{ work.startYear }} â€“ {{ work.endYear }}
+                    {{ work.startYear }} -- {{ work.endYear }}
                   </span>
                 </div>
                 <p class="work-description" *ngIf="work.description">{{ work.description }}</p>
@@ -482,12 +482,25 @@
             </ion-button>
           </div>
 
+          <div class="sig-field">
+            <p class="verify-upload-label" style="margin-top:12px">
+              Your Signature
+              <span class="verify-upload-sub">Draw with your finger or mouse (optional)</span>
+            </p>
+            <div class="sig-canvas-wrap">
+              <canvas #sigCanvas class="sig-canvas"></canvas>
+            </div>
+            <button type="button" class="sig-clear-btn" (click)="clearSignaturePad()">
+              <ion-icon name="refresh-outline"></ion-icon> Clear
+            </button>
+          </div>
+
           <ion-button expand="block" class="verify-submit-btn"
             [disabled]="!verificationGradFile || !verificationTermGraduated || isSubmittingVerification"
             (click)="submitVerificationRequest()">
             <ion-spinner name="crescent" *ngIf="isSubmittingVerification"></ion-spinner>
             <ion-icon name="checkmark-circle-outline" *ngIf="!isSubmittingVerification" slot="start"></ion-icon>
-            {{ isSubmittingVerification ? 'Submittingâ€¦' : 'Submit for Verification' }}
+            {{ isSubmittingVerification ? 'Submitting...' : 'Submit for Verification' }}
           </ion-button>
         </div>
       </div>
@@ -539,44 +552,103 @@
   </div>
 </ion-content>
 
-<div class="digital-id-overlay" *ngIf="showDigitalId" (click)="closeDigitalId()">
-  <div class="digital-id-modal" (click)="$event.stopPropagation()">
-    <button class="digital-id-close" (click)="closeDigitalId()">
-      <ion-icon name="close"></ion-icon>
-    </button>
-    <div class="digital-id-card">
-      <div class="did-header">
-        <img src="assets/transparent_Logo.png" alt="USJ-R Logo" class="did-logo" />
-        <div class="did-header-text">
-          <p class="did-assoc">USJ-R Alumni Association, Inc.</p>
-          <p class="did-univ">University of San Joseâ€“Recoletos</p>
-          <p class="did-city">Cebu City, Philippines</p>
-        </div>
-      </div>
-      <div class="did-body">
-        <div class="did-photo-wrap">
-          <div class="did-photo"
-            [style.backgroundImage]="alumniGradPhotoBase64 ? 'url(' + alumniGradPhotoBase64 + ')' : 'none'">
-            <span *ngIf="!alumniGradPhotoBase64" class="did-photo-initials">{{ userProfile.initials }}</span>
+<div class="digital-id-overlay" *ngIf="showDigitalId">
+  <div class="digital-id-modal" [class.landscape]="isLandscape">
+
+    <!-- Controls Row -->
+    <div class="did-controls">
+      <button class="did-ctrl-btn" (click)="toggleLandscape()">
+        <ion-icon name="phone-portrait-outline" *ngIf="isLandscape"></ion-icon>
+        <ion-icon name="phone-landscape-outline" *ngIf="!isLandscape"></ion-icon>
+      </button>
+      <button class="did-ctrl-btn" (click)="flipCard()">
+        <ion-icon name="sync-outline"></ion-icon>
+        <span *ngIf="!isFlipped">View Back</span>
+        <span *ngIf="isFlipped">View Front</span>
+      </button>
+      <button class="did-ctrl-btn" (click)="downloadIdAsPdf()" [disabled]="isGeneratingPdf">
+        <ion-spinner *ngIf="isGeneratingPdf" name="crescent" class="did-ctrl-spinner"></ion-spinner>
+        <ion-icon *ngIf="!isGeneratingPdf" name="download-outline"></ion-icon>
+      </button>
+      <button class="digital-id-close" (click)="closeDigitalId()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+
+    <!-- 3D Card Scene -->
+    <div class="did-scene">
+      <div class="did-flipper" [style.transform]="flipperTransform">
+
+        <!-- FRONT -->
+        <div class="did-card-front digital-id-card">
+          <div class="did-header">
+            <img [src]="logoSrc" alt="USJ-R Logo" class="did-logo">
+            <div class="did-header-text">
+              <p class="did-assoc">USJ-R Alumni Association, Inc.</p>
+              <p class="did-univ">University of San Jose-Recoletos</p>
+              <p class="did-city">Cebu City, Philippines</p>
+            </div>
           </div>
-          <span class="did-verified-tag">
-            <ion-icon name="shield-checkmark"></ion-icon>
-            Verified Alumni
-          </span>
+          <div class="did-body">
+            <div class="did-photo-wrap">
+              <div class="did-photo" [style.backgroundImage]="gradPhotoStyle">
+                <span *ngIf="!alumniGradPhotoBase64" class="did-photo-initials">{{ userProfile.initials }}</span>
+              </div>
+              <span class="did-verified-tag">
+                <ion-icon name="shield-checkmark"></ion-icon>
+                Verified Alumni
+              </span>
+            </div>
+            <div class="did-details">
+              <h2 class="did-name">{{ userProfile.firstName }} {{ userProfile.lastName }}</h2>
+              <p class="did-course">{{ userProfile.course }}</p>
+              <p class="did-grad">Class of {{ userProfile.graduationYear }}</p>
+              <p class="did-idnum">ID No. {{ userProfile.studentNumber || '--' }}</p>
+              <p class="did-dept">{{ userProfile.department }}</p>
+            </div>
+          </div>
+          <div class="did-user-sig-block">
+            <img *ngIf="userSignatureUrl" [src]="userSignatureUrl" class="did-user-sig-img" alt="Holder Signature">
+            <div *ngIf="!userSignatureUrl" class="did-user-sig-blank"></div>
+            <div class="did-user-sig-line"></div>
+            <p class="did-user-sig-label">Holder's Signature</p>
+          </div>
+
+          <div class="did-footer">
+            <p>This is an official digital identification card.</p>
+            <p>Valid as long as membership is active.</p>
+          </div>
         </div>
-        <div class="did-details">
-          <h2 class="did-name">{{ userProfile.firstName }} {{ userProfile.lastName }}</h2>
-          <p class="did-course">{{ userProfile.course }}</p>
-          <p class="did-grad">Class of {{ userProfile.graduationYear }}</p>
-          <p class="did-idnum">ID No. {{ userProfile.studentNumber || 'â€”' }}</p>
-          <p class="did-dept">{{ userProfile.department }}</p>
+
+        <div class="did-card-back">
+          <div class="did-back-content">
+            <img [src]="logoSrc" alt="USJ-R Logo" class="did-back-logo">
+            <p class="did-back-title">USJ-R Alumni Association, Inc.</p>
+            <p class="did-back-cert">
+              This certifies that the bearer is a recognized alumnus of the
+              <strong>University of San Jose-Recoletos</strong>.
+            </p>
+            <div class="did-back-sig-row">
+              <div class="did-back-sig-block">
+                <img *ngIf="adminSignatureUrl" [src]="adminSignatureUrl" class="did-back-sig-img" alt="Registrar Signature">
+                <div *ngIf="!adminSignatureUrl" class="did-back-sig-placeholder">
+                </div>
+                <div class="did-back-sig-line">
+                </div>
+                <p class="did-back-sig-label">University Registrar</p>
+              </div>
+              <div class="did-back-qr-block" *ngIf="qrCodeDataUrl">
+                <img [src]="qrCodeDataUrl" class="did-back-qr" alt="Verification QR Code">
+                <p class="did-back-qr-label">Scan to verify</p>
+              </div>
+            </div>
+            <p class="did-back-refnum" *ngIf="alumniIdReferenceNumber">Ref: {{ alumniIdReferenceNumber }}</p>
+          </div>
         </div>
-      </div>
-      <div class="did-footer">
-        <p>This is an official digital identification card.</p>
-        <p>Valid as long as membership is active.</p>
+
       </div>
     </div>
+
   </div>
 </div>
 
@@ -590,7 +662,7 @@
         <ion-title>Edit Profile</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="saveProfileChanges()" [strong]="true" [disabled]="isSaving">
-            {{ isSaving ? 'Savingâ€¦' : 'Save' }}
+            {{ isSaving ? 'Saving...' : 'Save' }}
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -646,7 +718,7 @@
         <ion-title>{{ isEditingWork ? 'Edit' : 'Add' }} Work Experience</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="saveWorkExperience()" [strong]="true" [disabled]="isSaving">
-            {{ isSaving ? 'Savingâ€¦' : 'Save' }}
+            {{ isSaving ? 'Saving...' : 'Save' }}
           </ion-button>
         </ion-buttons>
       </ion-toolbar>

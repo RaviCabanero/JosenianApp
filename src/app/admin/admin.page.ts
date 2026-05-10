@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
@@ -14,6 +14,9 @@ import * as QRCode from 'qrcode';
   standalone: false,
 })
 export class AdminPage implements OnInit {
+  @ViewChild('adminSigCanvas') adminSigCanvas!: ElementRef<HTMLCanvasElement>;
+  private adminSignaturePad: any = null;
+
   isLoggedIn: boolean = false;
   activeTab: string = 'dashboard';
 
@@ -34,6 +37,12 @@ export class AdminPage implements OnInit {
   verifiedAlumni: any[] = [];
   verifiedAlumniSearch: string = '';
   expandedAlumniId: string | null = null;
+
+  showApprovalModal = false;
+  approvalTargetAlumnus: any = null;
+  adminSigHasSig = false;
+  isApprovingAlumni = false;
+  currentAdminName = '';
 
   departments: any[] = [];
 
@@ -120,9 +129,16 @@ export class AdminPage implements OnInit {
 
   ngOnInit() {
     if (this.authService.isLoggedIn()) {
-      this.authService.isAdmin().then(isAdmin => {
+      this.authService.isAdmin().then(async isAdmin => {
         if (isAdmin) {
           this.isLoggedIn = true;
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser) {
+            const profile = await this.authService.getUserProfile(currentUser.uid);
+            this.currentAdminName = profile
+              ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || currentUser.email || 'Admin'
+              : currentUser.email || 'Admin';
+          }
           this.loadPendingUsers();
           this.loadDepartments();
           this.loadAlumni();
@@ -373,17 +389,67 @@ export class AdminPage implements OnInit {
     }
   }
 
-  async approveAlumniId(userId: string) {
+  openApprovalModal(alumnus: any) {
+    this.approvalTargetAlumnus = alumnus;
+    this.adminSigHasSig = false;
+    this.showApprovalModal = true;
+    this.initAdminSignaturePad();
+  }
+
+  async initAdminSignaturePad() {
+    await new Promise(r => setTimeout(r, 150));
+    if (!this.adminSigCanvas?.nativeElement) return;
+    const { default: SignaturePad } = await import('signature_pad');
+    const canvas = this.adminSigCanvas.nativeElement;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    this.adminSignaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgba(0,0,0,0)',
+      penColor: '#111827',
+      minWidth: 1.5,
+      maxWidth: 3,
+    });
+    this.adminSignaturePad.addEventListener('endStroke', () => {
+      this.adminSigHasSig = !this.adminSignaturePad.isEmpty();
+    });
+  }
+
+  clearAdminSignaturePad() {
+    this.adminSignaturePad?.clear();
+    this.adminSigHasSig = false;
+  }
+
+  private async getAdminSignatureFile(): Promise<File | undefined> {
+    if (!this.adminSignaturePad || this.adminSignaturePad.isEmpty()) return undefined;
+    const dataUrl = this.adminSignaturePad.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], 'admin-signature.png', { type: 'image/png' });
+  }
+
+  async confirmApproval() {
+    if (!this.approvalTargetAlumnus || !this.adminSigHasSig) return;
+    this.isApprovingAlumni = true;
     try {
-      await this.authService.verifyAlumniId(userId, 'approved', '');
-      const approved = this.pendingAlumniVerification.find(a => a.id === userId);
-      this.pendingAlumniVerification = this.pendingAlumniVerification.filter(a => a.id !== userId);
+      const signatureFile = await this.getAdminSignatureFile();
+      await this.authService.verifyAlumniId(
+        this.approvalTargetAlumnus.id,
+        'approved',
+        '',
+        signatureFile,
+        this.currentAdminName
+      );
+      const approved = this.pendingAlumniVerification.find(a => a.id === this.approvalTargetAlumnus.id);
+      this.pendingAlumniVerification = this.pendingAlumniVerification.filter(a => a.id !== this.approvalTargetAlumnus.id);
       if (approved) {
         this.verifiedAlumni = [{ ...approved, alumniIdVerificationStatus: 'approved' }, ...this.verifiedAlumni];
       }
+      this.showApprovalModal = false;
     } catch (error) {
       console.error('Error approving alumni ID:', error);
       await this.showAlert('Error', 'Failed to approve alumni ID.');
+    } finally {
+      this.isApprovingAlumni = false;
     }
   }
 

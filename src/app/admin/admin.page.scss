@@ -5813,4 +5813,185 @@ $bg-light: #f3f4f6;
 }
 
 
+// ─── Alumni ID Approval Modal ────────────────────────────────────────────────
 
+.approval-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.approval-modal-box {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.approval-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: #111827;
+  }
+
+  button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 6px;
+
+    &:hover { background: #f3f4f6; }
+  }
+}
+
+.approval-id-preview {
+  padding: 16px 20px 0;
+}
+
+.approval-id-front {
+  background: linear-gradient(160deg, #0f1f3d 0%, #1a3a6e 60%, #10521f 100%);
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.aif-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.aif-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.aif-assoc {
+  font-size: 9px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.aif-univ {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.aif-body {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.aif-photo {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2) center / cover no-repeat;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.aif-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aif-name   { font-size: 13px; font-weight: 800; margin: 0 0 2px; color: #fff; }
+.aif-course { font-size: 10px; color: #fbbf24; margin: 0; }
+.aif-year   { font-size: 10px; color: rgba(255, 255, 255, 0.6); margin: 0; }
+.aif-id     { font-size: 10px; font-family: monospace; color: rgba(255, 255, 255, 0.85); margin: 2px 0 0; letter-spacing: 0.5px; }
+.aif-sig-label { font-size: 9px; color: rgba(255, 255, 255, 0.5); margin: 6px 0 2px; }
+.aif-sig-preview { max-width: 90px; max-height: 38px; object-fit: contain; filter: brightness(0) invert(1); display: block; }
+
+.approval-sig-section {
+  padding: 14px 20px;
+}
+
+.approval-sig-label {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111827;
+}
+
+.approval-sig-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.approval-sig-canvas-wrap {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  height: 110px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.approval-sig-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.approval-sig-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  ion-icon { font-size: 14px; }
+  &:active { color: #374151; }
+}
+
+.approval-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid #f3f4f6;
+  background: #fafafa;
+}

@@ -277,7 +277,7 @@
                       {{ getDepartmentName(user.department) }}
                     </div>
                     <div class="row-birthdate">
-                      {{ user.birthdate ? (user.birthdate | date:'MMM dd, yyyy') : 'â€”' }}
+                      {{ user.birthdate ? (user.birthdate | date:'MMM dd, yyyy') : '--' }}
                     </div>
                     <div class="row-submitted">
                       {{ user.joinDate || user.createdAt | date: 'MMM dd, yyyy' }}
@@ -809,15 +809,15 @@
                       (click)="selectAlumniForDetail(alumnus)">
                     <td>{{ alumnus.studentNumber }}</td>
                     <td>{{ alumnus.name }}</td>
-                    <td>{{ alumnus.middleName || 'â€”' }}</td>
+                    <td>{{ alumnus.middleName || '--' }}</td>
                     <td>{{ alumnus.email }}</td>
-                    <td>{{ alumnus.birthdate ? (alumnus.birthdate | date:'MMM dd, yyyy') : 'â€”' }}</td>
-                    <td>{{ alumnus.contactNumber || 'â€”' }}</td>
-                    <td>{{ alumnus.gender || 'â€”' }}</td>
-                    <td class="address-cell">{{ alumnus.address || 'â€”' }}</td>
+                    <td>{{ alumnus.birthdate ? (alumnus.birthdate | date:'MMM dd, yyyy') : '--' }}</td>
+                    <td>{{ alumnus.contactNumber || '--' }}</td>
+                    <td>{{ alumnus.gender || '--' }}</td>
+                    <td class="address-cell">{{ alumnus.address || '--' }}</td>
                     <td>{{ getDepartmentName(alumnus.department) }}</td>
                     <td>{{ alumnus.course }}</td>
-                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : 'â€”' }}</td>
+                    <td>{{ alumnus.userType === 'alumni' ? alumnus.batch : '--' }}</td>
                     <td>
                       <span class="type-badge" [class.alumni]="alumnus.userType === 'alumni'" [class.student]="alumnus.userType === 'student'">
                         {{ alumnus.userType === 'alumni' ? 'Alumni' : 'Student' }}
@@ -892,11 +892,11 @@
                   </div>
                   <div class="info-item">
                     <label>Mobile Number</label>
-                    <p>{{ selectedAlumni.contactNumber || 'â€”' }}</p>
+                    <p>{{ selectedAlumni.contactNumber || '--' }}</p>
                   </div>
                   <div class="info-item">
                     <label>Sex</label>
-                    <p>{{ selectedAlumni.gender || 'â€”' }}</p>
+                    <p>{{ selectedAlumni.gender || '--' }}</p>
                   </div>
                   <div class="info-item" *ngIf="selectedAlumni.birthdate">
                     <label>Date of Birth</label>
@@ -904,7 +904,7 @@
                   </div>
                   <div class="info-item">
                     <label>Address</label>
-                    <p>{{ selectedAlumni.address || 'â€”' }}</p>
+                    <p>{{ selectedAlumni.address || '--' }}</p>
                   </div>
                   <div class="info-item" *ngIf="selectedAlumni.source === 'registered'">
                     <label>Status</label>
@@ -933,7 +933,7 @@
                       </div>
                       <span class="work-company">{{ job.company }}</span>
                       <span class="work-years">
-                        {{ job.startYear }}â€“{{ job.isCurrent ? 'Present' : job.endYear }}
+                        {{ job.startYear }}--{{ job.isCurrent ? 'Present' : job.endYear }}
                       </span>
                       <p class="work-desc" *ngIf="job.description">{{ job.description }}</p>
                     </div>
@@ -1224,7 +1224,7 @@
           <div class="empty-state" *ngIf="events.length === 0 && !showEventForm">
             <ion-icon name="calendar" class="empty-icon"></ion-icon>
             <h4>No Events Yet</h4>
-            <p>Create your first event â€” it will be published to the Feeds page immediately.</p>
+            <p>Create your first event -- it will be published to the Feeds page immediately.</p>
           </div>
 
         </section>
@@ -1306,7 +1306,7 @@
               </div>
 
               <div class="verification-actions">
-                <button class="btn btn-approve" (click)="approveAlumniId(alumnus.id)">
+                <button class="btn btn-approve" (click)="openApprovalModal(alumnus)">
                   <ion-icon name="checkmark-circle"></ion-icon>
                   Approve
                 </button>
@@ -1341,7 +1341,7 @@
                 <input
                   type="text"
                   [(ngModel)]="verifiedAlumniSearch"
-                  placeholder="Search by name, email, student no. or departmentâ€¦"
+                  placeholder="Search by name, email, student no. or department..."
                   class="search-input"
                 />
                 <button *ngIf="verifiedAlumniSearch" class="clear-search-btn" (click)="verifiedAlumniSearch = ''">
@@ -1371,9 +1371,9 @@
                   </td>
                   <td>{{ a.email }}</td>
                   <td>{{ getDepartmentName(a.department) }}</td>
-                  <td>{{ a.graduationYear || 'â€”' }}</td>
-                  <td>{{ a.studentNumber || 'â€”' }}</td>
-                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : 'â€”' }}</td>
+                  <td>{{ a.graduationYear || '--' }}</td>
+                  <td>{{ a.studentNumber || '--' }}</td>
+                  <td>{{ a.alumniIdVerificationDate ? (a.alumniIdVerificationDate | date:'MMM dd, yyyy') : '--' }}</td>
                 </tr>
                 <tr *ngIf="filteredVerifiedAlumni.length === 0">
                   <td colspan="6" class="verif-no-results">
@@ -1393,6 +1393,59 @@
           </div>
 
         </section>
+
+        <!-- Alumni ID Approval Modal -->
+        <div class="approval-modal-overlay" *ngIf="showApprovalModal" (click)="showApprovalModal = false">
+          <div class="approval-modal-box" (click)="$event.stopPropagation()">
+            <div class="approval-modal-header">
+              <h3>Approve Alumni ID</h3>
+              <button (click)="showApprovalModal = false"><ion-icon name="close"></ion-icon></button>
+            </div>
+
+            <div class="approval-id-preview" *ngIf="approvalTargetAlumnus">
+              <div class="approval-id-front">
+                <div class="aif-header">
+                  <img src="assets/transparent_Logo.png" class="aif-logo" alt="USJ-R Logo" />
+                  <div>
+                    <p class="aif-assoc">USJ-R Alumni Association, Inc.</p>
+                    <p class="aif-univ">University of San Jose-Recoletos</p>
+                  </div>
+                </div>
+                <div class="aif-body">
+                  <div class="aif-photo"
+                    [style.backgroundImage]="hasAlumniImage(approvalTargetAlumnus) ? 'url(' + getAlumniImageUrl(approvalTargetAlumnus) + ')' : 'none'">
+                  </div>
+                  <div class="aif-details">
+                    <p class="aif-name">{{ approvalTargetAlumnus.firstName }} {{ approvalTargetAlumnus.lastName }}</p>
+                    <p class="aif-course">{{ approvalTargetAlumnus.course }}</p>
+                    <p class="aif-year">Class of {{ approvalTargetAlumnus.graduationYear }}</p>
+                    <p class="aif-id">ID No. {{ approvalTargetAlumnus.studentNumber || '--' }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="approval-sig-section">
+              <p class="approval-sig-label">Admin / Registrar Signature <span style="color:red">*</span></p>
+              <p class="approval-sig-hint">Draw your signature below. It will appear on the back of the alumni ID.</p>
+              <div class="approval-sig-canvas-wrap">
+                <canvas #adminSigCanvas class="approval-sig-canvas"></canvas>
+              </div>
+              <button type="button" class="approval-sig-clear-btn" (click)="clearAdminSignaturePad()">
+                <ion-icon name="refresh-outline"></ion-icon> Clear
+              </button>
+            </div>
+
+            <div class="approval-modal-actions">
+              <ion-button fill="outline" color="medium" (click)="showApprovalModal = false">Cancel</ion-button>
+              <ion-button [disabled]="!adminSigHasSig || isApprovingAlumni" (click)="confirmApproval()">
+                <ion-spinner *ngIf="isApprovingAlumni" name="crescent"></ion-spinner>
+                <ion-icon *ngIf="!isApprovingAlumni" slot="start" name="checkmark-circle"></ion-icon>
+                {{ isApprovingAlumni ? 'Approving...' : 'Confirm Approval' }}
+              </ion-button>
+            </div>
+          </div>
+        </div>
 
         <section class="tab-content att-tab" *ngIf="activeTab === 'attendance'">
 
@@ -1440,7 +1493,7 @@
               <span>Select Event</span>
             </div>
             <select class="att-event-select" [(ngModel)]="activeDashboardEventId" (change)="selectDashboardEvent(activeDashboardEventId)">
-              <option value="">â€” Choose an event to view attendance â€”</option>
+              <option value="">-- Choose an event to view attendance --</option>
               <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} Â· {{ formatEventDate(ev) }}</option>
             </select>
           </div>
@@ -1455,7 +1508,7 @@
 
             <div class="att-loading-state" *ngIf="isLoadingDashboard">
               <ion-spinner name="crescent" color="primary"></ion-spinner>
-              <p>Loading attendance dataâ€¦</p>
+              <p>Loading attendance data...</p>
             </div>
 
             <ng-container *ngIf="!isLoadingDashboard">
@@ -1586,7 +1639,7 @@
                   <div class="att-table-controls">
                     <div class="att-search-box">
                       <ion-icon name="search-outline"></ion-icon>
-                      <input type="text" placeholder="Search nameâ€¦" [(ngModel)]="dashboardSearch" (input)="filterDashboardList()" class="att-search-input">
+                      <input type="text" placeholder="Search name..." [(ngModel)]="dashboardSearch" (input)="filterDashboardList()" class="att-search-input">
                     </div>
                     <select class="att-status-filter" [(ngModel)]="dashboardStatusFilter" (change)="filterDashboardList()">
                       <option value="all">All Status</option>
@@ -1620,8 +1673,8 @@
                           <span class="att-name-text">{{ u.name }}</span>
                         </td>
                         <td class="att-course-col">
-                          <span class="att-course">{{ u.course || 'â€”' }}</span>
-                          <span class="att-dept">{{ getDepartmentName(u.department) || 'â€”' }}</span>
+                          <span class="att-course">{{ u.course || '--' }}</span>
+                          <span class="att-dept">{{ getDepartmentName(u.department) || '--' }}</span>
                         </td>
                         <td>
                           <span class="att-role-pill" [class.role-alumni]="u.userType === 'alumni'" [class.role-student]="u.userType === 'student'">
@@ -1687,7 +1740,7 @@
     <div class="qr-image-wrap">
       <div class="qr-generating" *ngIf="isGeneratingQR">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Generating QRâ€¦</p>
+        <p>Generating QR...</p>
       </div>
       <img *ngIf="!isGeneratingQR && qrCodeDataUrl" [src]="qrCodeDataUrl" alt="Event QR Code" class="qr-image" />
     </div>
@@ -1730,7 +1783,7 @@
     <div class="qr-attendance-list" *ngIf="showAttendanceInModal">
       <div class="qr-attendance-loading" *ngIf="isLoadingAttendance">
         <ion-spinner name="crescent"></ion-spinner>
-        <span>Loading attendanceâ€¦</span>
+        <span>Loading attendance...</span>
       </div>
 
       <div class="qr-attendance-empty" *ngIf="!isLoadingAttendance && attendanceList.length === 0">

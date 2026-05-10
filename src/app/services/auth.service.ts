@@ -898,9 +898,15 @@ export class AuthService {
     userId: string,
     gradPhotoFile: File,
     termGraduated: string,
-    socialMediaLink: string
+    socialMediaLink: string,
+    signatureFile?: File
   ): Promise<void> {
     const alumniGradPhotoUrl = await this.uploadFile(`alumni-ids/${userId}/grad-photo`, gradPhotoFile);
+
+    let userSignatureUrl = '';
+    if (signatureFile) {
+      userSignatureUrl = await this.uploadFile(`alumni-ids/${userId}/user-signature`, signatureFile);
+    }
 
     await updateDoc(doc(this.firestore, 'users', userId), {
       alumniGradPhotoUrl,
@@ -909,17 +915,38 @@ export class AuthService {
       alumniIdRejectionReason: '',
       alumniTermGraduated: termGraduated,
       alumniSocialMedia: socialMediaLink,
+      userSignatureUrl,
     });
   }
 
 
-  async verifyAlumniId(userId: string, status: 'approved' | 'rejected', rejectionReason: string = '') {
+  private generateAlumniReferenceNumber(): string {
+    const year = new Date().getFullYear();
+    const rand = Math.floor(10000 + Math.random() * 90000);
+    return `USJ-ALM-${year}-${rand}`;
+  }
+
+  async verifyAlumniId(
+    userId: string,
+    status: 'approved' | 'rejected',
+    rejectionReason: string = '',
+    signatureFile?: File,
+    approverName?: string
+  ) {
     try {
       const userRef = doc(this.firestore, 'users', userId);
       const updateData: any = {
         alumniIdVerificationStatus: status,
         alumniIdVerificationDate: new Date().toISOString()
       };
+
+      if (status === 'approved') {
+        if (signatureFile) {
+          updateData.adminSignatureUrl = await this.uploadFile(`alumni-ids/${userId}/admin-signature`, signatureFile);
+        }
+        updateData.alumniIdReferenceNumber = this.generateAlumniReferenceNumber();
+        updateData.approvedByName = approverName || 'Admin';
+      }
 
       if (status === 'rejected' && rejectionReason) {
         updateData.alumniIdRejectionReason = rejectionReason;

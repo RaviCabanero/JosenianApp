@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, ViewChild } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, IonModal, AlertController } from '@ionic/angular';
@@ -26,6 +26,7 @@ export class ProfilePage implements OnInit {
   @ViewChild('editModal') editModal!: IonModal;
   @ViewChild('workModal') workModal!: IonModal;
   @ViewChild('photoModal') photoModal!: IonModal;
+  @ViewChild('sigCanvas') sigCanvas!: ElementRef<HTMLCanvasElement>;
 
   userProfile = {
     firstName: '',
@@ -100,7 +101,17 @@ export class ProfilePage implements OnInit {
   verificationSocialMedia = '';
   isSubmittingVerification = false;
 
+  private signaturePad: any = null;
+  userSignatureUrl = '';
+
   showDigitalId = false;
+  readonly logoSrc = 'assets/transparent_Logo.png';
+  isFlipped = false;
+  isLandscape = false;
+  alumniIdReferenceNumber = '';
+  adminSignatureUrl = '';
+  qrCodeDataUrl = '';
+  isGeneratingPdf = false;
 
   inspiredPoints: Record<string, number> = {};
   inspiredMasterBadge = false;
@@ -261,6 +272,9 @@ export class ProfilePage implements OnInit {
             this.updateCurrentJobStatus();
             this.alumniIdVerificationStatus = profile.alumniIdVerificationStatus || 'unverified';
             this.alumniIdRejectionReason = profile.alumniIdRejectionReason || '';
+            this.alumniIdReferenceNumber = profile.alumniIdReferenceNumber || '';
+            this.adminSignatureUrl = profile.adminSignatureUrl || '';
+            this.userSignatureUrl = profile.userSignatureUrl || '';
             const rawGradPhoto = profile.alumniGradPhotoUrl || profile.alumniGradPhotoBase64 || '';
             if (rawGradPhoto.startsWith('http') || rawGradPhoto.startsWith('data:')) {
               this.alumniGradPhotoBase64 = rawGradPhoto;
@@ -268,6 +282,9 @@ export class ProfilePage implements OnInit {
               this.alumniGradPhotoBase64 = `data:image/jpeg;base64,${rawGradPhoto}`;
             } else {
               this.alumniGradPhotoBase64 = '';
+            }
+            if (this.alumniIdReferenceNumber) {
+              this.generateQrCode();
             }
           }
 
@@ -733,6 +750,36 @@ export class ProfilePage implements OnInit {
       return;
     }
     this.showVerificationUpload = !this.showVerificationUpload;
+    if (this.showVerificationUpload) {
+      this.initSignaturePad();
+    }
+  }
+
+  async initSignaturePad() {
+    await new Promise(r => setTimeout(r, 150));
+    if (!this.sigCanvas?.nativeElement) return;
+    const { default: SignaturePad } = await import('signature_pad');
+    const canvas = this.sigCanvas.nativeElement;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    this.signaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgba(0,0,0,0)',
+      penColor: '#111827',
+      minWidth: 1.5,
+      maxWidth: 3,
+    });
+  }
+
+  clearSignaturePad() {
+    this.signaturePad?.clear();
+  }
+
+  private async getSignatureFile(): Promise<File | undefined> {
+    if (!this.signaturePad || this.signaturePad.isEmpty()) return undefined;
+    const dataUrl = this.signaturePad.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], 'user-signature.png', { type: 'image/png' });
   }
 
 
@@ -796,11 +843,13 @@ export class ProfilePage implements OnInit {
     if (!user) return;
     this.isSubmittingVerification = true;
     try {
+      const signatureFile = await this.getSignatureFile();
       await this.authService.requestAlumniIdVerification(
         user.uid,
         this.verificationGradFile,
         this.verificationTermGraduated,
-        this.verificationSocialMedia
+        this.verificationSocialMedia,
+        signatureFile
       );
       this.alumniIdVerificationStatus = 'pending';
       this.showVerificationUpload = false;
@@ -824,10 +873,121 @@ export class ProfilePage implements OnInit {
 
   openDigitalId() {
     this.showDigitalId = true;
+    this.isFlipped = false;
+    this.isLandscape = false;
   }
 
   closeDigitalId() {
     this.showDigitalId = false;
+  }
+
+  get gradPhotoStyle(): string {
+    return this.alumniGradPhotoBase64 ? `url(${this.alumniGradPhotoBase64})` : 'none';
+  }
+
+  get flipperTransform(): string {
+    return this.isFlipped ? 'rotateY(180deg)' : 'none';
+  }
+
+  flipCard() {
+    this.isFlipped = !this.isFlipped;
+  }
+
+  toggleLandscape() {
+    this.isLandscape = !this.isLandscape;
+  }
+
+  async generateQrCode() {
+    try {
+      const QRCode = await import('qrcode');
+      this.qrCodeDataUrl = await QRCode.toDataURL(
+        `USJ-R Verified | ${this.alumniIdReferenceNumber}`,
+        { width: 120, margin: 1 }
+      );
+    } catch (e) {
+      console.error('QR generation failed', e);
+    }
+  }
+
+  private async urlToBase64(url: string): Promise<string> {
+    if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return url;
+    }
+  }
+
+  async downloadIdAsPdf() {
+    this.isGeneratingPdf = true;
+    const wasFlipped = this.isFlipped;
+    this.isFlipped = false;
+
+    // Save originals
+    const origGradPhoto  = this.alumniGradPhotoBase64;
+    const origUserSig    = this.userSignatureUrl;
+    const origAdminSig   = this.adminSignatureUrl;
+
+    // Pre-convert all remote Firebase Storage URLs to base64 so html2canvas
+    // can embed them without running into CORS restrictions
+    [
+      this.alumniGradPhotoBase64,
+      this.userSignatureUrl,
+      this.adminSignatureUrl,
+    ] = await Promise.all([
+      this.urlToBase64(this.alumniGradPhotoBase64),
+      this.urlToBase64(this.userSignatureUrl),
+      this.urlToBase64(this.adminSignatureUrl),
+    ]);
+
+    await new Promise(r => setTimeout(r, 150)); // let Angular re-render with base64 sources
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const front = document.querySelector('.did-card-front') as HTMLElement;
+      const back  = document.querySelector('.did-card-back')  as HTMLElement;
+      if (!front || !back) return;
+
+      const frontCanvas = await html2canvas(front, { scale: 3, useCORS: true, logging: false });
+
+      // temporarily un-flip the back for capture
+      back.style.transform = 'rotateY(0deg)';
+      back.style.backfaceVisibility = 'visible';
+      await new Promise(r => setTimeout(r, 50));
+      const backCanvas = await html2canvas(back, { scale: 3, useCORS: true, logging: false });
+      back.style.transform = '';
+      back.style.backfaceVisibility = '';
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a6' });
+      const w = pdf.internal.pageSize.getWidth();
+      const h = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+      pdf.addPage();
+      pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+
+      const lastName = this.userProfile.lastName || 'Alumni';
+      const ref = this.alumniIdReferenceNumber || 'ID';
+      pdf.save(`Alumni-ID-${lastName}-${ref}.pdf`);
+    } catch (e) {
+      console.error('PDF generation failed', e);
+    } finally {
+      // Restore original URLs so the live card still shows correctly
+      this.alumniGradPhotoBase64 = origGradPhoto;
+      this.userSignatureUrl      = origUserSig;
+      this.adminSignatureUrl     = origAdminSig;
+      this.isFlipped = wasFlipped;
+      this.isGeneratingPdf = false;
+    }
   }
 
   async logout() {
