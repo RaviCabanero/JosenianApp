@@ -59,6 +59,10 @@ service cloud.firestore {
       allow read, write;
     }
 
+    match /nominations/{nominationId} {
+      allow read, write;
+    }
+
     match /conversations/{conversationId} {
       allow read, write;
 

@@ -84,6 +84,17 @@ export class AdminPage implements OnInit {
     graduationYear: ''
   };
 
+  allAppUsers: any[] = [];
+  nominationSearch = '';
+  nominationSearchResults: any[] = [];
+  nominationTarget: any = null;
+  nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+  nominationProofFile: File | null = null;
+  nominationProofFileName = '';
+  isSubmittingNomination = false;
+  nominations: any[] = [];
+  isLoadingNominations = false;
+
   events: any[] = [];
   showEventForm: boolean = false;
   editingEventId: string | null = null;
@@ -95,7 +106,8 @@ export class AdminPage implements OnInit {
     coverImageBase64: '',
     coverImageUrl: '',
     coverImageFileName: '',
-    eventCategory: 'regular', pointValue: 10
+    eventCategory: 'regular', pointValue: 10,
+    inspireCategory: 'service'
   };
 
   private coverImageFile: File | null = null;
@@ -203,6 +215,7 @@ export class AdminPage implements OnInit {
     try {
       const allUsers = await this.authService.getAllUsers();
       const appUsers = allUsers.filter((u: any) => u.userType === 'student' || u.userType === 'alumni');
+      this.allAppUsers = appUsers;
       this.totalUsersCount = appUsers.length;
       this.totalStudentsCount = appUsers.filter((u: any) => u.userType === 'student').length;
       this.totalAlumniCount = appUsers.filter((u: any) => u.userType === 'alumni').length;
@@ -888,7 +901,8 @@ export class AdminPage implements OnInit {
       title: '', description: '', date: '', time: '',
       location: '', eventType: 'global', maxParticipants: '',
       coverImageBase64: '', coverImageUrl: '', coverImageFileName: '',
-      eventCategory: 'regular', pointValue: 10
+      eventCategory: 'regular', pointValue: 10,
+      inspireCategory: 'service'
     };
     this.coverImageFile = null;
     this.editingEventId = null;
@@ -979,7 +993,8 @@ export class AdminPage implements OnInit {
       coverImageUrl: ev.coverImageUrl || '',
       coverImageFileName: ev.coverImageFileName || '',
       eventCategory: ev.eventCategory || 'regular',
-      pointValue: ev.pointValue ?? 10
+      pointValue: ev.pointValue ?? 10,
+      inspireCategory: ev.inspireCategory || 'service'
     };
     this.coverImageFile = null;
     this.editingEventId = eventId;
@@ -1386,6 +1401,107 @@ export class AdminPage implements OnInit {
     if (tab === 'attendance' && this.leaderboard.length === 0) {
       this.loadLeaderboard();
     }
+    if (tab === 'nominations' && this.nominations.length === 0) {
+      this.loadNominations();
+    }
+  }
+
+  searchNominationUsers() {
+    if (!this.nominationSearch.trim()) {
+      this.nominationSearchResults = [];
+      return;
+    }
+    const term = this.nominationSearch.toLowerCase();
+    this.nominationSearchResults = this.allAppUsers
+      .filter((u: any) => {
+        const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        return name.includes(term) || email.includes(term);
+      })
+      .slice(0, 8);
+  }
+
+  selectNominationTarget(user: any) {
+    this.nominationTarget = user;
+    this.nominationSearch = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    this.nominationSearchResults = [];
+  }
+
+  clearNominationTarget() {
+    this.nominationTarget = null;
+    this.nominationSearch = '';
+    this.nominationSearchResults = [];
+  }
+
+  onNominationProofSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    this.nominationProofFile = file;
+    this.nominationProofFileName = file.name;
+  }
+
+  async loadNominations() {
+    this.isLoadingNominations = true;
+    try {
+      this.nominations = await this.authService.getNominations();
+    } catch (err) {
+      console.error('Error loading nominations:', err);
+    } finally {
+      this.isLoadingNominations = false;
+    }
+  }
+
+  async submitNomination() {
+    if (!this.nominationTarget) {
+      await this.showAlert('Missing Info', 'Please select a user to nominate.');
+      return;
+    }
+    if (!this.nominationForm.reason.trim()) {
+      await this.showAlert('Missing Info', 'Please provide a reason for the nomination.');
+      return;
+    }
+    this.isSubmittingNomination = true;
+    try {
+      await this.authService.createNomination({
+        nomineeId: this.nominationTarget.id || this.nominationTarget.uid,
+        nomineeName: `${this.nominationTarget.firstName || ''} ${this.nominationTarget.lastName || ''}`.trim(),
+        nomineeEmail: this.nominationTarget.email || '',
+        nominatedBy: this.authService.getCurrentUser()?.uid || '',
+        nominatedByName: this.currentAdminName,
+        inspireCategory: this.nominationForm.inspireCategory,
+        points: this.nominationForm.points,
+        reason: this.nominationForm.reason,
+        proofFile: this.nominationProofFile || undefined,
+      });
+      await this.showAlert('Nomination Submitted', `${this.nominationSearch} has been awarded ${this.nominationForm.points} INSPIRE points.`);
+      this.nominationTarget = null;
+      this.nominationSearch = '';
+      this.nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+      this.nominationProofFile = null;
+      this.nominationProofFileName = '';
+      await this.loadNominations();
+    } catch (err) {
+      console.error('Error submitting nomination:', err);
+      await this.showAlert('Error', 'Failed to submit nomination. Please try again.');
+    } finally {
+      this.isSubmittingNomination = false;
+    }
+  }
+
+  getNominationCategoryLabel(key: string): string {
+    const map: Record<string, string> = {
+      interiority: 'I - Interiority', nationalism: 'N - Nationalism',
+      service: 'S - Service', pioneerism: 'P - Pioneerism',
+      integrity: 'I - Integrity', reliability: 'R - Reliability',
+      excellence: 'E - Excellence',
+    };
+    return map[key] || key;
+  }
+
+  formatNominationDate(createdAt: any): string {
+    if (!createdAt) return '';
+    const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   async refreshData() {

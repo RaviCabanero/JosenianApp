@@ -954,7 +954,6 @@ export class AuthService {
 
       await updateDoc(userRef, updateData);
       if (status === 'approved') {
-        await this.awardInspiredPoints(userId, 'integrity', 25, 'Alumni ID verified', 'integrity_verified');
         await this.createNotification(
           userId,
           'Alumni ID Verified ✓',
@@ -1238,7 +1237,6 @@ export class AuthService {
         const attendees: string[] = snap.data()['attendees'] || [];
         if (!attendees.includes(userId)) {
           await updateDoc(ref, { attendees: [...attendees, userId] });
-          await this.awardInspiredPoints(userId, 'excellence', 2, 'Joined global event', `excellence_join_${eventId}`);
         }
       }
     } catch (error) {
@@ -1344,7 +1342,6 @@ export class AuthService {
         if (!attendees.includes(userId)) {
           attendees.push(userId);
           await updateDoc(eventRef, { attendees });
-          await this.awardInspiredPoints(userId, 'service', 2, 'Joined department event', `service_join_${departmentId}_${eventId}`);
         }
       }
     } catch (error) {
@@ -1392,12 +1389,6 @@ export class AuthService {
         likes: [],
         createdAt: new Date()
       });
-      if (postData.authorId) {
-        await Promise.all([
-          this.awardInspiredPoints(postData.authorId, 'service',    2, 'Posted on department wall', `service_wall_${docRef.id}`),
-          this.awardInspiredPoints(postData.authorId, 'pioneerism', 2, 'Posted on department wall', `pioneerism_wall_${docRef.id}`),
-        ]);
-      }
       return { id: docRef.id, ...postData, likes: [] };
     } catch (error) {
       console.error('Error adding wall post:', error);
@@ -1505,10 +1496,8 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
-      await Promise.all([
-        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Event'}`, `reliability_ev_${eventId}`),
-        this.awardInspiredPoints(userId, 'excellence',  5, `Attended: ${event['title'] || 'Event'}`, `excellence_ev_${eventId}`),
-      ]);
+      const inspireCategory = event['inspireCategory'] || 'service';
+      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Event'}`, `${inspireCategory}_ev_${eventId}`);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1599,10 +1588,8 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? 10;
       await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
-      await Promise.all([
-        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Dept Event'}`, `reliability_dept_${eventId}`),
-        this.awardInspiredPoints(userId, 'service',     3, `Attended: ${event['title'] || 'Dept Event'}`, `service_dept_${eventId}`),
-      ]);
+      const inspireCategory = event['inspireCategory'] || 'service';
+      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Dept Event'}`, `${inspireCategory}_dept_${eventId}`);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1766,6 +1753,67 @@ export class AuthService {
     );
   }
 
+  async createNomination(data: {
+    nomineeId: string;
+    nomineeName: string;
+    nomineeEmail: string;
+    nominatedBy: string;
+    nominatedByName: string;
+    inspireCategory: string;
+    points: number;
+    reason: string;
+    proofFile?: File;
+  }): Promise<void> {
+    const nominationRef = doc(collection(this.firestore, 'nominations'));
+    let proofFileUrl = '';
+    let proofFileName = '';
+    if (data.proofFile) {
+      proofFileUrl = await this.uploadFile(`nominations/${nominationRef.id}/proof`, data.proofFile);
+      proofFileName = data.proofFile.name;
+    }
+    const { proofFile: _proofFile, ...rest } = data;
+    await setDoc(nominationRef, { ...rest, proofFileUrl, proofFileName, createdAt: new Date() });
+    await this.awardInspiredPoints(
+      data.nomineeId,
+      data.inspireCategory as 'interiority' | 'nationalism' | 'service' | 'pioneerism' | 'integrity' | 'reliability' | 'excellence',
+      data.points,
+      `Nominated: ${data.reason}`,
+      `nomination_${nominationRef.id}`
+    );
+    // Also increment totalPoints so nominations count toward the leaderboard
+    const histRef = doc(collection(this.firestore, 'users', data.nomineeId, 'pointsHistory'));
+    await setDoc(histRef, {
+      eventId: nominationRef.id,
+      eventTitle: `INSPIRE Nomination (${data.inspireCategory}): ${data.reason}`,
+      points: data.points,
+      category: 'nomination',
+      type: 'nomination',
+      awardedAt: new Date(),
+    });
+    await updateDoc(doc(this.firestore, 'users', data.nomineeId), { totalPoints: increment(data.points) });
+    await this.createNotification(
+      data.nomineeId,
+      'INSPIRE Nomination Received',
+      `You have been nominated by ${data.nominatedByName} and awarded ${data.points} INSPIRE points for ${data.inspireCategory}.`,
+      'points',
+      '/profile'
+    );
+  }
+
+  async getNominations(): Promise<any[]> {
+    try {
+      const snap = await getDocs(query(
+        collection(this.firestore, 'nominations'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      ));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.error('Error fetching nominations:', err);
+      return [];
+    }
+  }
+
   async getLeaderboard(limitCount: number = 10): Promise<any[]> {
     try {
       const snap = await getDocs(query(
@@ -1862,9 +1910,8 @@ export class AuthService {
     }
   }
 
-  async awardInspiredProfileComplete(userId: string, profileData: { bio: string; gender: string; address: string; contactNumber: string }): Promise<void> {
-    if (!profileData.bio || !profileData.gender || !profileData.address || !profileData.contactNumber) return;
-    await this.awardInspiredPoints(userId, 'interiority', 10, 'Completed profile with all details', 'interiority_complete');
+  async awardInspiredProfileComplete(_userId: string, _profileData: { bio: string; gender: string; address: string; contactNumber: string }): Promise<void> {
+    // INSPIRE points are only earned through event attendance and admin nominations
   }
 
 
@@ -1920,10 +1967,6 @@ export class AuthService {
       'connection',
       '/network'
     );
-    await Promise.all([
-      this.awardInspiredPoints(myId,       'nationalism', 3, 'New friend connection', `nationalism_${fromUserId}`),
-      this.awardInspiredPoints(fromUserId, 'nationalism', 3, 'New friend connection', `nationalism_${myId}`),
-    ]);
   }
 
   async declineFriendRequest(fromUserId: string): Promise<void> {

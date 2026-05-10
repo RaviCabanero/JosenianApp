@@ -68,6 +68,14 @@
             {{ pendingAlumniVerification.length }}
           </span>
         </button>
+        <button
+          class="nav-item"
+          [class.active]="activeTab === 'nominations'"
+          (click)="selectTab('nominations')"
+        >
+          <ion-icon name="ribbon-outline"></ion-icon>
+          <span>INSPIRE Nominations</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -1094,6 +1102,20 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label">INSPIRE Category</label>
+              <p class="form-hint">Points from attending this event count toward this INSPIRE letter.</p>
+              <select [(ngModel)]="newEvent.inspireCategory" class="form-input">
+                <option value="interiority">I -- Interiority</option>
+                <option value="nationalism">N -- Nationalism</option>
+                <option value="service">S -- Service</option>
+                <option value="pioneerism">P -- Pioneerism</option>
+                <option value="integrity">I -- Integrity</option>
+                <option value="reliability">R -- Reliability</option>
+                <option value="excellence">E -- Excellence</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">Cover Image <span class="optional-label">(optional, max 2MB)</span></label>
               <div class="cover-upload-area" *ngIf="!hasNewEventCover()">
                 <input #coverInput type="file" accept="image/*" (change)="onCoverImageSelected($event)" style="display:none" />
@@ -1446,6 +1468,129 @@
             </div>
           </div>
         </div>
+
+        <section class="tab-content nom-tab" *ngIf="activeTab === 'nominations'">
+          <div class="nom-layout">
+
+            <div class="nom-form-panel">
+              <h3 class="nom-panel-title">
+                <ion-icon name="ribbon-outline"></ion-icon>
+                Nominate a User
+              </h3>
+
+              <div class="nom-field">
+                <label class="nom-label">Search User</label>
+                <div class="nom-search-wrap">
+                  <input
+                    class="nom-input"
+                    type="text"
+                    placeholder="Type name or email..."
+                    [(ngModel)]="nominationSearch"
+                    (input)="searchNominationUsers()"
+                  />
+                  <button *ngIf="nominationTarget" class="nom-clear-btn" (click)="clearNominationTarget()">
+                    <ion-icon name="close-outline"></ion-icon>
+                  </button>
+                </div>
+                <div class="nom-search-results" *ngIf="nominationSearchResults.length > 0">
+                  <div
+                    class="nom-result-row"
+                    *ngFor="let u of nominationSearchResults"
+                    (click)="selectNominationTarget(u)"
+                  >
+                    <span class="nom-result-name">{{ u.firstName }} {{ u.lastName }}</span>
+                    <span class="nom-result-email">{{ u.email }}</span>
+                  </div>
+                </div>
+                <div class="nom-selected-chip" *ngIf="nominationTarget">
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                  {{ nominationTarget.firstName }} {{ nominationTarget.lastName }}
+                  <span class="nom-selected-email">{{ nominationTarget.email }}</span>
+                </div>
+              </div>
+
+              <div class="nom-field">
+                <label class="nom-label">INSPIRE Category</label>
+                <select class="nom-input" [(ngModel)]="nominationForm.inspireCategory">
+                  <option value="interiority">I -- Interiority</option>
+                  <option value="nationalism">N -- Nationalism</option>
+                  <option value="service">S -- Service</option>
+                  <option value="pioneerism">P -- Pioneerism</option>
+                  <option value="integrity">I -- Integrity</option>
+                  <option value="reliability">R -- Reliability</option>
+                  <option value="excellence">E -- Excellence</option>
+                </select>
+              </div>
+
+              <div class="nom-field">
+                <label class="nom-label">Points to Award</label>
+                <input class="nom-input" type="number" min="1" max="100" [(ngModel)]="nominationForm.points" />
+              </div>
+
+              <div class="nom-field">
+                <label class="nom-label">Reason / Justification</label>
+                <textarea class="nom-input nom-textarea" rows="3" placeholder="Describe what the nominee accomplished..." [(ngModel)]="nominationForm.reason"></textarea>
+              </div>
+
+              <div class="nom-field">
+                <label class="nom-label">Proof / Certificate <span class="nom-optional">(optional)</span></label>
+                <div class="nom-proof-wrap">
+                  <input #nomProofInput type="file" style="display:none" (change)="onNominationProofSelected($event)" />
+                  <button class="nom-upload-btn" (click)="nomProofInput.click()">
+                    <ion-icon name="attach-outline"></ion-icon>
+                    {{ nominationProofFileName || 'Attach File' }}
+                  </button>
+                  <span *ngIf="nominationProofFileName" class="nom-file-name">{{ nominationProofFileName }}</span>
+                </div>
+              </div>
+
+              <button
+                class="nom-submit-btn"
+                (click)="submitNomination()"
+                [disabled]="isSubmittingNomination || !nominationTarget"
+              >
+                <ion-spinner name="crescent" *ngIf="isSubmittingNomination"></ion-spinner>
+                <ion-icon name="checkmark-circle-outline" *ngIf="!isSubmittingNomination"></ion-icon>
+                {{ isSubmittingNomination ? 'Submitting...' : 'Submit Nomination' }}
+              </button>
+            </div>
+
+            <div class="nom-list-panel">
+              <h3 class="nom-panel-title">
+                <ion-icon name="list-outline"></ion-icon>
+                Recent Nominations
+              </h3>
+
+              <div class="nom-loading" *ngIf="isLoadingNominations">
+                <ion-spinner name="crescent" color="primary"></ion-spinner>
+              </div>
+
+              <div class="nom-empty" *ngIf="!isLoadingNominations && nominations.length === 0">
+                <ion-icon name="ribbon-outline"></ion-icon>
+                <p>No nominations yet.</p>
+              </div>
+
+              <div class="nom-list" *ngIf="!isLoadingNominations && nominations.length > 0">
+                <div class="nom-list-card" *ngFor="let n of nominations">
+                  <div class="nom-list-header">
+                    <span class="nom-list-name">{{ n.nomineeName }}</span>
+                    <span class="nom-category-badge">{{ getNominationCategoryLabel(n.inspireCategory) }}</span>
+                  </div>
+                  <div class="nom-list-pts">+{{ n.points }} pts</div>
+                  <p class="nom-list-reason">{{ n.reason }}</p>
+                  <div class="nom-list-footer">
+                    <span class="nom-list-by">By {{ n.nominatedByName }}</span>
+                    <span class="nom-list-date">{{ formatNominationDate(n.createdAt) }}</span>
+                    <a *ngIf="n.proofFileUrl" [href]="n.proofFileUrl" target="_blank" class="nom-proof-link">
+                      <ion-icon name="document-outline"></ion-icon> Proof
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
 
         <section class="tab-content att-tab" *ngIf="activeTab === 'attendance'">
 
