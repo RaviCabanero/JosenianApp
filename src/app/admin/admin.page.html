@@ -1043,9 +1043,8 @@
 
         <section class="tab-content" *ngIf="activeTab === 'events'">
 
-          <div class="section-header">
-            <h3>Manage Events</h3>
-            <button class="btn btn-primary" (click)="toggleEventForm()">
+          <div class="section-header events-section-header">
+            <button class="btn btn-primary btn-create-event" (click)="toggleEventForm()">
               <ion-icon [name]="showEventForm ? 'close-circle' : 'add-circle'"></ion-icon>
               {{ showEventForm ? 'Cancel' : 'Create Event' }}
             </button>
