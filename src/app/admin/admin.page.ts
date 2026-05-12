@@ -330,22 +330,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  async autoApproveEligibleUsers() {
-    try {
-      let autoApprovedCount = 0;
-      for (const user of this.pendingUsers) {
-        const isAutoApproved = await this.authService.autoApproveIfEligible(user.id);
-        if (isAutoApproved) autoApprovedCount++;
-      }
-      if (autoApprovedCount > 0) {
-        await this.showAlert('Auto-Approved', `${autoApprovedCount} user(s) auto-approved with @usj.edu.ph email.`);
-        await this.loadPendingUsers();
-      }
-    } catch (error) {
-      console.error('Error in auto-approval:', error);
-    }
-  }
-
   async loadPendingAlumniVerification() {
     try {
       [this.pendingAlumniVerification, this.verifiedAlumni] = await Promise.all([
@@ -692,15 +676,34 @@ export class AdminPage implements OnInit {
     this.createUserData.course = '';
   }
 
+  capitalizeCreateUserName(field: 'firstName' | 'lastName') {
+    this.createUserData[field] = this.capitalizeName(this.createUserData[field]);
+  }
+
+  private capitalizeName(value: string): string {
+    return (value || '').replace(/(^|[\s'-])([a-z])/g, (_, prefix: string, letter: string) => {
+      return prefix + letter.toUpperCase();
+    });
+  }
+
+  formatCreateUserStudentNumber() {
+    this.createUserData.studentNumber = (this.createUserData.studentNumber || '')
+      .replace(/\D/g, '')
+      .slice(0, 10);
+  }
+
   async createUser() {
     const { firstName, lastName, email, userType, department, studentNumber, course, graduationYear } = this.createUserData;
+    const normalizedFirstName = this.capitalizeName(firstName.trim());
+    const normalizedLastName = this.capitalizeName(lastName.trim());
+    const normalizedStudentNumber = (studentNumber || '').replace(/\D/g, '').slice(0, 10);
     const isHOD = userType === 'hod';
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !department) {
+    if (!normalizedFirstName || !normalizedLastName || !email.trim() || !department) {
       await this.showAlert('Required', 'Please fill in all required fields.');
       return;
     }
-    if (!isHOD && !studentNumber.trim()) {
-      await this.showAlert('Required', 'Please enter the student number.');
+    if (!isHOD && normalizedStudentNumber.length !== 10) {
+      await this.showAlert('Invalid Student Number', 'Student number must be exactly 10 digits.');
       return;
     }
     if (userType === 'alumni' && !graduationYear.trim()) {
@@ -710,11 +713,12 @@ export class AdminPage implements OnInit {
     this.isCreatingUser = true;
     try {
       await this.authService.adminCreateUser(email, {
-        firstName, lastName,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         userType: isHOD ? 'alumni' : userType as 'student' | 'alumni',
         role: isHOD ? 'hod' : 'user',
         department,
-        studentNumber: isHOD ? '' : studentNumber,
+        studentNumber: isHOD ? '' : normalizedStudentNumber,
         course, graduationYear
       });
       this.showCreateUserForm = false;
