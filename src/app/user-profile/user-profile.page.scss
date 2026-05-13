@@ -1,4 +1,4 @@
-$green:    #1E5128;
+﻿$green:    #1E5128;
 $green-dk: #143C1C;
 $text-1:   #111827;
 $text-2:   #374151;
@@ -21,7 +21,6 @@ $bg:       #f3f4f6;
   padding: 60px 20px;
 }
 
-// ── Hero ────────────────────────────────────────────────────
 .up-hero {
   background: #fff;
   padding: 32px 20px 24px;
@@ -73,7 +72,6 @@ $bg:       #f3f4f6;
   ion-icon { font-size: 15px; }
 }
 
-// ── Action Buttons ───────────────────────────────────────────
 .up-actions {
   display: flex;
   align-items: center;
@@ -163,7 +161,6 @@ $bg:       #f3f4f6;
   &:disabled { opacity: .6; }
 }
 
-// ── Private Gate ─────────────────────────────────────────────
 .private-gate {
   display: flex;
   flex-direction: column;
@@ -181,7 +178,6 @@ $bg:       #f3f4f6;
   p { font-size: 13px; color: $text-3; margin: 0; max-width: 260px; }
 }
 
-// ── Cards ────────────────────────────────────────────────────
 .up-card {
   background: #fff;
   border-radius: 14px;
@@ -209,7 +205,6 @@ $bg:       #f3f4f6;
   white-space: pre-wrap;
 }
 
-// ── Info List ────────────────────────────────────────────────
 .up-info-list {
   display: flex;
   flex-direction: column;
@@ -249,7 +244,6 @@ $bg:       #f3f4f6;
   font-weight: 500;
 }
 
-// ── Work Experience ───────────────────────────────────────────
 .work-list {
   display: flex;
   flex-direction: column;
@@ -302,7 +296,6 @@ $bg:       #f3f4f6;
   line-height: 1.5;
 }
 
-// ── Responsive ───────────────────────────────────────────────
 @media (max-width: 480px) {
   .up-avatar { width: 72px; height: 72px; font-size: 26px; }
   .up-name { font-size: 19px; }

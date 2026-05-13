@@ -14,17 +14,15 @@ export class ImageService {
    * @param mimeType - The MIME type (default: 'image/jpeg')
    * @returns SafeUrl that can be used in [src] binding
    */
-  base64ToSafeUrl(base64String: string, mimeType: string = 'image/jpeg'): SafeUrl {
-    if (!base64String) {
+  base64ToSafeUrl(value: string, mimeType: string = 'image/jpeg'): SafeUrl {
+    if (!value) {
       return this.sanitizer.bypassSecurityTrustUrl('');
     }
-
-    // Add data URI prefix if not present
-    const dataUrl = base64String.startsWith('data:') 
-      ? base64String 
-      : `data:${mimeType};base64,${base64String}`;
-
-    return this.sanitizer.bypassSecurityTrustUrl(dataUrl);
+    // Storage URL or existing data URL — return directly
+    if (value.startsWith('http') || value.startsWith('data:')) {
+      return this.sanitizer.bypassSecurityTrustUrl(value);
+    }
+    return this.sanitizer.bypassSecurityTrustUrl(`data:${mimeType};base64,${value}`);
   }
 
   /**

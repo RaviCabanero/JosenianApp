@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+﻿import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController, IonModal } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
@@ -60,6 +60,7 @@ export class DepartmentPage implements OnInit {
   allDepartments: Department[] = [];
   userDepartments: UserDepartment[] = [];
   myDepartmentFollowerCount = 0;
+  departmentFilter: 'my' | 'following' | 'all' = 'my';
 
   currentUserId = '';
   currentUserType = '';
@@ -99,7 +100,6 @@ export class DepartmentPage implements OnInit {
   isGeneratingDeptQR = false;
   showAttendanceInModal = false;
 
-  // Event participation stats
   userDeptStats: { totalEvents: number; eventsJoined: number; eventsAttended: number; attendanceRate: number } | null = null;
   hodDeptStats: { totalEvents: number; totalAttendances: number; totalRegistrations: number; avgAttendanceRate: number; eventsByType: { type: string; count: number }[] } | null = null;
   isLoadingStats = false;
@@ -161,6 +161,21 @@ export class DepartmentPage implements OnInit {
     return this.userDepartments.filter(ud => ud.status === 'following').length;
   }
 
+  get filteredDepartments(): Department[] {
+    if (this.departmentFilter === 'my') {
+      const primary = this.userDepartments.find(ud => ud.status === 'primary');
+      if (!primary) return [];
+      return this.allDepartments.filter(d => d.id === primary.departmentId);
+    }
+    if (this.departmentFilter === 'following') {
+      const ids = this.userDepartments
+        .filter(ud => ud.status === 'following')
+        .map(ud => ud.departmentId);
+      return this.allDepartments.filter(d => ids.includes(d.id));
+    }
+    return this.allDepartments;
+  }
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -197,7 +212,6 @@ export class DepartmentPage implements OnInit {
         this.authService.getDepartments(),
         this.authService.getAllUsers()
       ]);
-      // Map HOD per department: find users with role 'hod'/'HOD' whose department matches
       const hodMap: Record<string, string> = {};
       allUsers
         .filter((u: any) => (u.role || '').toLowerCase() === 'hod')
@@ -207,9 +221,21 @@ export class DepartmentPage implements OnInit {
             hodMap[deptId] = `${u.firstName || ''} ${u.lastName || ''}`.trim();
           }
         });
+      const userMap: Record<string, any> = {};
+      allUsers.forEach((u: any) => {
+        if (u.id || u.uid) userMap[u.id || u.uid] = u;
+      });
       this.allDepartments = depts.map((d: Department) => ({
         ...d,
-        hodName: hodMap[d.id] || null
+        hodName: hodMap[d.id] || null,
+        members: (d.members || []).map((m: any) => {
+          const profile = userMap[m.userId] || {};
+          return {
+            ...m,
+            middleName: profile.middleName || m.middleName || '',
+            birthdate: profile.birthdate || m.birthdate || '',
+          };
+        })
       }));
       if (this.currentUserDepartmentId) {
         this.myDepartmentFollowerCount = allUsers.filter((u: any) =>
@@ -238,11 +264,9 @@ export class DepartmentPage implements OnInit {
         this.userDepartments.push({ departmentId: id, status: 'following', joinedDate: '' });
       });
     } catch {
-      // ignore
     }
   }
 
-  // ── Helpers ────────────────────────────────────────
 
   getDeptAbbr(name: string): string {
     const skip = new Set(['of', 'the', 'and', 'for', 'a', 'an', 'in']);
@@ -280,7 +304,6 @@ export class DepartmentPage implements OnInit {
     return this.userDepartments.some(ud => ud.departmentId === deptId && ud.status === 'primary');
   }
 
-  // ── Modal ──────────────────────────────────────────
 
   async openDepartmentDetail(department: Department) {
     this.selectedDepartment = department;
@@ -338,7 +361,6 @@ export class DepartmentPage implements OnInit {
     }
   }
 
-  // ── Events ─────────────────────────────────────────
 
   async loadDepartmentEvents() {
     if (!this.selectedDepartment) return;
@@ -346,7 +368,6 @@ export class DepartmentPage implements OnInit {
     try {
       this.departmentEvents = await this.authService.getDepartmentEvents(this.selectedDepartment.id);
     } catch {
-      // ignore
     } finally {
       this.isLoadingEvents = false;
     }
@@ -453,7 +474,6 @@ export class DepartmentPage implements OnInit {
     return (event.attendees || []).includes(this.currentUserId);
   }
 
-  // ── Department Actions ─────────────────────────────
 
   async followDepartment() {
     if (!this.selectedDepartment) return;
@@ -492,7 +512,6 @@ export class DepartmentPage implements OnInit {
     }
   }
 
-  // ── Wall ───────────────────────────────────────────
 
   async loadWallPosts() {
     if (!this.selectedDepartment) return;
@@ -500,7 +519,6 @@ export class DepartmentPage implements OnInit {
     try {
       this.wallPosts = await this.authService.getDepartmentWallPosts(this.selectedDepartment.id);
     } catch {
-      // ignore
     } finally {
       this.isLoadingWall = false;
     }
@@ -534,7 +552,7 @@ export class DepartmentPage implements OnInit {
           .filter(m => m.userId && m.userId !== this.currentUserId)
           .map(m => this.authService.createNotification(
             m.userId,
-            `📢 ${this.selectedDepartment!.name}`,
+            `ðŸ“¢ ${this.selectedDepartment!.name}`,
             `${this.currentUserName}: ${this.wallInput.trim()}`,
             'system',
             redirectLink
@@ -594,7 +612,6 @@ export class DepartmentPage implements OnInit {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  // ── Event Stats ────────────────────────────────────────────
 
   async loadEventStats() {
     if (!this.selectedDepartment) return;
@@ -607,13 +624,11 @@ export class DepartmentPage implements OnInit {
         this.userDeptStats = await this.authService.getUserDeptEventStats(this.currentUserId, this.selectedDepartment.id);
       }
     } catch {
-      // ignore
     } finally {
       this.isLoadingStats = false;
     }
   }
 
-  // ── QR Attendance ──────────────────────────────────────────
 
   async showEventQR(event: DeptEvent) {
     if (!this.selectedDepartment || !event.id) return;
@@ -648,7 +663,6 @@ export class DepartmentPage implements OnInit {
       this.qrModalEvent.qrToken = token;
       await this.renderDeptQRCode(this.selectedDepartment.id, this.qrModalEvent.id, token);
     } catch {
-      // ignore
     } finally {
       this.isGeneratingDeptQR = false;
     }

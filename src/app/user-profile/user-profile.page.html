@@ -1,4 +1,4 @@
-<ion-header class="up-header">
+﻿<ion-header class="up-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -11,14 +11,12 @@
 
 <ion-content class="up-content">
 
-  <!-- Loading -->
   <div class="up-loading" *ngIf="isLoading">
     <ion-spinner color="primary"></ion-spinner>
   </div>
 
   <ng-container *ngIf="!isLoading">
 
-    <!-- Hero -->
     <div class="up-hero">
       <div class="up-avatar" [class.up-avatar-photo]="profile.photoUrl">
         <img *ngIf="profile.photoUrl" [src]="profile.photoUrl" alt="Profile photo" />
@@ -32,7 +30,6 @@
         <span>{{ displayUserType }}</span>
       </div>
 
-      <!-- Friend action buttons -->
       <div class="up-actions" *ngIf="friendStatus === 'none'">
         <button class="btn-connect" (click)="sendRequest()" [disabled]="isProcessing">
           <ion-icon name="person-add-outline"></ion-icon>
@@ -60,17 +57,14 @@
       </div>
     </div>
 
-    <!-- Private Gate -->
     <div class="private-gate" *ngIf="isPrivate">
       <ion-icon name="lock-closed"></ion-icon>
       <h3>This account is private</h3>
       <p>{{ profile.firstName || 'This user' }} has set their profile to private.</p>
     </div>
 
-    <!-- Full Profile (public or friend) -->
     <ng-container *ngIf="canSeeFullProfile">
 
-      <!-- Bio -->
       <div class="up-card" *ngIf="profile.bio">
         <div class="up-card-header">
           <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
@@ -79,7 +73,6 @@
         <p class="up-bio">{{ profile.bio }}</p>
       </div>
 
-      <!-- Info -->
       <div class="up-card">
         <div class="up-card-header">
           <ion-icon name="person-outline"></ion-icon>
@@ -124,7 +117,6 @@
         </div>
       </div>
 
-      <!-- Work Experience (alumni only) -->
       <div class="up-card" *ngIf="profile.userType === 'alumni' && workExperiences.length > 0">
         <div class="up-card-header">
           <ion-icon name="briefcase-outline"></ion-icon>
@@ -136,7 +128,7 @@
             <div class="work-info">
               <p class="work-position">{{ work.position }}</p>
               <p class="work-company">{{ work.company }}</p>
-              <p class="work-years">{{ work.startYear }} – {{ work.isCurrent ? 'Present' : work.endYear }}</p>
+              <p class="work-years">{{ work.startYear }} â€“ {{ work.isCurrent ? 'Present' : work.endYear }}</p>
               <p class="work-desc" *ngIf="work.description">{{ work.description }}</p>
             </div>
           </div>

@@ -1,8 +1,67 @@
+﻿.search-toolbar {
+  --background: #f9fafb;
+  --border-color: #e5e7eb;
+}
+
+.search-bar-wrap {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  margin: 6px 12px;
+  padding: 0 10px;
+  gap: 8px;
+
+  .search-icon {
+    color: #9ca3af;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #1f2937;
+    padding: 9px 0;
+    background: transparent;
+    font-family: inherit;
+
+    &::placeholder { color: #9ca3af; }
+  }
+
+  .search-clear-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: 32px 16px;
+  color: #9ca3af;
+
+  ion-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  p { margin: 0; font-size: 14px; }
+}
+
 .page-container {
   padding: 20px;
 }
 
-// Create Post Card
 .create-post-card {
   margin-bottom: 24px;
   border-radius: 12px;
@@ -31,7 +90,8 @@
     flex-shrink: 0;
     overflow: hidden;
 
-    &.has-photo span { display: none; }
+    &.has-photo span, &.has-photo ion-icon { display: none; }
+    ion-icon { font-size: 22px; }
   }
 
   .post-input {
@@ -274,7 +334,8 @@
       overflow: hidden;
       flex-shrink: 0;
 
-      &.has-photo span { display: none; }
+      &.has-photo span, &.has-photo ion-icon { display: none; }
+      ion-icon { font-size: 22px; }
     }
 
     h4 {
@@ -354,7 +415,6 @@
   }
 }
 
-// Post meta row (timestamp + privacy badge)
 .post-meta-row {
   display: flex;
   align-items: center;
@@ -362,7 +422,6 @@
   flex-wrap: wrap;
 }
 
-// Privacy badge on post header
 .post-privacy-badge {
   display: inline-flex;
   align-items: center;
@@ -381,7 +440,6 @@
   }
 }
 
-// Privacy toggle button (in create & edit forms)
 .privacy-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -410,7 +468,6 @@
   }
 }
 
-// Post owner edit/delete buttons
 .post-owner-actions {
   display: flex;
   align-items: center;
@@ -443,7 +500,6 @@
   }
 }
 
-// Inline post edit form
 .post-edit-form {
   padding: 12px 16px;
   border-bottom: 1px solid #f3f4f6;
@@ -502,13 +558,11 @@
   }
 }
 
-// Active comment button highlight
 .active-comment {
   color: #1E5128 !important;
   background: rgba(30, 81, 40, 0.08) !important;
 }
 
-// Comments Section
 .comments-section {
   border-top: 1px solid #f3f4f6;
   padding: 12px 16px 14px;
@@ -544,6 +598,8 @@
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1E5128, #143C1C);
+  background-size: cover;
+  background-position: center;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -551,6 +607,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+
+  &.has-photo span, &.has-photo ion-icon { display: none; }
+  ion-icon { font-size: 18px; }
 }
 
 .comment-body {
@@ -608,7 +668,8 @@
   flex-shrink: 0;
   overflow: hidden;
 
-  &.has-photo span { display: none; }
+  &.has-photo span, &.has-photo ion-icon { display: none; }
+  ion-icon { font-size: 18px; }
 }
 
 .comment-input {
@@ -654,7 +715,6 @@
   }
 }
 
-// Suggestion Container - Horizontal Scrollable
 .suggestion-container {
   margin-bottom: 20px;
   overflow-x: auto;
@@ -728,7 +788,8 @@
       flex-shrink: 0;
       overflow: hidden;
 
-      &.has-photo span { display: none; }
+      &.has-photo span, &.has-photo ion-icon { display: none; }
+      ion-icon { font-size: 30px; }
     }
 
     h5 {
@@ -778,7 +839,6 @@
   }
 }
 
-// Responsive
 @media (max-width: 480px) {
   .create-post-card {
     margin-bottom: 20px;
@@ -916,7 +976,6 @@
   }
 }
 
-// ========== EVENTS SECTION ==========
 .events-section {
   margin-bottom: 24px;
 }

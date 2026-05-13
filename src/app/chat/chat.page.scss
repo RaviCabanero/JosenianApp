@@ -6,7 +6,6 @@ $text-dark: #1f2937;
 $text-mid: #6b7280;
 $text-light: #9ca3af;
 
-// ── Header ─────────────────────────────────────────────────────────
 .chat-toolbar {
   --background: #{$primary};
   --color: white;
@@ -53,7 +52,6 @@ $text-light: #9ca3af;
   }
 }
 
-// ── Content ─────────────────────────────────────────────────────────
 .chat-content {
   --background: #f0f2f5;
 }
@@ -73,7 +71,6 @@ $text-light: #9ca3af;
   min-height: 100%;
 }
 
-// ── Empty state ─────────────────────────────────────────────────────
 .empty-chat {
   flex: 1;
   display: flex;
@@ -112,7 +109,6 @@ $text-light: #9ca3af;
   }
 }
 
-// ── Date separator ──────────────────────────────────────────────────
 .date-separator {
   display: flex;
   align-items: center;
@@ -129,7 +125,6 @@ $text-light: #9ca3af;
   }
 }
 
-// ── Message rows ────────────────────────────────────────────────────
 .message-row {
   display: flex;
   margin-bottom: 4px;
@@ -184,7 +179,6 @@ $text-light: #9ca3af;
   height: 8px;
 }
 
-// ── Input bar ────────────────────────────────────────────────────────
 .input-bar {
   display: flex;
   align-items: flex-end;
@@ -245,7 +239,6 @@ $text-light: #9ca3af;
   }
 }
 
-// ── Mobile ───────────────────────────────────────────────────────────
 @media (max-width: 480px) {
   .bubble { max-width: 82%; }
   .messages-list { padding: 8px 8px 0; }

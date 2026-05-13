@@ -1,4 +1,4 @@
-$primary:      #1E5128;
+﻿$primary:      #1E5128;
 $primary-dark: #143C1C;
 $gold:         #F5B800;
 $gold-dark:    #C49500;
@@ -11,7 +11,6 @@ $border:       #e5e7eb;
 
 .page-container { padding: 20px; }
 
-// ── Summary ─────────────────────────────────────
 .history-summary { margin-bottom: 16px; }
 
 .summary-pill {
@@ -28,7 +27,6 @@ $border:       #e5e7eb;
   ion-icon { font-size: 15px; }
 }
 
-// ── Filter Tabs ──────────────────────────────────
 .filter-tabs {
   display: flex;
   gap: 8px;
@@ -75,7 +73,6 @@ $border:       #e5e7eb;
   }
 }
 
-// ── Loading ──────────────────────────────────────
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -86,7 +83,6 @@ $border:       #e5e7eb;
   font-size: 14px;
 }
 
-// ── Timeline ─────────────────────────────────────
 .events-timeline {
   position: relative;
   padding: 0;
@@ -138,7 +134,6 @@ $border:       #e5e7eb;
 
 .event-item.last .timeline-line { display: none; }
 
-// ── Event Card ───────────────────────────────────
 .event-card {
   flex: 1;
   padding: 16px;
@@ -246,7 +241,6 @@ $border:       #e5e7eb;
   ion-icon { font-size: 14px; }
 }
 
-// ── Empty State ──────────────────────────────────
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -272,7 +266,6 @@ $border:       #e5e7eb;
   }
 }
 
-// ── Responsive ───────────────────────────────────
 @media (max-width: 480px) {
   .page-container { padding: 16px; }
   .event-item     { gap: 14px; }

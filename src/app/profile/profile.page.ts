@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+﻿import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, IonModal, AlertController } from '@ionic/angular';
@@ -26,9 +26,11 @@ export class ProfilePage implements OnInit {
   @ViewChild('editModal') editModal!: IonModal;
   @ViewChild('workModal') workModal!: IonModal;
   @ViewChild('photoModal') photoModal!: IonModal;
+  @ViewChild('sigCanvas') sigCanvas!: ElementRef<HTMLCanvasElement>;
 
   userProfile = {
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
     userType: '',
@@ -37,6 +39,7 @@ export class ProfilePage implements OnInit {
     course: '',
     studentNumber: '',
     graduationYear: '',
+    birthdate: '',
     bio: '',
     initials: '',
     gender: '',
@@ -47,15 +50,12 @@ export class ProfilePage implements OnInit {
 
   workExperiences: WorkExperience[] = [];
 
-  pointsData = { total: 0, level: { level: 'bronze', label: 'Bronze', next: 50, color: '#b45309', icon: 'ribbon' }, badges: [] as string[] };
-  pointsHistory: any[] = [];
-  isLoadingPoints = false;
-
   editFormData = {
     bio: '',
     gender: '',
     address: '',
     contactNumber: '',
+    birthdate: '',
   };
 
   phoneNumberLength: number = 0;
@@ -83,7 +83,6 @@ export class ProfilePage implements OnInit {
   endYearOptions: string[] = [];
   isLoading = true;
 
-  // Alumni ID Verification
   alumniIdVerificationStatus: 'unverified' | 'pending' | 'approved' | 'rejected' | '' = '';
   alumniIdRejectionReason = '';
   alumniGradPhotoBase64 = '';
@@ -94,12 +93,22 @@ export class ProfilePage implements OnInit {
   verificationGradFile: File | null = null;
   verificationGradFileName = '';
   verificationGradFileSize = '';
+  verificationTermGraduated = '';
+  verificationSocialMedia = '';
   isSubmittingVerification = false;
 
-  // Digital Alumni ID
-  showDigitalId = false;
+  private signaturePad: any = null;
+  userSignatureUrl = '';
 
-  // INSPIRED Badge System
+  showDigitalId = false;
+  readonly logoSrc = 'assets/transparent_Logo.png';
+  isFlipped = false;
+  isLandscape = false;
+  alumniIdReferenceNumber = '';
+  adminSignatureUrl = '';
+  qrCodeDataUrl = '';
+  isGeneratingPdf = false;
+
   inspiredPoints: Record<string, number> = {};
   inspiredMasterBadge = false;
 
@@ -121,12 +130,10 @@ export class ProfilePage implements OnInit {
     return bYear - aYear;
   };
 
-  // Get current job (should only be one)
   get currentJob(): WorkExperience | undefined {
     return this.workExperiences.find(w => w.isCurrent === true);
   }
 
-  // Get past jobs sorted by end year (most recent first)
   get pastJobs(): WorkExperience[] {
     return this.workExperiences
       .filter(w => w.isCurrent !== true)
@@ -137,47 +144,36 @@ export class ProfilePage implements OnInit {
       });
   }
 
-  // Format phone number for display
   formatPhoneNumber(phoneNumber: string | null | undefined): string {
     if (!phoneNumber || !phoneNumber.trim()) {
       return 'No phone number added';
     }
 
-    // Remove all non-digit characters except +
     let cleaned = phoneNumber.trim().replace(/[^\d+]/g, '');
 
-    // Handle Philippine numbers
     if (cleaned.startsWith('+63')) {
-      // Format: +63 917 123 4567
       if (cleaned.length === 13) {
         return cleaned.replace(/(\+63)(\d{3})(\d{3})(\d{4})/, '$1 $2 $3 $4');
       }
     } else if (cleaned.startsWith('+')) {
-      // Generic international format for other countries
       if (cleaned.length > 10) {
-        // Extract country code and rest
         const countryCode = cleaned.substring(0, 3); // +63, +1, etc.
         const rest = cleaned.substring(3);
-        // Format rest in groups: 3-3-4
         if (rest.length === 10) {
           return `${countryCode} ${rest.substring(0, 3)} ${rest.substring(3, 6)} ${rest.substring(6)}`;
         }
       }
     } else if (cleaned.startsWith('0')) {
-      // Local Philippine number format: 0917 123 4567
       if (cleaned.length === 11) {
         return cleaned.replace(/(\d{4})(\d{3})(\d{4})/, '$1 $2 $3');
       }
     } else if (cleaned.length === 10) {
-      // Generic 10-digit format: XXX-XXX-XXXX
       return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
     }
 
-    // If no specific format matches, return as is
     return phoneNumber;
   }
 
-  // Validate and format phone number for storage
   validateAndFormatPhoneNumber(phoneNumber: string | null | undefined): string {
     if (!phoneNumber || !phoneNumber.trim()) {
       return '';
@@ -185,16 +181,12 @@ export class ProfilePage implements OnInit {
 
     let cleaned = phoneNumber.trim().replace(/[^\d+]/g, '');
 
-    // Philippine number validation
     if (cleaned.startsWith('09')) {
-      // Convert 09... to +639...
       cleaned = '+63' + cleaned.substring(1);
     } else if (!cleaned.startsWith('+')) {
-      // Assume Philippine if no country code and doesn't start with 0
       cleaned = '+63' + cleaned;
     }
 
-    // Basic validation: should be at least 10 digits for a phone number
     const digitCount = cleaned.replace(/\D/g, '').length;
     if (digitCount < 10) {
       return '';
@@ -216,7 +208,6 @@ export class ProfilePage implements OnInit {
 
   async ngOnInit() {
     await this.loadUserProfile();
-    await this.loadPoints();
   }
 
   get displayUserType(): string {
@@ -241,6 +232,7 @@ export class ProfilePage implements OnInit {
         if (profile) {
           this.userProfile = {
             firstName: profile.firstName || '',
+            middleName: profile.middleName || '',
             lastName: profile.lastName || '',
             email: profile.email || '',
             userType: profile.userType || '',
@@ -249,6 +241,7 @@ export class ProfilePage implements OnInit {
             course: profile.course || '',
             studentNumber: profile.studentNumber || '',
             graduationYear: profile.graduationYear || '',
+            birthdate: profile.birthdate || '',
             bio: profile.bio || '',
             gender: profile.gender || '',
             address: profile.address || '',
@@ -256,7 +249,6 @@ export class ProfilePage implements OnInit {
             photoUrl: profile.photoUrl || '',
             initials: ((profile.firstName?.charAt(0) || '') + (profile.lastName?.charAt(0) || '')).toUpperCase() || 'U',
           };
-          // Resolve department ID → department name
           if (this.userProfile.department) {
             try {
               const depts = await this.authService.getDepartments();
@@ -265,7 +257,6 @@ export class ProfilePage implements OnInit {
               );
               if (match) this.userProfile.department = match.name;
             } catch {
-              // keep raw value if resolution fails
             }
           }
 
@@ -276,7 +267,20 @@ export class ProfilePage implements OnInit {
             this.updateCurrentJobStatus();
             this.alumniIdVerificationStatus = profile.alumniIdVerificationStatus || 'unverified';
             this.alumniIdRejectionReason = profile.alumniIdRejectionReason || '';
-            this.alumniGradPhotoBase64 = profile.alumniGradPhotoBase64 || '';
+            this.alumniIdReferenceNumber = profile.alumniIdReferenceNumber || '';
+            this.adminSignatureUrl = profile.adminSignatureUrl || '';
+            this.userSignatureUrl = profile.userSignatureUrl || '';
+            const rawGradPhoto = profile.alumniGradPhotoUrl || profile.alumniGradPhotoBase64 || '';
+            if (rawGradPhoto.startsWith('http') || rawGradPhoto.startsWith('data:')) {
+              this.alumniGradPhotoBase64 = rawGradPhoto;
+            } else if (rawGradPhoto) {
+              this.alumniGradPhotoBase64 = `data:image/jpeg;base64,${rawGradPhoto}`;
+            } else {
+              this.alumniGradPhotoBase64 = '';
+            }
+            if (this.alumniIdReferenceNumber) {
+              this.generateQrCode();
+            }
           }
 
           this.inspiredPoints = profile.inspiredPoints || {};
@@ -292,7 +296,6 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  // ── Privacy ────────────────────────────────────────
 
   async onPrivacyChange(event: any) {
     const newValue: boolean = event.detail.checked;
@@ -306,7 +309,6 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  // ── Photo ──────────────────────────────────────────
 
   async openPhotoModal() {
     await this.photoModal.present();
@@ -316,7 +318,6 @@ export class ProfilePage implements OnInit {
     await this.photoModal.dismiss();
   }
 
-  // Creates a fresh input outside the modal DOM so aria-hidden doesn't block it
   selectAddPhoto() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -330,28 +331,24 @@ export class ProfilePage implements OnInit {
     input.click();
   }
 
-  private handlePhotoFile(e: Event) {
+  private async handlePhotoFile(e: Event) {
     const file = (e.target as HTMLInputElement)?.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       console.error('File exceeds 5 MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async (ev: any) => {
-      try {
-        const base64 = ev.target.result as string;
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser) {
-          await this.authService.updateUserProfile(currentUser.uid, { photoUrl: base64 });
-          this.userProfile.photoUrl = base64;
-          await this.photoModal.dismiss();
-        }
-      } catch (err) {
-        console.error('Error saving photo:', err);
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        const photoUrl = await this.authService.uploadFile(`profile-pictures/${currentUser.uid}`, file);
+        await this.authService.updateUserProfile(currentUser.uid, { photoUrl });
+        this.userProfile.photoUrl = photoUrl;
+        await this.photoModal.dismiss();
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error saving photo:', err);
+    }
   }
 
   async removeProfilePicture() {
@@ -367,7 +364,6 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  // ── Edit Profile ───────────────────────────────────
 
   async openEditModal() {
     this.editFormData = {
@@ -375,19 +371,26 @@ export class ProfilePage implements OnInit {
       gender: this.userProfile.gender,
       address: this.userProfile.address,
       contactNumber: this.userProfile.contactNumber,
+      birthdate: this.userProfile.birthdate,
     };
     this.updatePhoneNumberLength();
     await this.editModal.present();
   }
 
-  // Update phone number length for display
   updatePhoneNumberLength() {
     this.phoneNumberLength = this.editFormData.contactNumber ? this.editFormData.contactNumber.length : 0;
   }
 
-  // Handle phone number input change
   onPhoneNumberChange() {
     this.updatePhoneNumberLength();
+  }
+
+  onAddressInput(event: any) {
+    const value: string = event.target.value;
+    if (!value) return;
+    const result = value.replace(/(^|[\s,])([a-z])/g, (_, sep, char) => sep + char.toUpperCase());
+    this.editFormData.address = result;
+    event.target.value = result;
   }
 
   async closeEditModal() {
@@ -404,7 +407,6 @@ export class ProfilePage implements OnInit {
       this.isSaving = true;
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
-        // Validate and format phone number
         const formattedPhone = this.validateAndFormatPhoneNumber(this.editFormData.contactNumber);
 
         await this.authService.updateUserProfile(currentUser.uid, {
@@ -412,11 +414,13 @@ export class ProfilePage implements OnInit {
           gender: this.editFormData.gender,
           address: this.editFormData.address,
           contactNumber: formattedPhone,
+          birthdate: this.editFormData.birthdate,
         });
         this.userProfile.bio = this.editFormData.bio;
         this.userProfile.gender = this.editFormData.gender;
         this.userProfile.address = this.editFormData.address;
         this.userProfile.contactNumber = formattedPhone;
+        this.userProfile.birthdate = this.editFormData.birthdate;
         await this.authService.awardInspiredProfileComplete(currentUser.uid, {
           bio: this.editFormData.bio,
           gender: this.editFormData.gender,
@@ -432,16 +436,12 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  // ── Work Experience ────────────────────────────────
 
-  // Check if there's already a current job
   updateCurrentJobStatus() {
     this.hasCurrentJob = this.workExperiences.some(w => w.isCurrent === true);
   }
 
-  // Validate work experience form data
   validateWorkForm(): string {
-    // Check required fields
     if (!this.workFormData.company || !this.workFormData.company.trim()) {
       return 'Company/Organization is required';
     }
@@ -452,12 +452,10 @@ export class ProfilePage implements OnInit {
       return 'Start Year is required';
     }
 
-    // If not currently working, end year is required
     if (!this.workFormData.isCurrent && !this.workFormData.endYear) {
       return 'End Year is required (unless currently working)';
     }
 
-    // Validate year range
     if (!this.workFormData.isCurrent) {
       const startYear = parseInt(this.workFormData.startYear);
       const endYear = parseInt(this.workFormData.endYear);
@@ -471,7 +469,6 @@ export class ProfilePage implements OnInit {
       }
     }
 
-    // Check for duplicate start years
     const duplicateStartYear = this.workExperiences.some(
       work => work.startYear === this.workFormData.startYear && work.id !== this.workFormData.id
     );
@@ -479,7 +476,6 @@ export class ProfilePage implements OnInit {
       return 'You already have an entry for ' + this.workFormData.startYear;
     }
 
-    // Check for overlapping work periods
     const overlappingWork = this.workExperiences.some(work => {
       if (work.id === this.workFormData.id) return false; // Skip current entry when editing
 
@@ -488,7 +484,6 @@ export class ProfilePage implements OnInit {
       const newStart = parseInt(this.workFormData.startYear);
       const newEnd = this.workFormData.isCurrent ? 9999 : parseInt(this.workFormData.endYear);
 
-      // Check for overlap
       return !(newEnd < workStart || newStart > workEnd);
     });
 
@@ -496,7 +491,6 @@ export class ProfilePage implements OnInit {
       return 'This work period overlaps with an existing entry';
     }
 
-    // Check if trying to add another current job
     if (this.workFormData.isCurrent) {
       const hasAnotherCurrentJob = this.workExperiences.some(
         work => work.isCurrent === true && work.id !== this.workFormData.id
@@ -509,7 +503,6 @@ export class ProfilePage implements OnInit {
     return ''; // No validation errors
   }
 
-  // ── Work Experience ────────────────────────────────
 
   async openAddWorkModal() {
     this.isEditingWork = false;
@@ -532,7 +525,6 @@ export class ProfilePage implements OnInit {
     this.editingWorkId = work.id;
     this.workFormData = { ...work };
     this.workValidationError = '';
-    // Generate end year options if start year exists
     if (this.workFormData.startYear) {
       this.generateEndYearOptions();
     } else {
@@ -545,7 +537,6 @@ export class ProfilePage implements OnInit {
     await this.workModal.dismiss();
   }
 
-  // Generate end year options based on start year
   generateEndYearOptions() {
     if (!this.workFormData.startYear) {
       this.endYearOptions = [];
@@ -556,52 +547,42 @@ export class ProfilePage implements OnInit {
     const currentYear = new Date().getFullYear();
     this.endYearOptions = [];
     
-    // Generate years from start year + 1 to current year
     for (let y = currentYear; y > startYear; y--) {
       this.endYearOptions.push(y.toString());
     }
   }
 
-  // Handle start year change
   onStartYearChange() {
     this.generateEndYearOptions();
     
-    // Auto-adjust end year if it's less than or equal to start year
     if (this.workFormData.endYear) {
       const startYear = parseInt(this.workFormData.startYear);
       const endYear = parseInt(this.workFormData.endYear);
       
       if (endYear <= startYear) {
-        // Auto-set to start year + 1
         this.workFormData.endYear = (startYear + 1).toString();
       } else if (!this.endYearOptions.includes(this.workFormData.endYear)) {
-        // If current end year is no longer valid, reset it
         this.workFormData.endYear = '';
       }
     }
   }
 
-  // Handle end year change - validate it's after start year
   onEndYearChange() {
     if (this.workFormData.startYear && this.workFormData.endYear) {
       const startYear = parseInt(this.workFormData.startYear);
       const endYear = parseInt(this.workFormData.endYear);
       
       if (endYear <= startYear) {
-        // Automatically adjust end year to start year + 1
         this.workFormData.endYear = (startYear + 1).toString();
       }
     }
   }
 
-  // Handle currently working checkbox change
   onCurrentlyWorkingChange() {
     if (this.workFormData.isCurrent) {
-      // If currently working, clear end year
       this.workFormData.endYear = '';
       this.endYearOptions = [];
     } else {
-      // If unchecked, regenerate end year options
       this.generateEndYearOptions();
     }
   }
@@ -609,7 +590,6 @@ export class ProfilePage implements OnInit {
   async saveWorkExperience() {
     if (this.isSaving) return;
     
-    // Validate form before saving
     const validationError = this.validateWorkForm();
     if (validationError) {
       this.workValidationError = validationError;
@@ -678,64 +658,6 @@ export class ProfilePage implements OnInit {
     this.router.navigate(['/home']);
   }
 
-  // ── Points & Rewards ──────────────────────────────────────
-
-  async loadPoints() {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) return;
-    this.isLoadingPoints = true;
-    try {
-      const profile = await this.authService.getUserProfile(currentUser.uid);
-      const total = profile?.['totalPoints'] || 0;
-      this.pointsData = {
-        total,
-        level: this.authService.getUserLevel(total),
-        badges: profile?.['badges'] || [],
-      };
-      this.pointsHistory = await this.authService.getUserPointsHistory(currentUser.uid);
-    } catch (err) {
-      console.error('Error loading points:', err);
-    } finally {
-      this.isLoadingPoints = false;
-    }
-  }
-
-  getBadgeLabel(badge: string): string {
-    const map: { [k: string]: string } = {
-      first_event:        'First Event',
-      active_alumni:      'Active Alumni',
-      event_supporter:    'Event Supporter',
-      community_champion: 'Community Champion',
-      top_contributor:    'Top Contributor',
-    };
-    return map[badge] || badge;
-  }
-
-  getBadgeIcon(badge: string): string {
-    const map: { [k: string]: string } = {
-      first_event:        'star-outline',
-      active_alumni:      'people-outline',
-      event_supporter:    'heart-outline',
-      community_champion: 'shield-checkmark-outline',
-      top_contributor:    'trophy-outline',
-    };
-    return map[badge] || 'ribbon-outline';
-  }
-
-  formatPointsDate(awardedAt: any): string {
-    if (!awardedAt) return '';
-    const d = awardedAt.toDate ? awardedAt.toDate() : new Date(awardedAt);
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  get levelProgressPct(): number {
-    const { total, level } = this.pointsData;
-    if (level.next === -1) return 100;
-    const prevThreshold = level.level === 'bronze' ? 0 : level.level === 'silver' ? 50 : level.level === 'gold' ? 150 : 300;
-    return Math.min(100, Math.round(((total - prevThreshold) / (level.next - prevThreshold)) * 100));
-  }
-
-  // ── INSPIRED Badge System ─────────────────────────────────
 
   getInspiredLevel(key: string): string {
     return this.authService.getInspiredBadgeLevel(this.inspiredPoints[key] || 0);
@@ -756,7 +678,49 @@ export class ProfilePage implements OnInit {
     return '10 pts to Bronze';
   }
 
-  // ── Alumni ID Verification ────────────────────────────────
+  async onRequestVerification() {
+    const hasGender = !!this.userProfile.gender;
+    const hasContact = !!this.userProfile.contactNumber;
+    if (!hasGender || !hasContact) {
+      await this.showSimpleAlert(
+        'Update Your Profile First',
+        'Please complete your profile before requesting alumni ID verification. Make sure to add your sex and contact number.'
+      );
+      return;
+    }
+    this.showVerificationUpload = !this.showVerificationUpload;
+    if (this.showVerificationUpload) {
+      this.initSignaturePad();
+    }
+  }
+
+  async initSignaturePad() {
+    await new Promise(r => setTimeout(r, 150));
+    if (!this.sigCanvas?.nativeElement) return;
+    const { default: SignaturePad } = await import('signature_pad');
+    const canvas = this.sigCanvas.nativeElement;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    this.signaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgba(0,0,0,0)',
+      penColor: '#111827',
+      minWidth: 1.5,
+      maxWidth: 3,
+    });
+  }
+
+  clearSignaturePad() {
+    this.signaturePad?.clear();
+  }
+
+  private async getSignatureFile(): Promise<File | undefined> {
+    if (!this.signaturePad || this.signaturePad.isEmpty()) return undefined;
+    const dataUrl = this.signaturePad.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], 'user-signature.png', { type: 'image/png' });
+  }
+
 
   get verificationStatusLabel(): string {
     const map: Record<string, string> = {
@@ -813,21 +777,24 @@ export class ProfilePage implements OnInit {
   }
 
   async submitVerificationRequest() {
-    if (!this.verificationIdFile || !this.verificationGradFile || this.isSubmittingVerification) return;
+    if (!this.verificationGradFile || !this.verificationTermGraduated || this.isSubmittingVerification) return;
     const user = this.authService.getCurrentUser();
     if (!user) return;
     this.isSubmittingVerification = true;
     try {
+      const signatureFile = await this.getSignatureFile();
       await this.authService.requestAlumniIdVerification(
         user.uid,
-        this.verificationIdFile,
-        this.verificationIdFileName,
-        this.verificationGradFile
+        this.verificationGradFile,
+        this.verificationTermGraduated,
+        this.verificationSocialMedia,
+        signatureFile
       );
       this.alumniIdVerificationStatus = 'pending';
       this.showVerificationUpload = false;
-      this.removeVerificationIdFile();
       this.removeVerificationGradFile();
+      this.verificationTermGraduated = '';
+      this.verificationSocialMedia = '';
       await this.showSimpleAlert('Submitted', 'Your Alumni ID has been submitted for verification. You will be notified once reviewed.');
     } catch (err) {
       console.error('Error submitting verification:', err);
@@ -842,14 +809,124 @@ export class ProfilePage implements OnInit {
     await alert.present();
   }
 
-  // ── Digital Alumni ID ────────────────────────────────────
 
   openDigitalId() {
     this.showDigitalId = true;
+    this.isFlipped = false;
+    this.isLandscape = false;
   }
 
   closeDigitalId() {
     this.showDigitalId = false;
+  }
+
+  get gradPhotoStyle(): string {
+    return this.alumniGradPhotoBase64 ? `url(${this.alumniGradPhotoBase64})` : 'none';
+  }
+
+  get flipperTransform(): string {
+    return this.isFlipped ? 'rotateY(180deg)' : 'none';
+  }
+
+  flipCard() {
+    this.isFlipped = !this.isFlipped;
+  }
+
+  toggleLandscape() {
+    this.isLandscape = !this.isLandscape;
+  }
+
+  async generateQrCode() {
+    try {
+      const QRCode = await import('qrcode');
+      this.qrCodeDataUrl = await QRCode.toDataURL(
+        `USJ-R Verified | ${this.alumniIdReferenceNumber}`,
+        { width: 120, margin: 1 }
+      );
+    } catch (e) {
+      console.error('QR generation failed', e);
+    }
+  }
+
+  private async urlToBase64(url: string): Promise<string> {
+    if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return url;
+    }
+  }
+
+  async downloadIdAsPdf() {
+    this.isGeneratingPdf = true;
+    const wasFlipped = this.isFlipped;
+    this.isFlipped = false;
+
+    // Save originals
+    const origGradPhoto  = this.alumniGradPhotoBase64;
+    const origUserSig    = this.userSignatureUrl;
+    const origAdminSig   = this.adminSignatureUrl;
+
+    // Pre-convert all remote Firebase Storage URLs to base64 so html2canvas
+    // can embed them without running into CORS restrictions
+    [
+      this.alumniGradPhotoBase64,
+      this.userSignatureUrl,
+      this.adminSignatureUrl,
+    ] = await Promise.all([
+      this.urlToBase64(this.alumniGradPhotoBase64),
+      this.urlToBase64(this.userSignatureUrl),
+      this.urlToBase64(this.adminSignatureUrl),
+    ]);
+
+    await new Promise(r => setTimeout(r, 150)); // let Angular re-render with base64 sources
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const front = document.querySelector('.did-card-front') as HTMLElement;
+      const back  = document.querySelector('.did-card-back')  as HTMLElement;
+      if (!front || !back) return;
+
+      const frontCanvas = await html2canvas(front, { scale: 3, useCORS: true, logging: false });
+
+      // temporarily un-flip the back for capture
+      back.style.transform = 'rotateY(0deg)';
+      back.style.backfaceVisibility = 'visible';
+      await new Promise(r => setTimeout(r, 50));
+      const backCanvas = await html2canvas(back, { scale: 3, useCORS: true, logging: false });
+      back.style.transform = '';
+      back.style.backfaceVisibility = '';
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a6' });
+      const w = pdf.internal.pageSize.getWidth();
+      const h = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+      pdf.addPage();
+      pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+
+      const lastName = this.userProfile.lastName || 'Alumni';
+      const ref = this.alumniIdReferenceNumber || 'ID';
+      pdf.save(`Alumni-ID-${lastName}-${ref}.pdf`);
+    } catch (e) {
+      console.error('PDF generation failed', e);
+    } finally {
+      // Restore original URLs so the live card still shows correctly
+      this.alumniGradPhotoBase64 = origGradPhoto;
+      this.userSignatureUrl      = origUserSig;
+      this.adminSignatureUrl     = origAdminSig;
+      this.isFlipped = wasFlipped;
+      this.isGeneratingPdf = false;
+    }
   }
 
   async logout() {

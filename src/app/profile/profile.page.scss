@@ -1,5 +1,4 @@
-// ── Variables ──────────────────────────────────────────────
-$green:        #1E5128;
+﻿$green:        #1E5128;
 $green-dark:   #143C1C;
 $green-light:  #C8E6C9;
 $blue:         #0ea5e9;
@@ -12,7 +11,6 @@ $bg-page:      #f3f4f6;
 $bg-card:      #ffffff;
 $bg-field:     #f9fafb;
 
-// ── Header ─────────────────────────────────────────────────
 .profile-header-top {
   ion-toolbar {
     --background: #ffffff;
@@ -26,7 +24,6 @@ $bg-field:     #f9fafb;
   --color: #{$green};
 }
 
-// ── Page ───────────────────────────────────────────────────
 .profile-content { --background: #{$bg-page}; }
 
 .profile-container {
@@ -38,7 +35,6 @@ $bg-field:     #f9fafb;
   gap: 12px;
 }
 
-// ── Loading ────────────────────────────────────────────────
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -49,7 +45,6 @@ $bg-field:     #f9fafb;
   p { color: $text-3; font-size: 14px; margin: 0; }
 }
 
-// ── Hero ───────────────────────────────────────────────────
 .profile-hero {
   position: relative;
   padding: 28px 20px 20px;
@@ -73,7 +68,6 @@ $bg-field:     #f9fafb;
   gap: 18px;
 }
 
-// Avatar
 .avatar-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -120,7 +114,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// Hero gold band
 .hero-gold-band {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -128,7 +121,6 @@ $bg-field:     #f9fafb;
   background: linear-gradient(90deg, #F5B800, #C49500);
 }
 
-// Hero info
 .hero-info { flex: 1; min-width: 0; }
 
 .hero-course {
@@ -182,7 +174,6 @@ $bg-field:     #f9fafb;
   white-space: nowrap;
 }
 
-// Hero stats strip
 .hero-stats {
   display: flex;
   align-items: center;
@@ -222,7 +213,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// Hero edit button
 .hero-edit-btn {
   display: flex;
   align-items: center;
@@ -242,7 +232,6 @@ $bg-field:     #f9fafb;
   &:active { background: rgba(255,255,255,.22); }
 }
 
-// Bio inside hero
 .hero-bio {
   position: relative;
   margin-top: 16px;
@@ -273,7 +262,6 @@ $bg-field:     #f9fafb;
   ion-icon { font-size: 16px; }
 }
 
-// ── Info List (replaces field-grid) ───────────────────────
 .info-list { padding: 4px 0; }
 
 .info-row {
@@ -331,7 +319,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Edit Profile Button ────────────────────────────────────
 .edit-profile-btn {
   --background: #{$green};
   --background-activated: #{$green-dark};
@@ -343,7 +330,6 @@ $bg-field:     #f9fafb;
   margin: 4px 16px 0;
 }
 
-// ── Alumni ID Verification Card ────────────────────────────
 .alumni-id-card { margin-bottom: 14px; }
 
 .alumni-id-icon { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; }
@@ -427,45 +413,196 @@ $bg-field:     #f9fafb;
   div { flex: 1; p { font-size: 13px; font-weight: 600; margin: 0; } span { font-size: 11px; color: $text-3; } }
 }
 
+.sig-field { margin-top: 4px; }
+
+.sig-canvas-wrap {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  height: 110px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.sig-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.sig-clear-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 6px; background: none; border: none;
+  font-size: 12px; color: $text-3; cursor: pointer; padding: 0;
+  ion-icon { font-size: 14px; }
+  &:active { color: $text-2; }
+}
+
 .verify-submit-btn {
   --background: #{$green};
   --border-radius: 12px;
   font-weight: 700;
 }
 
-// ── Digital Alumni ID Modal ─────────────────────────────────
+// ─── Digital Alumni ID Viewer ─────────────────────────────────────────────────
+
 .digital-id-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
+  background: #0a0a0a;
+  display: flex; align-items: stretch; justify-content: stretch;
 }
 
 .digital-id-modal {
-  position: relative; width: 100%; max-width: 360px;
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  // Landscape: constrain card to ID-card aspect ratio (85.6×54mm ≈ 1.586:1), centered
+  &.landscape {
+    align-items: center;
+    justify-content: center;
+
+    .did-scene {
+      flex: none;
+      width: 100%;
+      max-width: calc(100vh * 1.586);
+      height: min(100vh, calc(100vw / 1.586));
+    }
+
+    .did-flipper { height: 100%; }
+
+    .did-card-front,
+    .did-card-back { border-radius: 16px; }
+  }
+}
+
+// Auto-landscape when device is physically rotated
+@media (orientation: landscape) {
+  .digital-id-modal {
+    align-items: center;
+    justify-content: center;
+
+    .did-scene {
+      flex: none;
+      width: 100%;
+      max-width: calc(100vh * 1.586);
+      height: min(100vh, calc(100vw / 1.586));
+    }
+
+    .did-flipper { height: 100%; }
+
+    .did-card-front,
+    .did-card-back { border-radius: 16px; }
+  }
+}
+
+// Controls — overlaid top bar
+.did-controls {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(to bottom, rgba(0,0,0,.6), transparent);
+  justify-content: flex-end;
+}
+
+.did-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(6px);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  ion-icon { font-size: 16px; }
+
+  &:hover { background: rgba(255,255,255,.28); }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.did-ctrl-spinner {
+  width: 14px;
+  height: 14px;
+  --color: #fff;
 }
 
 .digital-id-close {
-  position: absolute; top: -36px; right: 0;
-  background: rgba(255,255,255,.15); border: none; border-radius: 50%;
-  width: 32px; height: 32px; color: #fff; font-size: 18px;
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(6px);
+  border: none; border-radius: 50%;
+  width: 34px; height: 34px; color: #fff; font-size: 18px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: rgba(255,255,255,.3); }
 }
 
-.digital-id-card {
+// 3D flip scene — fills entire screen
+.did-scene {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  perspective: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.did-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+}
+
+.did-card-front,
+.did-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.did-card-back {
+  transform: rotateY(180deg);
   background: linear-gradient(160deg, #0f1f3d 0%, #1a3a6e 60%, #10521f 100%);
-  border-radius: 20px; overflow: hidden;
-  box-shadow: 0 24px 48px rgba(0,0,0,.5);
+}
+
+// Front card
+.digital-id-card {
+  background: url('../../assets/alumniID.jpg') center/cover no-repeat;
   position: relative;
 
+  // Dark gradient overlay — keeps branding colours and ensures all text is readable
   &::before {
     content: '';
     position: absolute; inset: 0;
-    background: url('../../assets/shapes.svg') center/cover no-repeat;
-    opacity: .06;
+    background: linear-gradient(
+      160deg,
+      rgba(8, 18, 50, 0.80) 0%,
+      rgba(12, 35, 90, 0.74) 50%,
+      rgba(8, 48, 18, 0.80) 100%
+    );
     pointer-events: none;
+    z-index: 0;
   }
+
+  // Lift all direct children above the overlay
+  > * { position: relative; z-index: 1; }
 }
 
 .did-header {
@@ -523,12 +660,124 @@ $bg-field:     #f9fafb;
   .did-dept   { font-size: 10px; color: rgba(255,255,255,.55); margin: 2px 0 0; }
 }
 
+.did-user-sig-block {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 0 16px 10px;
+  gap: 3px;
+}
+
+.did-user-sig-img {
+  max-width: 130px; max-height: 42px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.did-user-sig-blank {
+  width: 130px; height: 42px;
+}
+
+.did-user-sig-line {
+  width: 130px; height: 1px; background: rgba(255,255,255,.3);
+}
+
+.did-user-sig-label {
+  font-size: 8px; color: rgba(255,255,255,.45); margin: 0;
+  letter-spacing: .5px; text-transform: uppercase;
+}
+
 .did-footer {
   padding: 8px 16px 14px; text-align: center;
   p { font-size: 9.5px; color: rgba(255,255,255,.35); margin: 0; line-height: 1.4; }
 }
 
-// ── Logout ──────────────────────────────────────────────────
+// Back side
+.did-back-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 16px;
+  height: 100%;
+  color: #fff;
+  text-align: center;
+  box-sizing: border-box;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../../assets/transparent_Logo.png') center/45% no-repeat;
+    opacity: .06;
+    pointer-events: none;
+  }
+}
+
+.did-back-logo {
+  width: 36px; height: 36px; object-fit: contain; margin-bottom: 4px;
+}
+
+.did-back-title {
+  font-size: 10px; font-weight: 800; color: #fbbf24;
+  margin: 0 0 8px; letter-spacing: .3px;
+}
+
+.did-back-cert {
+  font-size: 10px; color: rgba(255,255,255,.8);
+  line-height: 1.55; margin: 0 0 10px; max-width: 230px;
+  strong { color: #fff; font-weight: 700; }
+}
+
+.did-back-sig-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  margin-top: auto;
+  gap: 8px;
+}
+
+.did-back-sig-block {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+
+.did-back-sig-img {
+  max-width: 100px; max-height: 44px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.did-back-sig-placeholder {
+  width: 100px; height: 44px;
+}
+
+.did-back-sig-line {
+  width: 100px; height: 1px;
+  background: rgba(255,255,255,.4);
+}
+
+.did-back-sig-label {
+  font-size: 9px; color: rgba(255,255,255,.6); margin: 0;
+}
+
+.did-back-qr-block {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+
+.did-back-qr {
+  width: 56px; height: 56px; border-radius: 6px;
+  background: #fff; padding: 3px; box-sizing: border-box;
+}
+
+.did-back-qr-label {
+  font-size: 8px; color: rgba(255,255,255,.5); margin: 0;
+}
+
+.did-back-refnum {
+  font-size: 8.5px; font-family: monospace;
+  color: rgba(255,255,255,.4); margin: 8px 0 0;
+  letter-spacing: 1px;
+}
+
 .logout-btn {
   --border-radius: 12px;
   --color: #{$red};
@@ -537,7 +786,6 @@ $bg-field:     #f9fafb;
   margin: 8px 16px 24px;
 }
 
-// ── Points & Rewards ───────────────────────────────────────
 .pts-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); ion-icon { color: #f59e0b; } }
 
 .pts-loading { display: flex; justify-content: center; padding: 24px; }
@@ -546,7 +794,7 @@ $bg-field:     #f9fafb;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0 12px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid $border;
   margin-bottom: 14px;
 }
@@ -599,12 +847,11 @@ $bg-field:     #f9fafb;
 }
 
 .pts-progress-track {
-  width: 100%;
   height: 8px;
   background: #f3f4f6;
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin: 0 18px 16px;
 }
 
 .pts-progress-fill {
@@ -621,10 +868,10 @@ $bg-field:     #f9fafb;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: $text-3;
-  margin: 0 0 10px 0;
+  margin: 0 18px 10px;
 }
 
-.pts-badges-wrap { margin-bottom: 16px; }
+.pts-badges-wrap { padding: 0 18px; margin-bottom: 16px; }
 
 .pts-badges-list {
   display: flex;
@@ -652,7 +899,7 @@ $bg-field:     #f9fafb;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
+  padding: 10px 18px;
   border-bottom: 1px solid #f3f4f6;
   &:last-child { border-bottom: none; }
 }
@@ -702,14 +949,13 @@ $bg-field:     #f9fafb;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 20px;
+  padding: 20px 18px;
   color: $text-3;
   font-size: 13px;
   margin: 0;
   ion-icon { font-size: 18px; }
 }
 
-// ── Section Cards ──────────────────────────────────────────
 .section-card {
   margin: 0 16px;
   background: $bg-card;
@@ -755,7 +1001,6 @@ $bg-field:     #f9fafb;
   color: $text-3;
 }
 
-// ── Field Grid ─────────────────────────────────────────────
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -799,7 +1044,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Add button (work card header) ──────────────────────────
 .add-btn {
   --color: #{$green};
   --border-color: #{$green};
@@ -810,7 +1054,6 @@ $bg-field:     #f9fafb;
   margin: 0;
 }
 
-// ── Empty State ────────────────────────────────────────────
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -844,7 +1087,6 @@ $bg-field:     #f9fafb;
   font-weight: 700;
 }
 
-// ── Work Company Logo ──────────────────────────────────────
 .work-company-logo {
   width: 40px;
   height: 40px;
@@ -860,8 +1102,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// ── Work Timeline ──────────────────────────────────────────
-// ── Work Experience ────────────────────────────────────────
 .work-experience-container {
   padding: 12px 0;
   display: flex;
@@ -898,7 +1138,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Current Job Card ───────────────────────────────────────
 .work-card {
   display: flex;
   flex-direction: column;
@@ -1034,7 +1273,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Timeline for Past Jobs ─────────────────────────────────
 .work-timeline {
   padding: 0 12px;
   display: flex;
@@ -1110,9 +1348,6 @@ $bg-field:     #f9fafb;
   overflow: hidden;
 }
 
-// ── Modals ─────────────────────────────────────────────────
-// Sheet modals (breakpoints=[0,1]) slide up full-height from the bottom.
-// --border-radius rounds the top corners; toolbar styles below override Ionic defaults.
 .form-modal {
   --border-radius: 20px 20px 0 0;
 
@@ -1169,7 +1404,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Character Counter ──────────────────────────────────────
 .char-counter {
   font-size: 11px;
   font-weight: 600;
@@ -1219,7 +1453,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Validation Alerts ──────────────────────────────────────
 .error-alert {
   display: flex;
   align-items: flex-start;
@@ -1256,7 +1489,6 @@ $bg-field:     #f9fafb;
   }
 }
 
-// ── Field Hints & Helper Text ──────────────────────────────
 .field-hint {
   font-size: 12px;
   color: $text-3;
@@ -1271,7 +1503,6 @@ $bg-field:     #f9fafb;
   padding: 0 2px;
 }
 
-// ── Required Indicator ─────────────────────────────────────
 .required {
   color: $red;
   font-weight: 700;
@@ -1294,7 +1525,6 @@ $bg-field:     #f9fafb;
   &:active { opacity: .75; }
 }
 
-// ── Photo Modal ────────────────────────────────────────────
 .photo-modal {
   --border-radius: 20px 20px 0 0;
 
@@ -1391,7 +1621,6 @@ $bg-field:     #f9fafb;
   flex-shrink: 0;
 }
 
-// ── INSPIRED Badge System ──────────────────────────────────
 .inspired-icon {
   background: linear-gradient(135deg, #ede9fe, #ddd6fe) !important;
   ion-icon { color: #7c3aed !important; }
@@ -1541,7 +1770,6 @@ $bg-field:     #f9fafb;
   color: $text-3;
 }
 
-// ── Responsive ─────────────────────────────────────────────
 @media (max-width: 480px) {
   .profile-hero {
     border-radius: 0;
@@ -1575,7 +1803,6 @@ $bg-field:     #f9fafb;
   .camera-btn { width: 34px; height: 34px; ion-icon { font-size: 17px; } }
 }
 
-// ── Privacy Settings ────────────────────────────────────────
 .privacy-compact-row {
   padding: 14px 18px;
   display: flex;

@@ -1,4 +1,4 @@
-<ion-header [translucent]="true" class="dept-header">
+﻿<ion-header [translucent]="true" class="dept-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -16,13 +16,11 @@
 
 <ion-content [fullscreen]="true" class="dept-content">
 
-  <!-- Loading -->
   <div *ngIf="isLoading" class="state-box">
     <ion-spinner color="primary"></ion-spinner>
     <p>Loading departments...</p>
   </div>
 
-  <!-- Error -->
   <div *ngIf="errorMessage && !isLoading" class="state-box error-box">
     <div class="state-icon"><ion-icon name="alert-circle-outline"></ion-icon></div>
     <p>{{ errorMessage }}</p>
@@ -31,7 +29,6 @@
 
   <div *ngIf="!isLoading && !errorMessage" class="page-body">
 
-    <!-- ── Hero Banner ───────────────────────────── -->
     <div class="hero-banner">
       <div class="hero-deco"></div>
       <div class="hero-content">
@@ -62,19 +59,36 @@
       </div>
     </div>
 
-    <!-- ── Empty State ───────────────────────────── -->
     <div *ngIf="allDepartments.length === 0" class="state-box">
       <div class="state-icon"><ion-icon name="folder-open-outline"></ion-icon></div>
       <p>No departments available yet.</p>
     </div>
 
-    <!-- ── Department List ───────────────────────── -->
     <div class="dept-list" *ngIf="allDepartments.length > 0">
-      <p class="list-heading">All Departments</p>
+
+      <div class="dept-filter-wrap">
+        <ion-segment [(ngModel)]="departmentFilter" class="dept-filter-segment">
+          <ion-segment-button value="my">
+            <ion-label>My Dept</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="following">
+            <ion-label>Following</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="all">
+            <ion-label>All</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
+
+      <div *ngIf="filteredDepartments.length === 0 && departmentFilter !== 'all'" class="state-box" style="margin-top:24px">
+        <div class="state-icon"><ion-icon name="folder-open-outline"></ion-icon></div>
+        <p *ngIf="departmentFilter === 'my'">You have no primary department assigned.</p>
+        <p *ngIf="departmentFilter === 'following'">You are not following any departments yet.</p>
+      </div>
 
       <div
         class="dept-row"
-        *ngFor="let dept of allDepartments; let i = index"
+        *ngFor="let dept of filteredDepartments; let i = index"
         (click)="openDepartmentDetail(dept)"
       >
         <div class="dept-row-left">
@@ -99,7 +113,7 @@
               <ion-icon name="book-outline"></ion-icon>
               {{ dept.courses!.length }} {{ dept.courses!.length === 1 ? 'Course' : 'Courses' }}
             </span>
-            <span class="meta-dot" *ngIf="dept.courses?.length && dept.members?.length">·</span>
+            <span class="meta-dot" *ngIf="dept.courses?.length && dept.members?.length">Â·</span>
             <span *ngIf="dept.members?.length">
               <ion-icon name="people-outline"></ion-icon>
               {{ dept.members!.length }} {{ dept.members!.length === 1 ? 'Member' : 'Members' }}
@@ -112,7 +126,7 @@
           </div>
 
           <p class="dept-row-courses" *ngIf="dept.courses && dept.courses.length > 0">
-            {{ dept.courses.slice(0, 2).join(' · ') }}<span *ngIf="dept.courses.length > 2"> +{{ dept.courses.length - 2 }} more</span>
+            {{ dept.courses.slice(0, 2).join(' Â· ') }}<span *ngIf="dept.courses.length > 2"> +{{ dept.courses.length - 2 }} more</span>
           </p>
         </div>
 
@@ -125,7 +139,6 @@
   </div>
 </ion-content>
 
-<!-- ── Department Detail Modal ───────────────────── -->
 <ion-modal
   #detailModal
   [breakpoints]="[0, 0.95, 1]"
@@ -146,7 +159,6 @@
 
     <ion-content class="modal-body" *ngIf="selectedDepartment">
 
-      <!-- Dept header inside modal -->
       <div class="modal-dept-banner" [ngClass]="getDeptColorClass(allDepartments.indexOf(selectedDepartment))">
         <div class="modal-dept-abbr">{{ getDeptAbbr(selectedDepartment.name) }}</div>
         <div class="modal-dept-info">
@@ -170,7 +182,6 @@
         </div>
       </div>
 
-      <!-- Tabs -->
       <div class="modal-tabs">
         <button
           *ngFor="let tab of visibleTabs"
@@ -183,7 +194,6 @@
         </button>
       </div>
 
-      <!-- ── Overview Tab ────────────────────────── -->
       <div *ngIf="activeTab === 'overview'" class="tab-body">
 
         <div class="info-section" *ngIf="selectedDepartment.description">
@@ -199,7 +209,6 @@
           </span>
         </div>
 
-        <!-- Follower access notice -->
         <div class="follower-access-banner" *ngIf="isFollowing">
           <div class="fab-row">
             <ion-icon name="information-circle-outline"></ion-icon>
@@ -232,14 +241,19 @@
 
       </div>
 
-      <!-- ── Members Tab ─────────────────────────── -->
       <div *ngIf="activeTab === 'members'" class="tab-body">
         <div class="member-list" *ngIf="selectedDepartment.members && selectedDepartment.members.length > 0">
           <div class="member-row" *ngFor="let member of selectedDepartment.members">
             <div class="member-avatar">{{ (member.name || '?').charAt(0).toUpperCase() }}</div>
             <div class="member-info">
-              <p class="member-name">{{ member.name }}</p>
+              <p class="member-name">
+                {{ member.name }}<span *ngIf="member.middleName" class="member-middle"> ({{ member.middleName }})</span>
+              </p>
               <p class="member-sub">{{ member.course || member.role || member.userType }}</p>
+              <p class="member-sub" *ngIf="member.birthdate">
+                <ion-icon name="calendar-outline" style="font-size:11px;vertical-align:middle;margin-right:3px;"></ion-icon>
+                {{ member.birthdate | date:'MMMM d, yyyy' }}
+              </p>
             </div>
             <span class="member-badge" [class.badge-alumni]="member.userType === 'alumni'">
               {{ member.userType === 'alumni' ? 'Alumni' : 'Student' }}
@@ -253,7 +267,6 @@
         </div>
       </div>
 
-      <!-- ── Events Tab ──────────────────────────── -->
       <div *ngIf="activeTab === 'events'" class="tab-body">
 
         <div class="events-tab-head">
@@ -279,7 +292,6 @@
           </ion-button>
         </div>
 
-        <!-- HOD participation summary -->
         <div class="hod-summary-card" *ngIf="isHOD && hodDeptStats && !showEventForm">
           <div class="hod-summary-stat">
             <span class="hod-stat-num">{{ hodDeptStats.totalEvents }}</span>
@@ -302,7 +314,6 @@
           </div>
         </div>
 
-        <!-- Personal stats chip (members) -->
         <div class="my-stats-chip" *ngIf="!isHOD && userDeptStats && userDeptStats.eventsJoined > 0 && !showEventForm">
           <ion-icon name="stats-chart-outline"></ion-icon>
           <span>Your attendance: <strong>{{ userDeptStats.eventsAttended }}/{{ userDeptStats.eventsJoined }}</strong> events</span>
@@ -312,7 +323,6 @@
           </div>
         </div>
 
-        <!-- Type filter chips -->
         <div class="type-filter-row" *ngIf="!showEventForm">
           <button
             *ngFor="let t of eventTypes"
@@ -322,7 +332,6 @@
           >{{ t === 'all' ? 'All' : (t | titlecase) }}</button>
         </div>
 
-        <!-- Event Form (HOD) -->
         <div *ngIf="showEventForm && isHOD" class="event-form-card">
           <div class="event-form-header">
             <h3>{{ isEditingEvent ? 'Edit Event' : 'New Event' }}</h3>
@@ -337,7 +346,7 @@
             </div>
             <div class="ef-group">
               <label>Description</label>
-              <textarea [(ngModel)]="eventForm.description" placeholder="Details…" class="ef-input ef-textarea" rows="3"></textarea>
+              <textarea [(ngModel)]="eventForm.description" placeholder="Detailsâ€¦" class="ef-input ef-textarea" rows="3"></textarea>
             </div>
             <div class="ef-row">
               <div class="ef-group">
@@ -379,13 +388,11 @@
           </div>
         </div>
 
-        <!-- Events Loading -->
         <div *ngIf="isLoadingEvents" class="state-box compact-state">
           <ion-spinner color="primary"></ion-spinner>
           <p>Loading events...</p>
         </div>
 
-        <!-- Events List -->
         <div *ngIf="!isLoadingEvents && !showEventForm">
           <div class="event-card" [class.is-pinned]="event.isPinned" *ngFor="let event of filteredEvents">
             <div class="pin-banner" *ngIf="event.isPinned">
@@ -425,7 +432,7 @@
               </div>
               <span class="capacity-label" [class.capacity-full-label]="isEventFull(event)">
                 {{ event.attendees?.length || 0 }}/{{ event.maxParticipants }}
-                <ng-container *ngIf="isEventFull(event)"> · Full</ng-container>
+                <ng-container *ngIf="isEventFull(event)"> Â· Full</ng-container>
               </span>
             </div>
             <div class="event-footer">
@@ -447,7 +454,6 @@
               </div>
             </div>
 
-            <!-- Attendee list (expandable) -->
             <div class="attendee-section" *ngIf="expandedEventId === event.id">
               <div *ngIf="(event.attendees || []).length === 0" class="no-attendees">
                 No attendees yet.
@@ -470,23 +476,20 @@
 
       </div>
 
-      <!-- ── Wall Tab ──────────────────────────────── -->
       <div *ngIf="activeTab === 'wall'" class="tab-body wall-tab">
 
-        <!-- Follower read-only notice -->
         <div class="wall-follower-notice" *ngIf="isFollowing">
           <ion-icon name="eye-outline"></ion-icon>
           <span>You're following this department. Switch to this department to post on the wall.</span>
         </div>
 
-        <!-- Compose box (members + HOD only) -->
         <div class="wall-compose" *ngIf="isPrimaryDepartment(selectedDepartment.id) || isHOD">
           <div class="wall-compose-avatar">{{ currentUserName.charAt(0).toUpperCase() || 'M' }}</div>
           <div class="wall-compose-input-wrap">
             <textarea
               class="wall-compose-input"
               [(ngModel)]="wallInput"
-              placeholder="Share something with the department…"
+              placeholder="Share something with the departmentâ€¦"
               rows="2"
             ></textarea>
             <div class="wall-compose-actions">
@@ -517,13 +520,11 @@
           <p>Join or follow this department to post on the wall.</p>
         </div>
 
-        <!-- Loading -->
         <div *ngIf="isLoadingWall" class="state-box compact-state">
           <ion-spinner color="primary"></ion-spinner>
-          <p>Loading posts…</p>
+          <p>Loading postsâ€¦</p>
         </div>
 
-        <!-- Posts feed -->
         <div *ngIf="!isLoadingWall">
           <div class="wall-post" *ngFor="let post of wallPosts">
             <div class="wall-post-header">
@@ -559,7 +560,6 @@
 
       </div>
 
-      <!-- ── Modal Footer Actions ────────────────── -->
       <div class="modal-footer">
         <ion-button
           *ngIf="!isUserInDepartment(selectedDepartment.id)"
@@ -597,7 +597,6 @@
   </ng-template>
 </ion-modal>
 
-<!-- ── Department Event QR Modal ──────────────────────────── -->
 <div class="dept-qr-overlay" *ngIf="showQRModal" (click)="closeQRModal()">
   <div class="dept-qr-modal" (click)="$event.stopPropagation()">
 
@@ -617,7 +616,7 @@
     <div class="dept-qr-body">
       <div class="dept-qr-generating" *ngIf="isGeneratingDeptQR">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Generating QR…</p>
+        <p>Generating QRâ€¦</p>
       </div>
       <img *ngIf="!isGeneratingDeptQR && qrCodeDataUrl" [src]="qrCodeDataUrl" alt="Event QR Code" class="dept-qr-image" />
     </div>
@@ -658,7 +657,7 @@
     <div class="dept-qr-att-list" *ngIf="showAttendanceInModal">
       <div class="dept-qr-att-loading" *ngIf="isLoadingDeptAttendance">
         <ion-spinner name="crescent"></ion-spinner>
-        <span>Loading attendance…</span>
+        <span>Loading attendanceâ€¦</span>
       </div>
       <div class="dept-qr-att-empty" *ngIf="!isLoadingDeptAttendance && deptAttendanceList.length === 0">
         <ion-icon name="people-outline"></ion-icon>

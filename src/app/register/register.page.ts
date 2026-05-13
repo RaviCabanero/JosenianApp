@@ -22,8 +22,9 @@ import { trigger, transition, style, animate } from '@angular/animations';
 })
 export class RegisterPage implements OnInit {
   // Form state
-  userType: 'student' | 'alumni' = 'student';
+  userType: 'alumni' = 'alumni';
   firstName: string = '';
+  middleName: string = '';
   lastName: string = '';
   email: string = '';
   password: string = '';
@@ -32,6 +33,7 @@ export class RegisterPage implements OnInit {
   department: string = '';
   course: string = '';
   graduationYear: string = '';
+  birthdate: string = '';
 
   // UI state
   showPassword: boolean = false;
@@ -44,30 +46,16 @@ export class RegisterPage implements OnInit {
   courses: string[] = [];
   isLoadingDepts: boolean = false;
 
-  // Alumni ID upload
-  hasAlumniId: boolean | null = null; // null = not yet chosen
-  alumniIdFile: File | null = null;
-  alumniIdFileName: string = '';
-  alumniIdFileSize: string = '';
-
-  // Graduation photo (for Digital ID)
-  gradPhotoFile: File | null = null;
-  gradPhotoFileName: string = '';
-  gradPhotoFileSize: string = '';
-
   constructor(private router: Router, private authService: AuthService) {}
 
   ngOnInit() {
-    // Load departments from Firestore
     this.loadDepartments();
   }
 
-  // Load departments dynamically from Firestore
   async loadDepartments() {
     try {
       this.isLoadingDepts = true;
       this.departments = await this.authService.getDepartments();
-      console.log('Loaded departments:', this.departments);
       this.isLoadingDepts = false;
     } catch (error) {
       console.error('Error loading departments:', error);
@@ -75,55 +63,28 @@ export class RegisterPage implements OnInit {
     }
   }
 
-  // Toggle password visibility
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
   }
 
-  // Toggle confirm password visibility
   toggleConfirmPasswordVisibility() {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 
-  // Handle user type change
-  onUserTypeChange(event: any) {
-    this.userType = event.detail.value;
-    // Clear conditional fields when switching between student and alumni
-    if (this.userType === 'student') {
-      this.graduationYear = '';
-      this.hasAlumniId = null;
-      this.alumniIdFile = null;
-      this.alumniIdFileName = '';
-      this.alumniIdFileSize = '';
-      this.gradPhotoFile = null;
-      this.gradPhotoFileName = '';
-      this.gradPhotoFileSize = '';
-    } else {
-      this.studentNumber = '';
-      this.course = '';
-    }
-  }
-
-  // Handle department change - load courses for selected department
   async onDepartmentChange(event: any) {
     this.department = event.detail.value;
-    this.course = ''; // Reset course selection
-    
-    // Find selected department and get its courses
+    this.course = '';
     const selectedDept = this.departments.find(d => d.id === this.department);
     if (selectedDept) {
       this.courses = selectedDept.courses || [];
-      console.log('Courses for', selectedDept.name, ':', this.courses);
     } else {
       this.courses = [];
     }
   }
 
-  // Register handler
   async register() {
     this.registerError = '';
 
-    // Validation
     if (!this.firstName.trim()) {
       this.registerError = 'Please enter your first name';
       return;
@@ -139,7 +100,6 @@ export class RegisterPage implements OnInit {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.email)) {
       this.registerError = 'Please enter a valid email address';
@@ -166,69 +126,46 @@ export class RegisterPage implements OnInit {
       return;
     }
 
-    // Conditional validation
-    if (this.userType === 'student' || this.userType === 'alumni') {
-      if (!this.studentNumber.trim()) {
-        this.registerError = 'Please enter your student number';
-        return;
-      }
-      if (!/^\d{10}$/.test(this.studentNumber)) {
-        this.registerError = 'Student number must be exactly 10 digits';
-        return;
-      }
-      if (!this.course.trim()) {
-        this.registerError = 'Please enter your course';
-        return;
-      }
+    if (!this.studentNumber.trim()) {
+      this.registerError = 'Please enter your student number';
+      return;
+    }
+    if (!/^\d{10}$/.test(this.studentNumber)) {
+      this.registerError = 'Student number must be exactly 10 digits';
+      return;
     }
 
-    if (this.userType === 'alumni') {
-      if (!this.graduationYear) {
-        this.registerError = 'Please enter your graduation year';
-        return;
-      }
-      if (this.hasAlumniId === null) {
-        this.registerError = 'Please indicate whether you have an Alumni ID';
-        return;
-      }
-      if (this.hasAlumniId && !this.alumniIdFile) {
-        this.registerError = 'Please upload your Alumni ID photo';
-        return;
-      }
-      if (this.hasAlumniId && !this.gradPhotoFile) {
-        this.registerError = 'Please upload your graduation/formal photo for your Digital Alumni ID';
-        return;
-      }
+    if (!this.course.trim()) {
+      this.registerError = 'Please enter your course';
+      return;
+    }
+
+    if (!this.graduationYear) {
+      this.registerError = 'Please enter your graduation year';
+      return;
+    }
+
+    if (!this.birthdate) {
+      this.registerError = 'Please enter your birthdate';
+      return;
     }
 
     this.isLoading = true;
 
     try {
-      // Call Firebase registration and store user data in Firestore
       const profileData: any = {
         firstName: this.firstName,
+        middleName: this.middleName,
         lastName: this.lastName,
         userType: this.userType,
         studentNumber: this.studentNumber,
         department: this.department,
         course: this.course,
-        graduationYear: this.userType === 'alumni' ? this.graduationYear : '',
-        status: 'pending', // Account pending admin approval
+        graduationYear: this.graduationYear,
+        birthdate: this.birthdate,
+        status: 'pending',
+        alumniIdVerificationStatus: 'unverified',
       };
-
-      // Handle alumni ID verification status
-      if (this.userType === 'alumni') {
-        if (this.hasAlumniId && this.alumniIdFile && this.gradPhotoFile) {
-          const alumniIdBase64 = await this.authService.uploadAlumniId(this.alumniIdFile);
-          const gradPhotoBase64 = await this.authService.uploadAlumniId(this.gradPhotoFile);
-          profileData.alumniIdBase64 = alumniIdBase64;
-          profileData.alumniIdFileName = this.alumniIdFileName;
-          profileData.alumniGradPhotoBase64 = gradPhotoBase64;
-          profileData.alumniIdVerificationStatus = 'pending';
-        } else {
-          profileData.alumniIdVerificationStatus = 'unverified';
-        }
-      }
 
       await this.authService.registerWithProfile(
         this.email,
@@ -236,13 +173,8 @@ export class RegisterPage implements OnInit {
         profileData
       );
 
-      console.log('Registration successful');
       this.isLoading = false;
-      
-      // Show success message about pending approval
       alert('Registration successful! Your account is under review by the admin. Please check back later to login.');
-      
-      // Navigate to login page
       this.router.navigate(['/login']);
     } catch (error: any) {
       this.isLoading = false;
@@ -251,106 +183,39 @@ export class RegisterPage implements OnInit {
     }
   }
 
-  // Navigate to login page
   navigateToLogin() {
     this.router.navigate(['/login']);
   }
 
-  // Handle Enter key press
   handleKeyPress(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       this.register();
     }
   }
 
-  // Handle alumni ID file selection
-  onAlumniIdFileSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (file) {
-      // Validate file type (only images and PDF)
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        this.registerError = 'Please upload a valid file (JPG, PNG, GIF, or PDF)';
-        this.alumniIdFile = null;
-        this.alumniIdFileName = '';
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSize) {
-        this.registerError = 'File size must be less than 5MB';
-        this.alumniIdFile = null;
-        this.alumniIdFileName = '';
-        return;
-      }
-
-      this.alumniIdFile = file;
-      this.alumniIdFileName = file.name;
-      this.alumniIdFileSize = (file.size / 1024).toFixed(2) + ' KB';
-      this.registerError = ''; // Clear any previous errors
-    }
-  }
-
-  // Remove alumni ID file
-  removeAlumniIdFile() {
-    this.alumniIdFile = null;
-    this.alumniIdFileName = '';
-    this.alumniIdFileSize = '';
-    const fileInput = document.getElementById('alumniIdInput') as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
-  }
-
-  onGradPhotoSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (!file) return;
-    const allowed = ['image/jpeg', 'image/png'];
-    if (!allowed.includes(file.type)) {
-      this.registerError = 'Graduation photo must be JPG or PNG';
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      this.registerError = 'Graduation photo must be under 5MB';
-      return;
-    }
-    this.gradPhotoFile = file;
-    this.gradPhotoFileName = file.name;
-    this.gradPhotoFileSize = (file.size / 1024).toFixed(1) + ' KB';
-    this.registerError = '';
-  }
-
-  removeGradPhoto() {
-    this.gradPhotoFile = null;
-    this.gradPhotoFileName = '';
-    this.gradPhotoFileSize = '';
-    const input = document.getElementById('gradPhotoInput') as HTMLInputElement;
-    if (input) input.value = '';
-  }
-
-  // Filter student number to only allow numbers
   onStudentNumberInput(event: any) {
     let value = event.target.value;
-    // Remove any non-numeric characters
     value = value.replace(/[^0-9]/g, '');
     this.studentNumber = value;
     event.target.value = value;
   }
 
-  // Capitalize first letter of name fields
   capitalizeFirstLetter(value: string): string {
     if (!value) return '';
-    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    return value.split(' ').map(word =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1) : ''
+    ).join(' ');
   }
 
-  // Handle first name input - capitalize first letter
   onFirstNameInput(event: any) {
-    const value = event.target.value;
-    this.firstName = this.capitalizeFirstLetter(value);
+    this.firstName = this.capitalizeFirstLetter(event.target.value);
   }
 
-  // Handle last name input - capitalize first letter
   onLastNameInput(event: any) {
-    const value = event.target.value;
-    this.lastName = this.capitalizeFirstLetter(value);
+    this.lastName = this.capitalizeFirstLetter(event.target.value);
+  }
+
+  onMiddleNameInput(event: any) {
+    this.middleName = this.capitalizeFirstLetter(event.target.value);
   }
 }

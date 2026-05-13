@@ -34,7 +34,6 @@ export class ChatPage implements OnInit, OnDestroy, AfterViewChecked {
   ngOnInit() {
     this.otherUid = this.route.snapshot.paramMap.get('uid') || '';
 
-    // Use authService.currentUser$ (plain BehaviorSubject — no AngularFire injection context needed)
     this.authService.currentUser$.pipe(
       filter(user => !!user),
       take(1)

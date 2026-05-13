@@ -1,4 +1,4 @@
-<ion-header [translucent]="true" class="net-header">
+﻿<ion-header [translucent]="true" class="net-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -12,7 +12,6 @@
 <ion-content [fullscreen]="true" class="net-content">
   <div class="page-body">
 
-    <!-- Loading -->
     <div class="state-box" *ngIf="isLoading">
       <ion-spinner color="primary"></ion-spinner>
       <p>Loading your network...</p>
@@ -20,7 +19,6 @@
 
     <ng-container *ngIf="!isLoading">
 
-      <!-- Stats Row -->
       <div class="stats-row">
         <div class="stat-pill">
           <span class="stat-num">{{ friendsCount }}</span>
@@ -33,7 +31,6 @@
         </div>
       </div>
 
-      <!-- Tab Bar -->
       <div class="tab-bar">
         <button class="tab-btn" [class.active]="activeTab === 'friends'" (click)="switchTab('friends')">
           <ion-icon name="people"></ion-icon>
@@ -50,7 +47,6 @@
         </button>
       </div>
 
-      <!-- Shared Search Bar -->
       <ion-searchbar
         [placeholder]="activeTab === 'requests' ? 'Search requests...' : activeTab === 'friends' ? 'Search friends...' : 'Search by name, department...'"
         [(ngModel)]="searchQuery"
@@ -59,7 +55,6 @@
         class="net-search">
       </ion-searchbar>
 
-      <!-- ── Friends Tab ─────────────────────────────── -->
       <div *ngIf="activeTab === 'friends'">
         <div class="empty-state" *ngIf="friends.length === 0">
           <ion-icon name="people-outline"></ion-icon>
@@ -73,7 +68,11 @@
         </div>
         <div class="user-list" *ngIf="filteredFriends.length > 0">
           <div class="user-card" *ngFor="let user of filteredFriends">
-            <div class="user-avatar" (click)="viewUser(user.uid)" style="cursor:pointer">{{ user.initials }}</div>
+            <div class="user-avatar" (click)="viewUser(user.uid)" style="cursor:pointer"
+                 [class.has-photo]="user.photoUrl"
+                 [style.backgroundImage]="user.photoUrl ? 'url(' + user.photoUrl + ')' : null">
+              <ion-icon name="person" *ngIf="!user.photoUrl"></ion-icon>
+            </div>
             <div class="user-info">
               <p class="user-name">{{ user.name }}</p>
               <p class="user-sub" *ngIf="user.department && user.department !== 'No Department'">{{ user.department }}</p>
@@ -86,7 +85,6 @@
         </div>
       </div>
 
-      <!-- ── Find People Tab ────────────────────────── -->
       <div *ngIf="activeTab === 'people'">
         <div class="empty-state" *ngIf="filteredPeople.length === 0">
           <ion-icon name="search-outline"></ion-icon>
@@ -95,23 +93,25 @@
         </div>
         <div class="user-list" *ngIf="filteredPeople.length > 0">
           <div class="user-card" [class.private-card]="user.isPrivate && user.friendStatus === 'none'" *ngFor="let user of filteredPeople">
-            <!-- Avatar: lock icon for private non-friends -->
-            <div class="user-avatar" [class.private-avatar]="user.isPrivate && user.friendStatus === 'none'" (click)="viewUser(user.uid)" style="cursor:pointer">
+            <div class="user-avatar" [class.private-avatar]="user.isPrivate && user.friendStatus === 'none'"
+                 [class.has-photo]="user.photoUrl && !(user.isPrivate && user.friendStatus === 'none')"
+                 [style.backgroundImage]="user.photoUrl && !(user.isPrivate && user.friendStatus === 'none') ? 'url(' + user.photoUrl + ')' : null"
+                 (click)="viewUser(user.uid)" style="cursor:pointer">
               <ng-container *ngIf="user.isPrivate && user.friendStatus === 'none'">
                 <ion-icon name="lock-closed"></ion-icon>
               </ng-container>
-              <ng-container *ngIf="!user.isPrivate || user.friendStatus !== 'none'">{{ user.initials }}</ng-container>
+              <ng-container *ngIf="!user.isPrivate || user.friendStatus !== 'none'">
+                <ion-icon name="person" *ngIf="!user.photoUrl"></ion-icon>
+              </ng-container>
             </div>
             <div class="user-info">
               <p class="user-name">{{ user.name }}</p>
-              <!-- Private non-friend: show lock label + course only -->
               <ng-container *ngIf="user.isPrivate && user.friendStatus === 'none'">
                 <p class="user-sub private-label">
                   <ion-icon name="lock-closed-outline"></ion-icon> Private Account
                 </p>
                 <p class="user-sub" *ngIf="user.course">{{ user.course }}</p>
               </ng-container>
-              <!-- Public or friend: show full info -->
               <ng-container *ngIf="!user.isPrivate || user.friendStatus !== 'none'">
                 <p class="user-sub">{{ user.department }}</p>
               </ng-container>
@@ -131,7 +131,6 @@
         </div>
       </div>
 
-      <!-- ── Requests Tab ───────────────────────────── -->
       <div *ngIf="activeTab === 'requests'">
         <div class="empty-state" *ngIf="incomingRequests.length === 0">
           <ion-icon name="person-add-outline"></ion-icon>
@@ -145,7 +144,11 @@
         </div>
         <div class="user-list" *ngIf="filteredRequests.length > 0">
           <div class="user-card" *ngFor="let req of filteredRequests">
-            <div class="user-avatar req-avatar" (click)="viewUser(req.fromId)" style="cursor:pointer">{{ req.fromInitials }}</div>
+            <div class="user-avatar req-avatar" (click)="viewUser(req.fromId)" style="cursor:pointer"
+                 [class.has-photo]="req.fromPhotoUrl"
+                 [style.backgroundImage]="req.fromPhotoUrl ? 'url(' + req.fromPhotoUrl + ')' : null">
+              <ion-icon name="person" *ngIf="!req.fromPhotoUrl"></ion-icon>
+            </div>
             <div class="user-info">
               <p class="user-name">{{ req.fromName }}</p>
               <p class="user-sub">Wants to connect with you</p>

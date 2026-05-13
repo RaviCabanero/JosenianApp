@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
@@ -14,6 +14,9 @@ import * as QRCode from 'qrcode';
   standalone: false,
 })
 export class AdminPage implements OnInit {
+  @ViewChild('adminSigCanvas') adminSigCanvas!: ElementRef<HTMLCanvasElement>;
+  private adminSignaturePad: any = null;
+
   isLoggedIn: boolean = false;
   activeTab: string = 'dashboard';
 
@@ -34,6 +37,12 @@ export class AdminPage implements OnInit {
   verifiedAlumni: any[] = [];
   verifiedAlumniSearch: string = '';
   expandedAlumniId: string | null = null;
+
+  showApprovalModal = false;
+  approvalTargetAlumnus: any = null;
+  adminSigHasSig = false;
+  isApprovingAlumni = false;
+  currentAdminName = '';
 
   departments: any[] = [];
 
@@ -75,6 +84,17 @@ export class AdminPage implements OnInit {
     graduationYear: ''
   };
 
+  allAppUsers: any[] = [];
+  nominationSearch = '';
+  nominationSearchResults: any[] = [];
+  nominationTarget: any = null;
+  nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+  nominationProofFile: File | null = null;
+  nominationProofFileName = '';
+  isSubmittingNomination = false;
+  nominations: any[] = [];
+  isLoadingNominations = false;
+
   events: any[] = [];
   showEventForm: boolean = false;
   editingEventId: string | null = null;
@@ -83,12 +103,19 @@ export class AdminPage implements OnInit {
   newEvent = {
     title: '', description: '', date: '', time: '',
     location: '', eventType: 'global', maxParticipants: '',
-    coverImageBase64: '', coverImageFileName: '',
-    eventCategory: 'regular', pointValue: 10
+    coverImageBase64: '',
+    coverImageUrl: '',
+    coverImageFileName: '',
+    eventCategory: 'regular', pointValue: 10,
+    inspireCategory: 'service'
   };
+
+  private coverImageFile: File | null = null;
 
   searchTerm: string = '';
   filterByRole: string = '';
+  filterByDepartment: string = '';
+  filterByBatch: string = '';
   filteredUsers: any[] = [];
   paginatedUsers: any[] = [];
   currentPage: number = 1;
@@ -96,6 +123,11 @@ export class AdminPage implements OnInit {
   totalPages: number = 1;
 
   newDepartmentName: string = '';
+  newDepartmentColor: string = '#1E5128';
+  showDepartmentEditModal: boolean = false;
+  editingDepartmentId: string | null = null;
+  editingDepartmentName: string = '';
+  editingDepartmentColor: string = '#1E5128';
   newCourseName: string = '';
   departmentSearchTerm: string = '';
   selectedDepartmentId: string | null = null;
@@ -104,6 +136,16 @@ export class AdminPage implements OnInit {
   isLoadingDepts: boolean = false;
   isRefreshing: boolean = false;
   departmentMap: {[id: string]: string} = {};
+  departmentColorOptions: string[] = [
+    '#1E5128',
+    '#2563eb',
+    '#7c3aed',
+    '#dc2626',
+    '#ea580c',
+    '#0891b2',
+    '#be123c',
+    '#4f46e5'
+  ];
 
   constructor(
     private router: Router,
@@ -114,9 +156,16 @@ export class AdminPage implements OnInit {
 
   ngOnInit() {
     if (this.authService.isLoggedIn()) {
-      this.authService.isAdmin().then(isAdmin => {
+      this.authService.isAdmin().then(async isAdmin => {
         if (isAdmin) {
           this.isLoggedIn = true;
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser) {
+            const profile = await this.authService.getUserProfile(currentUser.uid);
+            this.currentAdminName = profile
+              ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || currentUser.email || 'Admin'
+              : currentUser.email || 'Admin';
+          }
           this.loadPendingUsers();
           this.loadDepartments();
           this.loadAlumni();
@@ -130,8 +179,6 @@ export class AdminPage implements OnInit {
       this.router.navigate(['/login']);
     }
   }
-
-  // ==================== PRIVATE DIALOG HELPERS ====================
 
   private async showAlert(header: string, message: string): Promise<void> {
     const alert = await this.alertCtrl.create({ header, message, buttons: ['OK'] });
@@ -166,8 +213,6 @@ export class AdminPage implements OnInit {
     });
   }
 
-  // ==================== ACCOUNT APPROVAL ====================
-
   async loadPendingUsers() {
     try {
       this.pendingUsers = await this.authService.getPendingUsers();
@@ -185,6 +230,7 @@ export class AdminPage implements OnInit {
     try {
       const allUsers = await this.authService.getAllUsers();
       const appUsers = allUsers.filter((u: any) => u.userType === 'student' || u.userType === 'alumni');
+      this.allAppUsers = appUsers;
       this.totalUsersCount = appUsers.length;
       this.totalStudentsCount = appUsers.filter((u: any) => u.userType === 'student').length;
       this.totalAlumniCount = appUsers.filter((u: any) => u.userType === 'alumni').length;
@@ -214,6 +260,13 @@ export class AdminPage implements OnInit {
     return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
   }
 
+  get batchYears(): number[] {
+    const current = new Date().getFullYear();
+    const years: number[] = [];
+    for (let y = current; y >= 1990; y--) years.push(y);
+    return years;
+  }
+
   filterAndPaginateUsers() {
     this.filteredUsers = this.pendingUsers.filter(user => {
       const fullName = (user.firstName + ' ' + user.lastName).toLowerCase();
@@ -223,7 +276,10 @@ export class AdminPage implements OnInit {
         fullName.includes(searchLower) ||
         email.includes(searchLower);
       const matchesRole = !this.filterByRole || user.userType === this.filterByRole;
-      return matchesSearch && matchesRole;
+      const matchesDept = !this.filterByDepartment || user.department === this.filterByDepartment;
+      const matchesBatch = !this.filterByBatch ||
+        String(user.graduationYear) === this.filterByBatch;
+      return matchesSearch && matchesRole && matchesDept && matchesBatch;
     });
     this.totalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1;
     if (this.currentPage > this.totalPages) this.currentPage = 1;
@@ -289,24 +345,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  async autoApproveEligibleUsers() {
-    try {
-      let autoApprovedCount = 0;
-      for (const user of this.pendingUsers) {
-        const isAutoApproved = await this.authService.autoApproveIfEligible(user.id);
-        if (isAutoApproved) autoApprovedCount++;
-      }
-      if (autoApprovedCount > 0) {
-        await this.showAlert('Auto-Approved', `${autoApprovedCount} user(s) auto-approved with @usj.edu.ph email.`);
-        await this.loadPendingUsers();
-      }
-    } catch (error) {
-      console.error('Error in auto-approval:', error);
-    }
-  }
-
-  // ==================== ALUMNI ID VERIFICATION ====================
-
   async loadPendingAlumniVerification() {
     try {
       [this.pendingAlumniVerification, this.verifiedAlumni] = await Promise.all([
@@ -318,27 +356,112 @@ export class AdminPage implements OnInit {
     }
   }
 
-  getImageSafeUrl(base64: string): SafeUrl {
-    return this.imageService.base64ToSafeUrl(base64, 'image/jpeg');
+  getImageSafeUrl(value: string): SafeUrl | string {
+    if (!value) return '';
+    if (value.startsWith('http')) return value;
+    return this.imageService.base64ToSafeUrl(value, 'image/jpeg');
+  }
+
+  getAlumniImageUrl(record: any): string {
+    return record.alumniGradPhotoUrl || record.alumniIdUrl || record.alumniIdBase64 || '';
+  }
+
+  hasAlumniImage(record: any): boolean {
+    return !!(record.alumniGradPhotoUrl || record.alumniIdUrl || record.alumniIdBase64);
+  }
+
+  getEventCoverSrc(ev: any): string {
+    if (ev.coverImageUrl) return ev.coverImageUrl;
+    if (ev.coverImageBase64) return `data:image/jpeg;base64,${ev.coverImageBase64}`;
+    return '';
+  }
+
+  hasEventCover(ev: any): boolean {
+    return !!(ev.coverImageUrl || ev.coverImageBase64);
+  }
+
+  getNewEventCoverPreview(): string {
+    if (this.newEvent.coverImageBase64) return `data:image/jpeg;base64,${this.newEvent.coverImageBase64}`;
+    if (this.newEvent.coverImageUrl) return this.newEvent.coverImageUrl;
+    return '';
+  }
+
+  hasNewEventCover(): boolean {
+    return !!(this.newEvent.coverImageBase64 || this.newEvent.coverImageUrl);
   }
 
   downloadAlumniId(alumniId: any) {
-    if (alumniId.alumniIdBase64 && alumniId.alumniIdFileName) {
-      this.imageService.downloadBase64File(alumniId.alumniIdBase64, alumniId.alumniIdFileName, 'image/jpeg');
+    const url = alumniId.alumniIdUrl || alumniId.alumniIdBase64 || '';
+    const fileName = alumniId.alumniIdFileName || 'alumni-id.jpg';
+    if (!url) return;
+    if (url.startsWith('http')) {
+      window.open(url, '_blank');
+    } else {
+      this.imageService.downloadBase64File(url, fileName, 'image/jpeg');
     }
   }
 
-  async approveAlumniId(userId: string) {
+  openApprovalModal(alumnus: any) {
+    this.approvalTargetAlumnus = alumnus;
+    this.adminSigHasSig = false;
+    this.showApprovalModal = true;
+    this.initAdminSignaturePad();
+  }
+
+  async initAdminSignaturePad() {
+    await new Promise(r => setTimeout(r, 150));
+    if (!this.adminSigCanvas?.nativeElement) return;
+    const { default: SignaturePad } = await import('signature_pad');
+    const canvas = this.adminSigCanvas.nativeElement;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    this.adminSignaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgba(0,0,0,0)',
+      penColor: '#111827',
+      minWidth: 1.5,
+      maxWidth: 3,
+    });
+    this.adminSignaturePad.addEventListener('endStroke', () => {
+      this.adminSigHasSig = !this.adminSignaturePad.isEmpty();
+    });
+  }
+
+  clearAdminSignaturePad() {
+    this.adminSignaturePad?.clear();
+    this.adminSigHasSig = false;
+  }
+
+  private async getAdminSignatureFile(): Promise<File | undefined> {
+    if (!this.adminSignaturePad || this.adminSignaturePad.isEmpty()) return undefined;
+    const dataUrl = this.adminSignaturePad.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], 'admin-signature.png', { type: 'image/png' });
+  }
+
+  async confirmApproval() {
+    if (!this.approvalTargetAlumnus || !this.adminSigHasSig) return;
+    this.isApprovingAlumni = true;
     try {
-      await this.authService.verifyAlumniId(userId, 'approved', '');
-      const approved = this.pendingAlumniVerification.find(a => a.id === userId);
-      this.pendingAlumniVerification = this.pendingAlumniVerification.filter(a => a.id !== userId);
+      const signatureFile = await this.getAdminSignatureFile();
+      await this.authService.verifyAlumniId(
+        this.approvalTargetAlumnus.id,
+        'approved',
+        '',
+        signatureFile,
+        this.currentAdminName
+      );
+      const approved = this.pendingAlumniVerification.find(a => a.id === this.approvalTargetAlumnus.id);
+      this.pendingAlumniVerification = this.pendingAlumniVerification.filter(a => a.id !== this.approvalTargetAlumnus.id);
       if (approved) {
         this.verifiedAlumni = [{ ...approved, alumniIdVerificationStatus: 'approved' }, ...this.verifiedAlumni];
       }
+      this.showApprovalModal = false;
     } catch (error) {
       console.error('Error approving alumni ID:', error);
       await this.showAlert('Error', 'Failed to approve alumni ID.');
+    } finally {
+      this.isApprovingAlumni = false;
     }
   }
 
@@ -354,8 +477,6 @@ export class AdminPage implements OnInit {
       }
     }
   }
-
-  // ==================== DEPARTMENTS ====================
 
   async loadDepartments() {
     try {
@@ -385,6 +506,34 @@ export class AdminPage implements OnInit {
     return this.departments.filter(dept => (dept.courses?.length || 0) > 0).length;
   }
 
+  getDepartmentColor(dept: any): string {
+    if (dept?.color) return dept.color;
+    const source = String(dept?.id || dept?.name || '');
+    const palette = this.departmentColorOptions;
+    const index = Array.from(source).reduce((sum, char) => sum + char.charCodeAt(0), 0) % palette.length;
+    return palette[index] || '#1E5128';
+  }
+
+  getDepartmentSoftColor(dept: any): string {
+    return this.hexToRgba(this.getDepartmentColor(dept), 0.12);
+  }
+
+  getDepartmentBorderColor(dept: any): string {
+    return this.hexToRgba(this.getDepartmentColor(dept), 0.35);
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const cleanHex = hex.replace('#', '');
+    const value = cleanHex.length === 3
+      ? cleanHex.split('').map(char => char + char).join('')
+      : cleanHex;
+    const numeric = parseInt(value, 16);
+    const red = (numeric >> 16) & 255;
+    const green = (numeric >> 8) & 255;
+    const blue = numeric & 255;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
   get filteredVerifiedAlumni(): any[] {
     const term = this.verifiedAlumniSearch.toLowerCase().trim();
     if (!term) return this.verifiedAlumni;
@@ -404,12 +553,10 @@ export class AdminPage implements OnInit {
     const searchLower = this.departmentSearchTerm.toLowerCase();
     return this.departments
       .map((dept: any) => {
-        // Filter courses based on search term
         const filteredCourses = dept.courses.filter((course: string) =>
           course.toLowerCase().includes(searchLower)
         );
 
-        // Include department if it matches the search or has matching courses
         if (
           dept.name.toLowerCase().includes(searchLower) ||
           filteredCourses.length > 0
@@ -417,8 +564,8 @@ export class AdminPage implements OnInit {
           return {
             ...dept,
             courses: dept.name.toLowerCase().includes(searchLower)
-              ? dept.courses // Show all courses if department matches
-              : filteredCourses // Show only matching courses if department doesn't match
+              ? dept.courses
+              : filteredCourses
           };
         }
         return null;
@@ -428,7 +575,10 @@ export class AdminPage implements OnInit {
 
   toggleDepartmentForm() {
     this.showDepartmentForm = !this.showDepartmentForm;
-    if (!this.showDepartmentForm) this.newDepartmentName = '';
+    if (!this.showDepartmentForm) {
+      this.newDepartmentName = '';
+      this.newDepartmentColor = '#1E5128';
+    }
   }
 
   toggleCourseForm(departmentId: string) {
@@ -443,8 +593,9 @@ export class AdminPage implements OnInit {
       return;
     }
     try {
-      await this.authService.addDepartment(this.newDepartmentName);
+      await this.authService.addDepartment(this.newDepartmentName, this.newDepartmentColor);
       this.newDepartmentName = '';
+      this.newDepartmentColor = '#1E5128';
       this.showDepartmentForm = false;
       await this.loadDepartments();
     } catch (error) {
@@ -486,16 +637,49 @@ export class AdminPage implements OnInit {
   }
 
   async editDepartment(departmentId: string, currentName: string) {
-    const newName = await this.showPrompt('Rename Department', currentName);
-    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    const dept = this.departments.find(d => d.id === departmentId);
+    this.editingDepartmentId = departmentId;
+    this.editingDepartmentName = currentName;
+    this.editingDepartmentColor = this.getDepartmentColor(dept || { id: departmentId, name: currentName });
+    this.showDepartmentEditModal = true;
+  }
+
+  closeDepartmentEditModal() {
+    this.showDepartmentEditModal = false;
+    this.editingDepartmentId = null;
+    this.editingDepartmentName = '';
+    this.editingDepartmentColor = '#1E5128';
+  }
+
+  async saveDepartmentEdit() {
+    if (!this.editingDepartmentId) return;
+    if (!this.editingDepartmentName.trim()) {
+      await this.showAlert('Required', 'Please enter a department name.');
+      return;
+    }
+
+    const departmentId = this.editingDepartmentId;
+    const dept = this.departments.find(d => d.id === departmentId);
+    const newName = this.editingDepartmentName.trim();
+    const newColor = this.editingDepartmentColor || '#1E5128';
+    const currentColor = this.getDepartmentColor(dept || { id: departmentId, name: newName });
+
+    if (dept && newName === dept.name && newColor === currentColor) {
+      this.closeDepartmentEditModal();
+      return;
+    }
+
     try {
-      await this.authService.updateDepartment(departmentId, newName.trim());
-      const dept = this.departments.find(d => d.id === departmentId);
-      if (dept) dept.name = newName.trim();
-      this.departmentMap[departmentId] = newName.trim();
+      await this.authService.updateDepartment(departmentId, newName, newColor);
+      if (dept) {
+        dept.name = newName;
+        dept.color = newColor;
+      }
+      this.departmentMap[departmentId] = newName;
+      this.closeDepartmentEditModal();
     } catch (error) {
-      console.error('Error renaming department:', error);
-      await this.showAlert('Error', 'Failed to rename department.');
+      console.error('Error updating department:', error);
+      await this.showAlert('Error', 'Failed to update department.');
     }
   }
 
@@ -524,8 +708,6 @@ export class AdminPage implements OnInit {
       await this.showAlert('Error', 'Failed to rename course.');
     }
   }
-
-  // ==================== ALUMNI MANAGEMENT ====================
 
   async loadAlumni() {
     try {
@@ -574,15 +756,34 @@ export class AdminPage implements OnInit {
     this.createUserData.course = '';
   }
 
+  capitalizeCreateUserName(field: 'firstName' | 'lastName') {
+    this.createUserData[field] = this.capitalizeName(this.createUserData[field]);
+  }
+
+  private capitalizeName(value: string): string {
+    return (value || '').replace(/(^|[\s'-])([a-z])/g, (_, prefix: string, letter: string) => {
+      return prefix + letter.toUpperCase();
+    });
+  }
+
+  formatCreateUserStudentNumber() {
+    this.createUserData.studentNumber = (this.createUserData.studentNumber || '')
+      .replace(/\D/g, '')
+      .slice(0, 10);
+  }
+
   async createUser() {
     const { firstName, lastName, email, userType, department, studentNumber, course, graduationYear } = this.createUserData;
+    const normalizedFirstName = this.capitalizeName(firstName.trim());
+    const normalizedLastName = this.capitalizeName(lastName.trim());
+    const normalizedStudentNumber = (studentNumber || '').replace(/\D/g, '').slice(0, 10);
     const isHOD = userType === 'hod';
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !department) {
+    if (!normalizedFirstName || !normalizedLastName || !email.trim() || !department) {
       await this.showAlert('Required', 'Please fill in all required fields.');
       return;
     }
-    if (!isHOD && !studentNumber.trim()) {
-      await this.showAlert('Required', 'Please enter the student number.');
+    if (!isHOD && normalizedStudentNumber.length !== 10) {
+      await this.showAlert('Invalid Student Number', 'Student number must be exactly 10 digits.');
       return;
     }
     if (userType === 'alumni' && !graduationYear.trim()) {
@@ -592,11 +793,12 @@ export class AdminPage implements OnInit {
     this.isCreatingUser = true;
     try {
       await this.authService.adminCreateUser(email, {
-        firstName, lastName,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         userType: isHOD ? 'alumni' : userType as 'student' | 'alumni',
         role: isHOD ? 'hod' : 'user',
         department,
-        studentNumber: isHOD ? '' : studentNumber,
+        studentNumber: isHOD ? '' : normalizedStudentNumber,
         course, graduationYear
       });
       this.showCreateUserForm = false;
@@ -765,8 +967,6 @@ export class AdminPage implements OnInit {
     }
   }
 
-  // ==================== MANAGE EVENTS ====================
-
   async loadEvents() {
     try {
       this.events = await this.authService.getGlobalEvents();
@@ -784,56 +984,44 @@ export class AdminPage implements OnInit {
     this.newEvent = {
       title: '', description: '', date: '', time: '',
       location: '', eventType: 'global', maxParticipants: '',
-      coverImageBase64: '', coverImageFileName: '',
-      eventCategory: 'regular', pointValue: 10
+      coverImageBase64: '', coverImageUrl: '', coverImageFileName: '',
+      eventCategory: 'regular', pointValue: 10,
+      inspireCategory: 'service'
     };
+    this.coverImageFile = null;
     this.editingEventId = null;
   }
 
   onCoverImageSelected(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      this.showAlert('File Too Large', 'Please select an image under 2MB.');
-      return;
-    }
+    this.coverImageFile = file;
+    this.newEvent.coverImageFileName = file.name;
+    this.newEvent.coverImageUrl = '';
     const reader = new FileReader();
     reader.onload = (e: any) => {
-      this.compressEventImage(e.target.result).then(base64 => {
-        this.newEvent.coverImageBase64 = base64;
-        this.newEvent.coverImageFileName = file.name;
-      });
+      this.newEvent.coverImageBase64 = e.target.result.split(',')[1] || '';
     };
     reader.readAsDataURL(file);
   }
 
-  private compressEventImage(dataUrl: string): Promise<string> {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          const ratio = Math.min(MAX / w, MAX / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
-        }
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
-      };
-      img.src = dataUrl;
-    });
-  }
-
   removeCoverImage() {
     this.newEvent.coverImageBase64 = '';
+    this.newEvent.coverImageUrl = '';
     this.newEvent.coverImageFileName = '';
+    this.coverImageFile = null;
+  }
+
+  get todayDate(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
   async saveEvent() {
+    const today = new Date().toISOString().split('T')[0];
+    if (this.newEvent.date && this.newEvent.date < today) {
+      await this.showAlert('Invalid Date', 'Event date cannot be in the past.');
+      return;
+    }
     const { title, description, date, location } = this.newEvent;
     if (!title.trim() || !description.trim() || !date || !location.trim()) {
       await this.showAlert('Required', 'Please fill in Title, Description, Date, and Location.');
@@ -841,7 +1029,7 @@ export class AdminPage implements OnInit {
     }
     this.isSubmittingEvent = true;
     try {
-      const payload = {
+      const payload: any = {
         title: this.newEvent.title.trim(),
         description: this.newEvent.description.trim(),
         date: this.newEvent.date,
@@ -849,9 +1037,15 @@ export class AdminPage implements OnInit {
         location: this.newEvent.location.trim(),
         eventType: this.newEvent.eventType,
         maxParticipants: this.newEvent.maxParticipants ? Number(this.newEvent.maxParticipants) : null,
-        coverImageBase64: this.newEvent.coverImageBase64,
-        coverImageFileName: this.newEvent.coverImageFileName
+        coverImageFileName: this.newEvent.coverImageFileName,
+        eventCategory: this.newEvent.eventCategory,
+        pointValue: this.newEvent.pointValue
       };
+      if (this.coverImageFile) {
+        payload.coverImageFile = this.coverImageFile;
+      } else {
+        payload.coverImageUrl = this.newEvent.coverImageUrl || '';
+      }
       if (this.editingEventId) {
         await this.authService.updateGlobalEvent(this.editingEventId, payload);
       } else {
@@ -879,11 +1073,14 @@ export class AdminPage implements OnInit {
       location: ev.location || '',
       eventType: ev.eventType || 'global',
       maxParticipants: ev.maxParticipants || '',
-      coverImageBase64: ev.coverImageBase64 || '',
+      coverImageBase64: '',
+      coverImageUrl: ev.coverImageUrl || '',
       coverImageFileName: ev.coverImageFileName || '',
       eventCategory: ev.eventCategory || 'regular',
-      pointValue: ev.pointValue ?? 10
+      pointValue: ev.pointValue ?? 10,
+      inspireCategory: ev.inspireCategory || 'service'
     };
+    this.coverImageFile = null;
     this.editingEventId = eventId;
     this.showEventForm = true;
     this.selectedEvent = null;
@@ -906,7 +1103,6 @@ export class AdminPage implements OnInit {
   loadingParticipants: boolean = false;
   showParticipantsForEvent: string | null = null;
 
-  // QR Attendance
   showQRModal: boolean = false;
   qrModalEvent: any = null;
   qrCodeDataUrl: string = '';
@@ -959,8 +1155,6 @@ export class AdminPage implements OnInit {
     if (!event.date) return false;
     return new Date(`${event.date}T${event.time || '23:59'}`) < new Date();
   }
-
-  // ==================== QR ATTENDANCE ====================
 
   async showEventQR(event: any) {
     this.isGeneratingQR = true;
@@ -1048,8 +1242,6 @@ export class AdminPage implements OnInit {
     });
   }
 
-  // ==================== POINTS MANAGEMENT ====================
-
   adjustPointsUserId: string = '';
   adjustPointsAmount: number = 0;
   adjustPointsReason: string = '';
@@ -1085,8 +1277,6 @@ export class AdminPage implements OnInit {
       this.isLoadingLeaderboard = false;
     }
   }
-
-  // ==================== ATTENDANCE DASHBOARD ====================
 
   activeDashboardEventId: string = '';
   dashboardEvent: any = null;
@@ -1246,8 +1436,6 @@ export class AdminPage implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  // ==================== EXPORT ====================
-
   exportCSV() {
     const headers = ['Student Number', 'Name', 'Email', 'Department', 'Course', 'Batch/Year', 'Type', 'Status', 'Source'];
     const rows = this.filteredAlumni.map(a => [
@@ -1292,13 +1480,112 @@ export class AdminPage implements OnInit {
     XLSX.writeFile(wb, `alumni-${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  // ==================== NAVIGATION ====================
-
   selectTab(tab: string) {
     this.activeTab = tab;
     if (tab === 'attendance' && this.leaderboard.length === 0) {
       this.loadLeaderboard();
     }
+    if (tab === 'nominations' && this.nominations.length === 0) {
+      this.loadNominations();
+    }
+  }
+
+  searchNominationUsers() {
+    if (!this.nominationSearch.trim()) {
+      this.nominationSearchResults = [];
+      return;
+    }
+    const term = this.nominationSearch.toLowerCase();
+    this.nominationSearchResults = this.allAppUsers
+      .filter((u: any) => {
+        const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        return name.includes(term) || email.includes(term);
+      })
+      .slice(0, 8);
+  }
+
+  selectNominationTarget(user: any) {
+    this.nominationTarget = user;
+    this.nominationSearch = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    this.nominationSearchResults = [];
+  }
+
+  clearNominationTarget() {
+    this.nominationTarget = null;
+    this.nominationSearch = '';
+    this.nominationSearchResults = [];
+  }
+
+  onNominationProofSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    this.nominationProofFile = file;
+    this.nominationProofFileName = file.name;
+  }
+
+  async loadNominations() {
+    this.isLoadingNominations = true;
+    try {
+      this.nominations = await this.authService.getNominations();
+    } catch (err) {
+      console.error('Error loading nominations:', err);
+    } finally {
+      this.isLoadingNominations = false;
+    }
+  }
+
+  async submitNomination() {
+    if (!this.nominationTarget) {
+      await this.showAlert('Missing Info', 'Please select a user to nominate.');
+      return;
+    }
+    if (!this.nominationForm.reason.trim()) {
+      await this.showAlert('Missing Info', 'Please provide a reason for the nomination.');
+      return;
+    }
+    this.isSubmittingNomination = true;
+    try {
+      await this.authService.createNomination({
+        nomineeId: this.nominationTarget.id || this.nominationTarget.uid,
+        nomineeName: `${this.nominationTarget.firstName || ''} ${this.nominationTarget.lastName || ''}`.trim(),
+        nomineeEmail: this.nominationTarget.email || '',
+        nominatedBy: this.authService.getCurrentUser()?.uid || '',
+        nominatedByName: this.currentAdminName,
+        inspireCategory: this.nominationForm.inspireCategory,
+        points: this.nominationForm.points,
+        reason: this.nominationForm.reason,
+        proofFile: this.nominationProofFile || undefined,
+      });
+      await this.showAlert('Nomination Submitted', `${this.nominationSearch} has been awarded ${this.nominationForm.points} INSPIRE points.`);
+      this.nominationTarget = null;
+      this.nominationSearch = '';
+      this.nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+      this.nominationProofFile = null;
+      this.nominationProofFileName = '';
+      await this.loadNominations();
+    } catch (err) {
+      console.error('Error submitting nomination:', err);
+      await this.showAlert('Error', 'Failed to submit nomination. Please try again.');
+    } finally {
+      this.isSubmittingNomination = false;
+    }
+  }
+
+  getNominationCategoryLabel(key: string): string {
+    const map: Record<string, string> = {
+      interiority: 'I - Interiority', nationalism: 'N - Nationalism',
+      service: 'S - Service', pioneerism: 'P - Pioneerism',
+      integrity: 'I - Integrity', reliability: 'R - Reliability',
+      excellence: 'E - Excellence',
+    };
+    return map[key] || key;
+  }
+
+  formatNominationDate(createdAt: any): string {
+    if (!createdAt) return '';
+    const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   async refreshData() {

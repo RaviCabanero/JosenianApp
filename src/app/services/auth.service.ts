@@ -14,6 +14,7 @@ import {
 import { initializeApp, getApps } from 'firebase/app';
 import { environment } from '../../environments/environment';
 import { getDoc, setDoc, doc, Firestore, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, increment, orderBy, limit, writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, FirebaseStorage } from 'firebase/storage';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -22,48 +23,56 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class AuthService {
   private auth: Auth;
   private firestore: Firestore;
+  private storage: FirebaseStorage;
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
 
   constructor(private firebaseService: FirebaseService) {
     this.auth = firebaseService.getAuth();
     this.firestore = firebaseService.getFirestore();
+    this.storage = firebaseService.getStorage();
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();
 
-    // Listen to authentication state changes
+
     onAuthStateChanged(this.auth, (user: User | null) => {
       this.currentUserSubject.next(user);
       console.log('User auth state changed:', user?.email);
     });
   }
 
-  // ==================== AUTHENTICATION ====================
 
-  // Register new user with profile data
+
+
   async registerWithProfile(
     email: string,
     password: string,
     profileData: {
       firstName: string;
       lastName: string;
+      middleName?: string;
+      birthdate?: string;
       userType: 'student' | 'alumni';
       studentNumber?: string;
       department: string;
       course?: string;
       graduationYear?: string;
-      alumniIdBase64?: string;
+      alumniIdFile?: File;
+      alumniGradPhotoFile?: File;
       alumniIdFileName?: string;
       alumniIdVerificationStatus?: string;
     }
   ): Promise<any> {
     try {
       const result = await createUserWithEmailAndPassword(this.auth, email, password);
+      const uid = result.user.uid;
 
       const userData: any = {
         email: email,
         firstName: profileData.firstName,
         lastName: profileData.lastName,
+        middleName: profileData.middleName || '',
+        birthdate: profileData.birthdate || '',
         userType: profileData.userType,
         studentNumber: profileData.studentNumber || '',
         department: profileData.department,
@@ -75,19 +84,24 @@ export class AuthService {
         joinDate: new Date().toISOString().split('T')[0],
       };
 
-      if (profileData.alumniIdBase64) {
-        userData.alumniIdBase64 = profileData.alumniIdBase64;
+      if (profileData.alumniIdFile && profileData.alumniGradPhotoFile) {
+        const [alumniIdUrl, alumniGradPhotoUrl] = await Promise.all([
+          this.uploadFile(`alumni-ids/${uid}/alumni-id`, profileData.alumniIdFile),
+          this.uploadFile(`alumni-ids/${uid}/grad-photo`, profileData.alumniGradPhotoFile),
+        ]);
+        userData.alumniIdUrl = alumniIdUrl;
         userData.alumniIdFileName = profileData.alumniIdFileName || '';
+        userData.alumniGradPhotoUrl = alumniGradPhotoUrl;
         userData.alumniIdVerificationStatus = profileData.alumniIdVerificationStatus || 'pending';
       }
 
-      // Create user profile in Firestore with all data
-      await setDoc(doc(this.firestore, 'users', result.user.uid), userData);
 
-      // Automatically add user as member to their selected department
+      await setDoc(doc(this.firestore, 'users', uid), userData);
+
+
       await this.addMemberToDepartment(
         profileData.department,
-        result.user.uid,
+        uid,
         {
           name: `${profileData.firstName} ${profileData.lastName}`,
           email: email,
@@ -105,15 +119,15 @@ export class AuthService {
     }
   }
 
-  // Register new user (basic)
+
   async register(email: string, password: string): Promise<any> {
     try {
       const result = await createUserWithEmailAndPassword(this.auth, email, password);
       
-      // Create user profile in Firestore
+
       await setDoc(doc(this.firestore, 'users', result.user.uid), {
         email: email,
-        role: 'user', // Default role
+        role: 'user',
         status: 'pending',
         createdAt: new Date(),
         displayName: '',
@@ -125,15 +139,15 @@ export class AuthService {
     }
   }
 
-  // Login user
+
   async login(email: string, password: string): Promise<any> {
     try {
       const result = await signInWithEmailAndPassword(this.auth, email, password);
       
-      // Verify user exists and is registered
+
       const userDoc = await getDoc(doc(this.firestore, 'users', result.user.uid));
       if (!userDoc.exists()) {
-        // User exists in Auth but not in Firestore - create profile
+
         await setDoc(doc(this.firestore, 'users', result.user.uid), {
           email: email,
           role: 'user',
@@ -143,7 +157,7 @@ export class AuthService {
         });
       }
       
-      // Check user status
+
       const userData = userDoc.exists() ? userDoc.data() : await getDoc(doc(this.firestore, 'users', result.user.uid)).then(d => d.data());
       const userStatus = userData?.['status'] || 'pending';
       
@@ -163,12 +177,12 @@ export class AuthService {
     }
   }
 
-  // Admin login
+
   async adminLogin(email: string, password: string): Promise<any> {
     try {
       const result = await signInWithEmailAndPassword(this.auth, email, password);
       
-      // Check if user has admin role
+
       const userDoc = await getDoc(doc(this.firestore, 'users', result.user.uid));
       
       if (!userDoc.exists()) {
@@ -188,9 +202,9 @@ export class AuthService {
     }
   }
 
-  // ==================== USER MANAGEMENT ====================
 
-  // Get pending users from Firestore (for admin approval)
+
+
   async getPendingUsers(): Promise<any[]> {
     try {
       const q = query(
@@ -223,7 +237,7 @@ export class AuthService {
     }
   }
 
-  // Get all users (for statistics)
+
   async getAllUsers(): Promise<any[]> {
     try {
       const q = query(collection(this.firestore, 'users'));
@@ -246,9 +260,9 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENTS & COURSES ====================
 
-  // Get all departments from Firestore
+
+
   async getDepartments(): Promise<any[]> {
     try {
       const querySnapshot = await getDocs(collection(this.firestore, 'departments'));
@@ -259,13 +273,14 @@ export class AuthService {
         departments.push({
           id: doc.id,
           name: data['name'],
+          color: data['color'] || '',
           courses: data['courses'] || [],
           members: data['members'] || [],
           createdAt: data['createdAt']
         });
       });
       
-      // Sort by name
+
       departments.sort((a, b) => a.name.localeCompare(b.name));
       
       return departments;
@@ -275,11 +290,12 @@ export class AuthService {
     }
   }
 
-  // Add new department to Firestore
-  async addDepartment(departmentName: string): Promise<any> {
+
+  async addDepartment(departmentName: string, color: string = '#1E5128'): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'departments'), {
         name: departmentName,
+        color,
         courses: [],
         members: [],
         createdAt: new Date()
@@ -289,6 +305,7 @@ export class AuthService {
       return {
         id: docRef.id,
         name: departmentName,
+        color,
         courses: [],
         members: []
       };
@@ -298,12 +315,14 @@ export class AuthService {
     }
   }
 
-  // Rename a department
-  async updateDepartment(departmentId: string, newName: string): Promise<void> {
-    await updateDoc(doc(this.firestore, 'departments', departmentId), { name: newName });
+
+  async updateDepartment(departmentId: string, newName: string, color?: string): Promise<void> {
+    const updateData: any = { name: newName };
+    if (color) updateData.color = color;
+    await updateDoc(doc(this.firestore, 'departments', departmentId), updateData);
   }
 
-  // Delete department from Firestore
+
   async deleteDepartment(departmentId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'departments', departmentId));
@@ -314,7 +333,7 @@ export class AuthService {
     }
   }
 
-  // Add course to a department
+
   async addCourse(departmentId: string, courseName: string): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -335,7 +354,7 @@ export class AuthService {
     }
   }
 
-  // Rename a course in a department
+
   async updateCourse(departmentId: string, courseIndex: number, newName: string): Promise<void> {
     const deptRef = doc(this.firestore, 'departments', departmentId);
     const deptDoc = await getDoc(deptRef);
@@ -346,7 +365,7 @@ export class AuthService {
     }
   }
 
-  // Delete course from a department
+
   async deleteCourse(departmentId: string, courseIndex: number): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -367,7 +386,7 @@ export class AuthService {
     }
   }
 
-  // Get courses for a specific department
+
   async getCoursesByDepartment(departmentId: string): Promise<string[]> {
     try {
       const deptDoc = await getDoc(doc(this.firestore, 'departments', departmentId));
@@ -381,7 +400,7 @@ export class AuthService {
     }
   }
 
-  // Add member to a department
+
   async addMemberToDepartment(
     departmentId: string,
     userId: string,
@@ -402,7 +421,7 @@ export class AuthService {
       if (deptDoc.exists()) {
         const members = deptDoc.data()['members'] || [];
         
-        // Check if user is already a member
+
         const memberExists = members.some((m: any) => m.userId === userId);
         
         if (!memberExists) {
@@ -429,7 +448,7 @@ export class AuthService {
     }
   }
 
-  // Get members of a department
+
   async getDepartmentMembers(departmentId: string): Promise<any[]> {
     try {
       const deptDoc = await getDoc(doc(this.firestore, 'departments', departmentId));
@@ -443,7 +462,7 @@ export class AuthService {
     }
   }
 
-  // Remove member from department
+
   async removeMemberFromDepartment(departmentId: string, userId: string): Promise<void> {
     try {
       const deptRef = doc(this.firestore, 'departments', departmentId);
@@ -462,7 +481,7 @@ export class AuthService {
     }
   }
 
-  // ==================== ADMIN USER CREATION ====================
+
 
   async adminCreateUser(
     email: string,
@@ -528,16 +547,16 @@ export class AuthService {
     return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
-  // ==================== ADMIN CHECKS ====================
 
-  // ==================== ALUMNI MANAGEMENT ====================
 
-  // Get alumni and student records for the admin management list
+
+
+
   async getAlumni(): Promise<any[]> {
     try {
       const alumniList: any[] = [];
       
-      // Fetch registered student and alumni users from the users collection
+
       const q = query(collection(this.firestore, 'users'));
       
       const querySnapshot = await getDocs(q);
@@ -567,7 +586,7 @@ export class AuthService {
         });
       });
 
-      // Also fetch manually managed alumni from the alumni collection
+
       try {
         const manualAlumniSnapshot = await getDocs(collection(this.firestore, 'alumni'));
         manualAlumniSnapshot.forEach((doc) => {
@@ -586,11 +605,11 @@ export class AuthService {
           });
         });
       } catch (error) {
-        // Alumni collection might not exist, that's okay
+
         console.log('Alumni collection not found or empty');
       }
       
-      // Sort by batch (newest first), then by name
+
       alumniList.sort((a, b) => {
         const batchA = parseInt(a.batch) || 0;
         const batchB = parseInt(b.batch) || 0;
@@ -606,7 +625,7 @@ export class AuthService {
     }
   }
 
-  // Add new alumni to Firestore
+
   async addAlumni(alumniData: any): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'alumni'), {
@@ -632,7 +651,7 @@ export class AuthService {
     }
   }
 
-  // Update alumni record in Firestore
+
   async updateAlumni(alumniId: string, alumniData: any): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'alumni', alumniId), {
@@ -651,7 +670,7 @@ export class AuthService {
     }
   }
 
-  // Delete alumni record from Firestore
+
   async deleteAlumni(alumniId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'alumni', alumniId));
@@ -662,7 +681,7 @@ export class AuthService {
     }
   }
 
-  // Delete a registered user's Firestore document (admin action)
+
   async deleteRegisteredUser(userId: string): Promise<void> {
     const userSnap = await getDoc(doc(this.firestore, 'users', userId));
     const departmentId: string = userSnap.data()?.['department'] || '';
@@ -672,7 +691,7 @@ export class AuthService {
     await deleteDoc(doc(this.firestore, 'users', userId));
   }
 
-  // Get alumni by search criteria
+
   async searchAlumni(searchTerm: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -687,7 +706,7 @@ export class AuthService {
     }
   }
 
-  // Get alumni by department
+
   async getAlumniByDepartment(department: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -698,7 +717,7 @@ export class AuthService {
     }
   }
 
-  // Get alumni by batch
+
   async getAlumniByBatch(batch: string): Promise<any[]> {
     try {
       const allAlumni = await this.getAlumni();
@@ -709,9 +728,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ADMIN CHECKS ====================
 
-  // Check if current user is admin
+
+
   async isAdmin(): Promise<boolean> {
     const user = this.currentUserSubject.value;
     if (!user) return false;
@@ -725,7 +744,7 @@ export class AuthService {
     }
   }
 
-  // Get user role
+
   async getUserRole(uid: string): Promise<string> {
     try {
       const userDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -736,7 +755,7 @@ export class AuthService {
     }
   }
 
-  // Update user role (e.g., to HOD, admin, or user)
+
   async updateUserRole(uid: string, newRole: string): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'users', uid), {
@@ -750,19 +769,19 @@ export class AuthService {
     }
   }
 
-  // ==================== AUTH STATE ====================
 
-  // Logout user
+
+
   async logout(): Promise<void> {
     return signOut(this.auth);
   }
 
-  // Get current user
+
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  // Check if user is logged in
+
   isLoggedIn(): boolean {
     return this.currentUserSubject.value !== null;
   }
@@ -778,7 +797,7 @@ export class AuthService {
     }
   }
 
-  // Get user profile from Firestore
+
   async getUserProfile(uid: string): Promise<any> {
     try {
       const userDoc = await getDoc(doc(this.firestore, 'users', uid));
@@ -792,7 +811,7 @@ export class AuthService {
     }
   }
 
-  // Update user profile
+
   async updateUserProfile(uid: string, data: any): Promise<void> {
     try {
       await updateDoc(doc(this.firestore, 'users', uid), data);
@@ -803,9 +822,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ERROR HANDLING ====================
 
-  // Handle Firebase auth errors
+
+
   private handleAuthError(error: AuthError): Error {
     console.error('Auth error:', error.code);
     
@@ -827,106 +846,17 @@ export class AuthService {
     }
   }
 
-  // ==================== FILE UPLOAD ====================
 
-  // Upload alumni ID for verification - Store as base64 in Firestore
-  async uploadAlumniId(file: File): Promise<string> {
-    try {
-      const user = this.auth.currentUser;
-      
-      if (!user) {
-        throw new Error('No user logged in');
-      }
 
-      // Convert file to base64
-      let base64Data = await this.fileToBase64(file);
-      
-      // Compress image if it's larger than 500KB
-      if (base64Data.length > 500000) {
-        console.log('Compressing large image...');
-        base64Data = await this.compressImage(file);
-      }
-
-      // Validate file size (max 1MB for Firestore)
-      if (base64Data.length > 1000000) {
-        throw new Error('Alumni ID file too large (max 1MB after compression)');
-      }
-
-      console.log(`Alumni ID converted to base64: ${base64Data.length} bytes`);
-      
-      // Return base64 string (will be stored in Firestore)
-      return base64Data;
-    } catch (error) {
-      console.error('Error processing alumni ID:', error);
-      throw error;
-    }
+  async uploadFile(path: string, data: File | Blob): Promise<string> {
+    const storageRef = ref(this.storage, path);
+    await uploadBytes(storageRef, data);
+    return getDownloadURL(storageRef);
   }
 
-  // Convert file to base64 string
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Extract base64 part (remove "data:image/...;base64," prefix)
-        const base64 = result.split(',')[1] || result;
-        resolve(base64);
-      };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-      reader.readAsDataURL(file);
-    });
-  }
 
-  // Compress image using Canvas — tries progressively smaller sizes until under targetBytes
-  private compressImage(file: File, targetBytes = 380000): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) { reject(new Error('Canvas unavailable')); return; }
 
-          const passes = [
-            { maxDim: 1000, quality: 0.75 },
-            { maxDim: 800,  quality: 0.65 },
-            { maxDim: 650,  quality: 0.55 },
-            { maxDim: 500,  quality: 0.45 },
-            { maxDim: 400,  quality: 0.40 },
-          ];
 
-          for (const pass of passes) {
-            let w = img.width, h = img.height;
-            if (w > pass.maxDim || h > pass.maxDim) {
-              const ratio = Math.min(pass.maxDim / w, pass.maxDim / h);
-              w = Math.round(w * ratio);
-              h = Math.round(h * ratio);
-            }
-            canvas.width = w;
-            canvas.height = h;
-            ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', pass.quality);
-            const base64 = dataUrl.split(',')[1] || dataUrl;
-            if (base64.length <= targetBytes) { resolve(base64); return; }
-          }
-          // Last resort — return smallest attempt even if still large
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.35);
-          resolve(dataUrl.split(',')[1] || dataUrl);
-        };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = reader.result as string;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // ==================== ALUMNI ID VERIFICATION ====================
-
-  // Get all alumni awaiting ID verification
   async getPendingAlumniVerification() {
     try {
       const usersRef = collection(this.firestore, 'users');
@@ -952,7 +882,7 @@ export class AuthService {
     }
   }
 
-  // Get all alumni with approved ID verification
+
   async getVerifiedAlumni(): Promise<any[]> {
     try {
       const q = query(
@@ -968,38 +898,46 @@ export class AuthService {
     }
   }
 
-  // Request alumni ID verification (from profile page, post-registration)
+
   async requestAlumniIdVerification(
     userId: string,
-    idFile: File,
-    idFileName: string,
-    gradPhotoFile: File
+    gradPhotoFile: File,
+    termGraduated: string,
+    socialMediaLink: string,
+    signatureFile?: File
   ): Promise<void> {
-    // Firestore doc limit ~1MB. Target 350KB base64 per image (~262KB binary).
-    const TARGET = 350000;
+    const alumniGradPhotoUrl = await this.uploadFile(`alumni-ids/${userId}/grad-photo`, gradPhotoFile);
 
-    let idBase64 = await this.fileToBase64(idFile);
-    if (idBase64.length > TARGET) idBase64 = await this.compressImage(idFile, TARGET);
-
-    let gradBase64 = await this.fileToBase64(gradPhotoFile);
-    if (gradBase64.length > TARGET) gradBase64 = await this.compressImage(gradPhotoFile, TARGET);
-
-    if (idBase64.length + gradBase64.length > 800000) {
-      throw new Error('Images are still too large after compression. Please use photos under 3MB each.');
+    let userSignatureUrl = '';
+    if (signatureFile) {
+      userSignatureUrl = await this.uploadFile(`alumni-ids/${userId}/user-signature`, signatureFile);
     }
 
     await updateDoc(doc(this.firestore, 'users', userId), {
-      alumniIdBase64: idBase64,
-      alumniIdFileName: idFileName,
-      alumniGradPhotoBase64: gradBase64,
+      alumniGradPhotoUrl,
       alumniIdVerificationStatus: 'pending',
       alumniIdSubmittedAt: new Date().toISOString(),
-      alumniIdRejectionReason: ''
+      alumniIdRejectionReason: '',
+      alumniTermGraduated: termGraduated,
+      alumniSocialMedia: socialMediaLink,
+      userSignatureUrl,
     });
   }
 
-  // Verify (approve or reject) alumni ID
-  async verifyAlumniId(userId: string, status: 'approved' | 'rejected', rejectionReason: string = '') {
+
+  private generateAlumniReferenceNumber(): string {
+    const year = new Date().getFullYear();
+    const rand = Math.floor(10000 + Math.random() * 90000);
+    return `USJ-ALM-${year}-${rand}`;
+  }
+
+  async verifyAlumniId(
+    userId: string,
+    status: 'approved' | 'rejected',
+    rejectionReason: string = '',
+    signatureFile?: File,
+    approverName?: string
+  ) {
     try {
       const userRef = doc(this.firestore, 'users', userId);
       const updateData: any = {
@@ -1007,13 +945,20 @@ export class AuthService {
         alumniIdVerificationDate: new Date().toISOString()
       };
 
+      if (status === 'approved') {
+        if (signatureFile) {
+          updateData.adminSignatureUrl = await this.uploadFile(`alumni-ids/${userId}/admin-signature`, signatureFile);
+        }
+        updateData.alumniIdReferenceNumber = this.generateAlumniReferenceNumber();
+        updateData.approvedByName = approverName || 'Admin';
+      }
+
       if (status === 'rejected' && rejectionReason) {
         updateData.alumniIdRejectionReason = rejectionReason;
       }
 
       await updateDoc(userRef, updateData);
       if (status === 'approved') {
-        await this.awardInspiredPoints(userId, 'integrity', 25, 'Alumni ID verified', 'integrity_verified');
         await this.createNotification(
           userId,
           'Alumni ID Verified ✓',
@@ -1038,9 +983,9 @@ export class AuthService {
     }
   }
 
-  // ==================== ACCOUNT APPROVAL ====================
 
-  // Approve user account
+
+
   async approveUser(userId: string): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -1068,7 +1013,7 @@ export class AuthService {
     }
   }
 
-  // Reject user account
+
   async rejectUser(userId: string, rejectionReason: string = ''): Promise<void> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -1096,7 +1041,7 @@ export class AuthService {
     }
   }
 
-  // Create notification for user
+
   async createNotification(
     userId: string,
     title: string,
@@ -1133,7 +1078,7 @@ export class AuthService {
     await this.notifyAllApprovedUsers(title, message, 'system', '/home');
   }
 
-  // Get notifications for user
+
   async getNotifications(userId: string): Promise<any[]> {
     try {
       const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
@@ -1155,7 +1100,7 @@ export class AuthService {
     }
   }
 
-  // Mark notification as read
+
   async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
     try {
       const notifRef = doc(this.firestore, 'users', userId, 'notifications', notificationId);
@@ -1165,7 +1110,7 @@ export class AuthService {
     }
   }
 
-  // Mark all notifications as read
+
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     try {
       const notificationsRef = collection(this.firestore, 'users', userId, 'notifications');
@@ -1177,7 +1122,7 @@ export class AuthService {
     }
   }
 
-  // Delete a notification
+
   async deleteNotification(userId: string, notificationId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, 'users', userId, 'notifications', notificationId));
@@ -1187,9 +1132,9 @@ export class AuthService {
     }
   }
 
-  // ==================== EVENTS ====================
 
-  // Get all events from Firestore
+
+
   async getEvents(): Promise<any[]> {
     try {
       const snapshot = await getDocs(collection(this.firestore, 'events'));
@@ -1221,15 +1166,30 @@ export class AuthService {
   async addGlobalEvent(eventData: {
     title: string; description: string; date: string; time: string;
     location: string; eventType: string; maxParticipants?: number | null;
-    coverImageBase64?: string; coverImageFileName?: string;
+    coverImageFile?: File; coverImageUrl?: string; coverImageFileName?: string;
+    eventCategory?: string; pointValue?: number;
   }): Promise<any> {
     try {
       const user = this.auth.currentUser;
-      const docRef = await addDoc(collection(this.firestore, 'events'), {
-        ...eventData,
+      const docRef = doc(collection(this.firestore, 'events'));
+
+      let coverImageUrl = eventData.coverImageUrl || '';
+      if (eventData.coverImageFile) {
+        coverImageUrl = await this.uploadFile(`event-covers/${docRef.id}`, eventData.coverImageFile);
+      }
+
+      await setDoc(docRef, {
+        title: eventData.title,
+        description: eventData.description,
+        date: eventData.date,
+        time: eventData.time,
+        location: eventData.location,
+        eventType: eventData.eventType,
         maxParticipants: eventData.maxParticipants || null,
-        coverImageBase64: eventData.coverImageBase64 || '',
+        coverImageUrl,
         coverImageFileName: eventData.coverImageFileName || '',
+        eventCategory: eventData.eventCategory || 'regular',
+        pointValue: eventData.pointValue ?? 10,
         attendees: [],
         createdBy: user?.uid || 'admin',
         createdAt: new Date(),
@@ -1241,7 +1201,7 @@ export class AuthService {
         'event',
         '/feeds'
       );
-      return { id: docRef.id, ...eventData, attendees: [] };
+      return { id: docRef.id, ...eventData, coverImageUrl, attendees: [] };
     } catch (error) {
       console.error('Error adding global event:', error);
       throw error;
@@ -1250,8 +1210,13 @@ export class AuthService {
 
   async updateGlobalEvent(eventId: string, eventData: any): Promise<void> {
     try {
+      const payload = { ...eventData };
+      if (payload.coverImageFile) {
+        payload.coverImageUrl = await this.uploadFile(`event-covers/${eventId}`, payload.coverImageFile);
+        delete payload.coverImageFile;
+      }
       await updateDoc(doc(this.firestore, 'events', eventId), {
-        ...eventData,
+        ...payload,
         updatedAt: new Date()
       });
     } catch (error) {
@@ -1277,7 +1242,6 @@ export class AuthService {
         const attendees: string[] = snap.data()['attendees'] || [];
         if (!attendees.includes(userId)) {
           await updateDoc(ref, { attendees: [...attendees, userId] });
-          await this.awardInspiredPoints(userId, 'excellence', 2, 'Joined global event', `excellence_join_${eventId}`);
         }
       }
     } catch (error) {
@@ -1310,7 +1274,7 @@ export class AuthService {
     }
   }
 
-  // Add an event to Firestore
+
   async addEvent(eventData: { title: string; date: string; type: string; description?: string; attendees?: number }): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'events'), {
@@ -1325,7 +1289,7 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENT EVENTS ====================
+
 
   async getDepartmentEvents(departmentId: string): Promise<any[]> {
     try {
@@ -1383,7 +1347,6 @@ export class AuthService {
         if (!attendees.includes(userId)) {
           attendees.push(userId);
           await updateDoc(eventRef, { attendees });
-          await this.awardInspiredPoints(userId, 'service', 2, 'Joined department event', `service_join_${departmentId}_${eventId}`);
         }
       }
     } catch (error) {
@@ -1406,7 +1369,7 @@ export class AuthService {
     }
   }
 
-  // ==================== DEPARTMENT WALL ====================
+
 
   async getDepartmentWallPosts(departmentId: string): Promise<any[]> {
     try {
@@ -1431,12 +1394,6 @@ export class AuthService {
         likes: [],
         createdAt: new Date()
       });
-      if (postData.authorId) {
-        await Promise.all([
-          this.awardInspiredPoints(postData.authorId, 'service',    2, 'Posted on department wall', `service_wall_${docRef.id}`),
-          this.awardInspiredPoints(postData.authorId, 'pioneerism', 2, 'Posted on department wall', `pioneerism_wall_${docRef.id}`),
-        ]);
-      }
       return { id: docRef.id, ...postData, likes: [] };
     } catch (error) {
       console.error('Error adding wall post:', error);
@@ -1468,7 +1425,7 @@ export class AuthService {
     }
   }
 
-  // ==================== QR ATTENDANCE ====================
+
 
   async generateEventQRToken(eventId: string): Promise<string> {
     const token = this.generateSecureToken();
@@ -1501,6 +1458,21 @@ export class AuthService {
         }
       }
 
+      if (event['time']) {
+        const [h, m] = (event['time'] as string).split(':').map(Number);
+        const start = new Date();
+        start.setHours(h, m, 0, 0);
+        const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+        const now = new Date();
+        if (now < start) {
+          return { success: false, message: `This event hasn't started yet. Check-in opens at ${event['time']}.` };
+        }
+        if (now >= end) {
+          await updateDoc(doc(this.firestore, 'events', eventId), { qrToken: null });
+          return { success: false, message: 'This event has ended and the QR code has expired.' };
+        }
+      }
+
       const attendees: string[] = event['attendees'] || [];
       if (!attendees.includes(userId)) {
         return { success: false, message: 'You must join this event before scanning the QR code.' };
@@ -1526,13 +1498,11 @@ export class AuthService {
         attendanceCount: increment(1)
       });
 
-      // Award points based on event category
+
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
-      await Promise.all([
-        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Event'}`, `reliability_ev_${eventId}`),
-        this.awardInspiredPoints(userId, 'excellence',  5, `Attended: ${event['title'] || 'Event'}`, `excellence_ev_${eventId}`),
-      ]);
+      const inspireCategory = event['inspireCategory'] || 'service';
+      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Event'}`, `${inspireCategory}_ev_${eventId}`);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1623,10 +1593,8 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? 10;
       await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
-      await Promise.all([
-        this.awardInspiredPoints(userId, 'reliability', 5, `Attended: ${event['title'] || 'Dept Event'}`, `reliability_dept_${eventId}`),
-        this.awardInspiredPoints(userId, 'service',     3, `Attended: ${event['title'] || 'Dept Event'}`, `service_dept_${eventId}`),
-      ]);
+      const inspireCategory = event['inspireCategory'] || 'service';
+      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Dept Event'}`, `${inspireCategory}_dept_${eventId}`);
       await this.createNotification(
         userId,
         'Attendance Recorded',
@@ -1704,7 +1672,7 @@ export class AuthService {
     }
   }
 
-  // ==================== POINTS & REWARDS ====================
+
 
   private readonly POINTS_MAP: { [key: string]: number } = {
     regular: 10, special: 20, volunteer: 30,
@@ -1734,7 +1702,7 @@ export class AuthService {
   async awardEventPoints(userId: string, eventId: string, eventTitle: string, points: number, category: string): Promise<void> {
     try {
       const historyRef = doc(this.firestore, 'users', userId, 'pointsHistory', eventId);
-      if ((await getDoc(historyRef)).exists()) return; // already awarded
+      if ((await getDoc(historyRef)).exists()) return;
 
       await setDoc(historyRef, {
         eventId, eventTitle, points, category,
@@ -1743,7 +1711,7 @@ export class AuthService {
       });
       await updateDoc(doc(this.firestore, 'users', userId), { totalPoints: increment(points) });
 
-      // Refresh badges
+
       const profile = await this.getUserProfile(userId);
       const newTotal = (profile?.['totalPoints'] || 0) + points;
       const histSnap = await getDocs(collection(this.firestore, 'users', userId, 'pointsHistory'));
@@ -1790,6 +1758,67 @@ export class AuthService {
     );
   }
 
+  async createNomination(data: {
+    nomineeId: string;
+    nomineeName: string;
+    nomineeEmail: string;
+    nominatedBy: string;
+    nominatedByName: string;
+    inspireCategory: string;
+    points: number;
+    reason: string;
+    proofFile?: File;
+  }): Promise<void> {
+    const nominationRef = doc(collection(this.firestore, 'nominations'));
+    let proofFileUrl = '';
+    let proofFileName = '';
+    if (data.proofFile) {
+      proofFileUrl = await this.uploadFile(`nominations/${nominationRef.id}/proof`, data.proofFile);
+      proofFileName = data.proofFile.name;
+    }
+    const { proofFile: _proofFile, ...rest } = data;
+    await setDoc(nominationRef, { ...rest, proofFileUrl, proofFileName, createdAt: new Date() });
+    await this.awardInspiredPoints(
+      data.nomineeId,
+      data.inspireCategory as 'interiority' | 'nationalism' | 'service' | 'pioneerism' | 'integrity' | 'reliability' | 'excellence',
+      data.points,
+      `Nominated: ${data.reason}`,
+      `nomination_${nominationRef.id}`
+    );
+    // Also increment totalPoints so nominations count toward the leaderboard
+    const histRef = doc(collection(this.firestore, 'users', data.nomineeId, 'pointsHistory'));
+    await setDoc(histRef, {
+      eventId: nominationRef.id,
+      eventTitle: `INSPIRE Nomination (${data.inspireCategory}): ${data.reason}`,
+      points: data.points,
+      category: 'nomination',
+      type: 'nomination',
+      awardedAt: new Date(),
+    });
+    await updateDoc(doc(this.firestore, 'users', data.nomineeId), { totalPoints: increment(data.points) });
+    await this.createNotification(
+      data.nomineeId,
+      'INSPIRE Nomination Received',
+      `You have been nominated by ${data.nominatedByName} and awarded ${data.points} INSPIRE points for ${data.inspireCategory}.`,
+      'points',
+      '/profile'
+    );
+  }
+
+  async getNominations(): Promise<any[]> {
+    try {
+      const snap = await getDocs(query(
+        collection(this.firestore, 'nominations'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      ));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.error('Error fetching nominations:', err);
+      return [];
+    }
+  }
+
   async getLeaderboard(limitCount: number = 10): Promise<any[]> {
     try {
       const snap = await getDocs(query(
@@ -1823,7 +1852,7 @@ export class AuthService {
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }
 
-  // ==================== INSPIRED BADGE SYSTEM ====================
+
 
   private readonly INSPIRED_NAMES: Readonly<Record<string, string>> = {
     interiority: 'Interiority',
@@ -1886,12 +1915,11 @@ export class AuthService {
     }
   }
 
-  async awardInspiredProfileComplete(userId: string, profileData: { bio: string; gender: string; address: string; contactNumber: string }): Promise<void> {
-    if (!profileData.bio || !profileData.gender || !profileData.address || !profileData.contactNumber) return;
-    await this.awardInspiredPoints(userId, 'interiority', 10, 'Completed profile with all details', 'interiority_complete');
+  async awardInspiredProfileComplete(_userId: string, _profileData: { bio: string; gender: string; address: string; contactNumber: string }): Promise<void> {
+    // INSPIRE points are only earned through event attendance and admin nominations
   }
 
-  // ── Friend System ─────────────────────────────────────────────
+
 
   async sendFriendRequest(toUserId: string): Promise<void> {
     const currentUser = this.getCurrentUser();
@@ -1944,10 +1972,6 @@ export class AuthService {
       'connection',
       '/network'
     );
-    await Promise.all([
-      this.awardInspiredPoints(myId,       'nationalism', 3, 'New friend connection', `nationalism_${fromUserId}`),
-      this.awardInspiredPoints(fromUserId, 'nationalism', 3, 'New friend connection', `nationalism_${myId}`),
-    ]);
   }
 
   async declineFriendRequest(fromUserId: string): Promise<void> {
@@ -1968,7 +1992,7 @@ export class AuthService {
     await batch.commit();
   }
 
-  // Auto-approve user if email domain is @usj.edu.ph
+
   async autoApproveIfEligible(userId: string): Promise<boolean> {
     try {
       const userRef = doc(this.firestore, 'users', userId);
@@ -1979,7 +2003,7 @@ export class AuthService {
       const userData = userDoc.data();
       const email = userData?.['email'] || '';
       
-      // Auto-approve if email ends with @usj.edu.ph
+
       if (email.endsWith('@usj.edu.ph')) {
         await this.approveUser(userId);
         console.log('Auto-approved user with @usj.edu.ph email:', userId);

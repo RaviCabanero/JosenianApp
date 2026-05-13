@@ -7,6 +7,7 @@ interface NetworkUser {
   uid: string;
   name: string;
   initials: string;
+  photoUrl: string;
   department: string;
   userType: string;
   course: string;
@@ -19,6 +20,7 @@ interface FriendRequest {
   fromId: string;
   fromName: string;
   fromInitials: string;
+  fromPhotoUrl: string;
   sentAt: string;
 }
 
@@ -80,7 +82,10 @@ export class NetworkPage implements OnInit {
 
       this.friendIds = new Set<string>(myProfile?.['friends'] || []);
       this.sentRequestIds = new Set<string>(myProfile?.['sentRequests'] || []);
-      this.incomingRequests = requests;
+      this.incomingRequests = requests.map((r: any) => ({
+        ...r,
+        fromPhotoUrl: allUsers.find((u: any) => u.id === r.fromId)?.photoUrl || ''
+      }));
 
       const others = allUsers.filter((u: any) =>
         u.id !== this.currentUserId &&
@@ -113,7 +118,7 @@ export class NetworkPage implements OnInit {
     const initials = name.split(' ').filter(Boolean).map((w: string) => w[0].toUpperCase()).join('').slice(0, 2) || '?';
     const deptId = u.department || '';
     const department = this.deptMap[deptId] || deptId || '';
-    return { uid: u.id, name, initials, department, userType: u.userType || 'student', course: u.course || '', isPrivate: u.isPrivate === true, friendStatus };
+    return { uid: u.id, name, initials, photoUrl: u.photoUrl || '', department, userType: u.userType || 'student', course: u.course || '', isPrivate: u.isPrivate === true, friendStatus };
   }
 
   switchTab(tab: 'friends' | 'people' | 'requests') {
@@ -198,6 +203,7 @@ export class NetworkPage implements OnInit {
       this.friendIds.add(req.fromId);
       const newFriend: NetworkUser = {
         uid: req.fromId, name: req.fromName, initials: req.fromInitials,
+        photoUrl: req.fromPhotoUrl || '',
         department: '', userType: 'student', course: '', isPrivate: false, friendStatus: 'friend'
       };
       this.friends.unshift(newFriend);

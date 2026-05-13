@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Auth, authState } from '@angular/fire/auth';
 import { Firestore, collection, query, where, onSnapshot } from '@angular/fire/firestore';
@@ -28,10 +28,10 @@ export class HomePage implements OnInit, OnDestroy {
   private chatUnsubscribe: (() => void) | null = null;
 
   dashboardCards = [
-    { id: 1, title: 'My Department', shortLabel: 'Dept',     icon: 'business-outline',  value: '—', description: 'Department members',  color: 'primary'   },
-    { id: 2, title: 'My Network',    shortLabel: 'Network',  icon: 'people-outline',    value: '—', description: 'Connections',         color: 'secondary' },
-    { id: 3, title: 'History',       shortLabel: 'Events',   icon: 'time-outline',      value: '—', description: 'Events attended',     color: 'tertiary'  },
-    { id: 4, title: 'Feeds',         shortLabel: 'Posts',    icon: 'newspaper-outline', value: '—', description: 'Your posts',          color: 'success'   },
+    { id: 1, title: 'My Department', shortLabel: 'Dept',     icon: 'business-outline',  value: 'â€”', description: 'Department members',  color: 'primary'   },
+    { id: 2, title: 'My Network',    shortLabel: 'Network',  icon: 'people-outline',    value: 'â€”', description: 'Connections',         color: 'secondary' },
+    { id: 3, title: 'History',       shortLabel: 'Events',   icon: 'time-outline',      value: 'â€”', description: 'Events attended',     color: 'tertiary'  },
+    { id: 4, title: 'Feeds',         shortLabel: 'Posts',    icon: 'newspaper-outline', value: 'â€”', description: 'Your posts',          color: 'success'   },
   ];
 
   get greeting(): string {
@@ -71,7 +71,6 @@ export class HomePage implements OnInit, OnDestroy {
     authState(this.auth).subscribe(user => {
       if (!user) return;
 
-      // Notification badge
       const notifQ = query(
         collection(this.firestore, 'users', user.uid, 'notifications'),
         where('read', '==', false)
@@ -80,7 +79,6 @@ export class HomePage implements OnInit, OnDestroy {
         this.notifications = snapshot.size;
       });
 
-      // Chat badge
       this.chatUnsubscribe = this.chatService.subscribeToUnreadChatCount(
         user.uid,
         count => { this.unreadChats = count; }
@@ -115,13 +113,11 @@ export class HomePage implements OnInit, OnDestroy {
       const allUsers = await this.authService.getAllUsers();
       const approved = allUsers.filter((u: any) => u.status === 'approved' && u.role !== 'admin');
 
-      // Card 2 — Network: approved members excluding self
       const networkCount = currentUser
-        ? approved.filter((u: any) => u.id !== currentUser.uid).length
-        : approved.length;
+        ? ((await this.authService.getUserProfile(currentUser.uid))?.['friends'] || []).length
+        : 0;
       this.updateCard(2, String(networkCount));
 
-      // Card 1 — Department: members in user's department
       if (this.user.department) {
         const depts = await this.authService.getDepartments();
         const myDept = depts.find(
@@ -131,11 +127,9 @@ export class HomePage implements OnInit, OnDestroy {
         this.updateCard(1, String(myDept?.members?.length ?? 0));
       }
 
-      // Card 3 — History: total events
       const events = await this.authService.getEvents();
       this.updateCard(3, String(events.length));
 
-      // Card 4 — Feeds: current user's post count
       if (currentUser) {
         const postCount = await this.authService.getUserPostCount(currentUser.uid);
         this.updateCard(4, String(postCount));

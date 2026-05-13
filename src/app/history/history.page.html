@@ -12,7 +12,6 @@
 <ion-content [fullscreen]="true">
   <div class="page-container">
 
-    <!-- Summary row -->
     <div class="history-summary">
       <div class="summary-pill">
         <ion-icon name="calendar-outline"></ion-icon>
@@ -20,7 +19,6 @@
       </div>
     </div>
 
-    <!-- Filter tabs -->
     <div class="filter-tabs" *ngIf="events.length > 0">
       <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
         All <span class="tab-count">{{ events.length }}</span>
@@ -35,13 +33,11 @@
       </button>
     </div>
 
-    <!-- Loading -->
     <div class="loading-state" *ngIf="isLoading">
       <ion-spinner name="crescent"></ion-spinner>
       <p>Loading your event history…</p>
     </div>
 
-    <!-- Timeline -->
     <div class="events-timeline" *ngIf="!isLoading && filteredEvents.length > 0">
       <div
         *ngFor="let event of filteredEvents; let last = last"
@@ -98,7 +94,6 @@
       </div>
     </div>
 
-    <!-- Empty state -->
     <div class="empty-state" *ngIf="!isLoading && filteredEvents.length === 0 && events.length > 0">
       <ion-icon name="filter-outline"></ion-icon>
       <h2>No {{ activeFilter === 'global' ? 'Global' : 'Department' }} Events</h2>
