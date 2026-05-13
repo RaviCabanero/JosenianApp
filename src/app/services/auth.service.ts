@@ -273,6 +273,7 @@ export class AuthService {
         departments.push({
           id: doc.id,
           name: data['name'],
+          color: data['color'] || '',
           courses: data['courses'] || [],
           members: data['members'] || [],
           createdAt: data['createdAt']
@@ -290,10 +291,11 @@ export class AuthService {
   }
 
 
-  async addDepartment(departmentName: string): Promise<any> {
+  async addDepartment(departmentName: string, color: string = '#1E5128'): Promise<any> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'departments'), {
         name: departmentName,
+        color,
         courses: [],
         members: [],
         createdAt: new Date()
@@ -303,6 +305,7 @@ export class AuthService {
       return {
         id: docRef.id,
         name: departmentName,
+        color,
         courses: [],
         members: []
       };
@@ -313,8 +316,10 @@ export class AuthService {
   }
 
 
-  async updateDepartment(departmentId: string, newName: string): Promise<void> {
-    await updateDoc(doc(this.firestore, 'departments', departmentId), { name: newName });
+  async updateDepartment(departmentId: string, newName: string, color?: string): Promise<void> {
+    const updateData: any = { name: newName };
+    if (color) updateData.color = color;
+    await updateDoc(doc(this.firestore, 'departments', departmentId), updateData);
   }
 
 

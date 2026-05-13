@@ -4566,6 +4566,11 @@ $bg-light: #f3f4f6;
     gap: 12px;
   }
 
+  .events-section-header,
+  .btn-create-event {
+    width: 100%;
+  }
+
   .form-card .form-group {
     flex-direction: column;
   }
@@ -4814,6 +4819,16 @@ $bg-light: #f3f4f6;
 .department-form-card {
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  .form-row-inline {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(340px, max-content) auto;
+    align-items: end;
+  }
 }
 
 .form-card-header {
@@ -4866,6 +4881,166 @@ $bg-light: #f3f4f6;
   }
 }
 
+.department-color-field {
+  width: 340px;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    color: $text-dark;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.department-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid $light-border;
+  border-radius: 8px;
+  background: $bg-white;
+}
+
+.department-color-swatch {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+
+  &.active {
+    border-color: #ffffff;
+    outline: 2px solid $primary-dark;
+  }
+
+  ion-icon {
+    font-size: 14px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  }
+}
+
+.department-color-input {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid $light-border;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 2px;
+  }
+
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+  }
+}
+
+.department-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.department-edit-modal {
+  width: min(460px, 100%);
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid $light-border;
+  background: $bg-white;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.24);
+}
+
+.department-edit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid $light-border;
+
+  h3 {
+    margin: 0;
+    color: $text-dark;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: $text-light;
+    font-size: 13px;
+  }
+}
+
+.department-edit-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid $light-border;
+  border-radius: 8px;
+  background: $bg-gray;
+  color: $text-dark;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+.department-edit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px;
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: $text-dark;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.department-edit-color-field {
+  .department-color-picker {
+    flex-wrap: wrap;
+  }
+}
+
+.department-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid $light-border;
+  background: $bg-gray;
+}
+
 .btn-create-dept {
   flex: 0 0 auto;
   min-width: 108px;
@@ -4882,7 +5057,10 @@ $bg-light: #f3f4f6;
   overflow: hidden;
   padding: 18px;
   border-radius: 8px;
-  border: 1px solid rgba(30, 81, 40, 0.2);
+  border: 1px solid var(--dept-border-color, rgba(30, 81, 40, 0.2));
+  background:
+    linear-gradient(135deg, var(--dept-soft-color, rgba(30, 81, 40, 0.12)), rgba(255, 255, 255, 0) 48%),
+    $bg-white;
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
 
   &::before {
@@ -4890,7 +5068,7 @@ $bg-light: #f3f4f6;
     position: absolute;
     inset: 0 0 auto 0;
     height: 4px;
-    background: linear-gradient(90deg, $primary-color, $secondary-color, $warning-color);
+    background: var(--dept-color, #1E5128);
   }
 
   &:hover {
@@ -4899,6 +5077,8 @@ $bg-light: #f3f4f6;
   }
 
   .dept-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 16px;
@@ -4913,11 +5093,18 @@ $bg-light: #f3f4f6;
   min-width: 0;
   gap: 12px;
 
+  > div:last-child {
+    min-width: 0;
+  }
+
   p {
     margin: 4px 0 0;
+    overflow: hidden;
     color: $text-light;
     font-size: 12px;
     font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -4928,20 +5115,22 @@ $bg-light: #f3f4f6;
   height: 46px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: linear-gradient(135deg, $primary-dark, $primary-color);
+  background: var(--dept-color, #1E5128);
   color: $bg-white;
   font-size: 20px;
   font-weight: 800;
+  box-shadow: 0 8px 18px var(--dept-soft-color, rgba(30, 81, 40, 0.12));
 }
 
 .dept-actions {
   display: flex;
   flex-shrink: 0;
   gap: 6px;
+  justify-self: end;
 }
 
 .admin-department-card .dept-name {
-  max-width: 240px;
+  max-width: 100%;
   overflow: hidden;
   color: $text-dark;
   font-size: 16px;
@@ -4966,8 +5155,8 @@ $bg-light: #f3f4f6;
     min-width: 28px;
     padding: 4px 8px;
     border-radius: 999px;
-    background: $light-bg;
-    color: $primary-dark;
+    background: var(--dept-soft-color, rgba(30, 81, 40, 0.12));
+    color: var(--dept-color, #1E5128);
     font-size: 12px;
     font-weight: 800;
     text-align: center;
@@ -4976,9 +5165,9 @@ $bg-light: #f3f4f6;
 
 .admin-department-card .add-course-form {
   align-items: center;
-  border: 1px solid $light-border;
+  border: 1px solid var(--dept-border-color, rgba(30, 81, 40, 0.2));
   border-radius: 8px;
-  background: #f7fffb;
+  background: var(--dept-soft-color, rgba(30, 81, 40, 0.12));
 }
 
 .admin-department-card .courses-list {
@@ -5009,7 +5198,7 @@ $bg-light: #f3f4f6;
 
     ion-icon {
       flex-shrink: 0;
-      color: $primary-dark;
+      color: var(--dept-color, #1E5128);
       font-size: 16px;
     }
   }
@@ -5026,7 +5215,7 @@ $bg-light: #f3f4f6;
 
   ion-icon {
     margin-bottom: 8px;
-    color: $primary-color;
+    color: var(--dept-color, #1E5128);
     font-size: 28px;
     opacity: 0.65;
   }
@@ -5047,9 +5236,13 @@ $bg-light: #f3f4f6;
     grid-template-columns: 1fr;
   }
 
-  .form-row-inline {
+  .department-form-card .form-row-inline {
     align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .department-color-field {
+    width: 100%;
   }
 
   .btn-create-dept {
@@ -5309,6 +5502,20 @@ $bg-light: #f3f4f6;
 .cover-file-name { font-size: 12px; color: $text-light; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
 .events-summary { margin-bottom: 12px; font-size: 13px; color: $text-light; }
+
+.events-section-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-create-event {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 132px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
 
 .events-grid {
   display: grid;
