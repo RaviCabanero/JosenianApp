@@ -109,15 +109,6 @@
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon students">
-                <ion-icon name="school"></ion-icon>
-              </div>
-              <div class="stat-content">
-                <p class="stat-label">Students</p>
-                <h3 class="stat-value">{{ totalStudentsCount }}</h3>
-              </div>
-            </div>
-            <div class="stat-card">
               <div class="stat-icon alumni">
                 <ion-icon name="briefcase"></ion-icon>
               </div>
@@ -518,6 +509,28 @@
                   class="form-input"
                 />
               </div>
+              <div class="form-group department-color-field">
+                <label>Department Color</label>
+                <div class="department-color-picker">
+                  <button
+                    type="button"
+                    class="department-color-swatch"
+                    *ngFor="let color of departmentColorOptions"
+                    [style.background]="color"
+                    [class.active]="newDepartmentColor === color"
+                    (click)="newDepartmentColor = color"
+                    [title]="color"
+                  >
+                    <ion-icon name="checkmark" *ngIf="newDepartmentColor === color"></ion-icon>
+                  </button>
+                  <input
+                    type="color"
+                    [(ngModel)]="newDepartmentColor"
+                    class="department-color-input"
+                    title="Custom color"
+                  />
+                </div>
+              </div>
               <button class="btn btn-primary btn-create-dept" (click)="addDepartment()">
                 <ion-icon name="checkmark"></ion-icon>
                 Save
@@ -526,7 +539,13 @@
           </div>
 
           <div class="departments-grid admin-departments-grid">
-            <div class="department-card admin-department-card" *ngFor="let dept of filteredDepartments">
+            <div
+              class="department-card admin-department-card"
+              *ngFor="let dept of filteredDepartments"
+              [style.--dept-color]="getDepartmentColor(dept)"
+              [style.--dept-soft-color]="getDepartmentSoftColor(dept)"
+              [style.--dept-border-color]="getDepartmentBorderColor(dept)"
+            >
               <div class="dept-header">
                 <div class="dept-title-wrap">
                   <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
@@ -595,11 +614,67 @@
               </div>
             </div>
           </div>
+
+          <div class="department-edit-overlay" *ngIf="showDepartmentEditModal" (click)="closeDepartmentEditModal()">
+            <div class="department-edit-modal" (click)="$event.stopPropagation()">
+              <div class="department-edit-header">
+                <div>
+                  <h3>Edit Department</h3>
+                  <p>Update the department name and card color.</p>
+                </div>
+                <button class="department-edit-close" (click)="closeDepartmentEditModal()" title="Close">
+                  <ion-icon name="close"></ion-icon>
+                </button>
+              </div>
+
+              <div class="department-edit-body">
+                <div class="form-group department-edit-name-field">
+                  <label>Department Name</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editingDepartmentName"
+                    placeholder="Department name"
+                    class="form-input"
+                  />
+                </div>
+
+                <div class="form-group department-edit-color-field">
+                  <label>Department Color</label>
+                  <div class="department-color-picker">
+                    <button
+                      type="button"
+                      class="department-color-swatch"
+                      *ngFor="let color of departmentColorOptions"
+                      [style.background]="color"
+                      [class.active]="editingDepartmentColor === color"
+                      (click)="editingDepartmentColor = color"
+                      [title]="color"
+                    >
+                      <ion-icon name="checkmark" *ngIf="editingDepartmentColor === color"></ion-icon>
+                    </button>
+                    <input
+                      type="color"
+                      [(ngModel)]="editingDepartmentColor"
+                      class="department-color-input"
+                      title="Custom color"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="department-edit-actions">
+                <button class="btn btn-secondary" (click)="closeDepartmentEditModal()">Cancel</button>
+                <button class="btn btn-primary" (click)="saveDepartmentEdit()">
+                  <ion-icon name="checkmark"></ion-icon>
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="tab-content" *ngIf="activeTab === 'alumni'">
           <div class="section-header">
-            <h3>Alumni Management</h3>
             <div class="header-actions">
               <button class="btn btn-primary" (click)="toggleCreateUserForm()">
                 <ion-icon name="person-add"></ion-icon>
@@ -1273,7 +1348,7 @@
 
         <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
           <div class="section-header">
-            <h3>Alumni ID Verification</h3>
+      
           </div>
 
           <div class="summary-cards verification-summary">

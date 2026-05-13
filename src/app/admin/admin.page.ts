@@ -123,6 +123,11 @@ export class AdminPage implements OnInit {
   totalPages: number = 1;
 
   newDepartmentName: string = '';
+  newDepartmentColor: string = '#1E5128';
+  showDepartmentEditModal: boolean = false;
+  editingDepartmentId: string | null = null;
+  editingDepartmentName: string = '';
+  editingDepartmentColor: string = '#1E5128';
   newCourseName: string = '';
   departmentSearchTerm: string = '';
   selectedDepartmentId: string | null = null;
@@ -131,6 +136,16 @@ export class AdminPage implements OnInit {
   isLoadingDepts: boolean = false;
   isRefreshing: boolean = false;
   departmentMap: {[id: string]: string} = {};
+  departmentColorOptions: string[] = [
+    '#1E5128',
+    '#2563eb',
+    '#7c3aed',
+    '#dc2626',
+    '#ea580c',
+    '#0891b2',
+    '#be123c',
+    '#4f46e5'
+  ];
 
   constructor(
     private router: Router,
@@ -491,6 +506,34 @@ export class AdminPage implements OnInit {
     return this.departments.filter(dept => (dept.courses?.length || 0) > 0).length;
   }
 
+  getDepartmentColor(dept: any): string {
+    if (dept?.color) return dept.color;
+    const source = String(dept?.id || dept?.name || '');
+    const palette = this.departmentColorOptions;
+    const index = Array.from(source).reduce((sum, char) => sum + char.charCodeAt(0), 0) % palette.length;
+    return palette[index] || '#1E5128';
+  }
+
+  getDepartmentSoftColor(dept: any): string {
+    return this.hexToRgba(this.getDepartmentColor(dept), 0.12);
+  }
+
+  getDepartmentBorderColor(dept: any): string {
+    return this.hexToRgba(this.getDepartmentColor(dept), 0.35);
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const cleanHex = hex.replace('#', '');
+    const value = cleanHex.length === 3
+      ? cleanHex.split('').map(char => char + char).join('')
+      : cleanHex;
+    const numeric = parseInt(value, 16);
+    const red = (numeric >> 16) & 255;
+    const green = (numeric >> 8) & 255;
+    const blue = numeric & 255;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
   get filteredVerifiedAlumni(): any[] {
     const term = this.verifiedAlumniSearch.toLowerCase().trim();
     if (!term) return this.verifiedAlumni;
@@ -532,7 +575,10 @@ export class AdminPage implements OnInit {
 
   toggleDepartmentForm() {
     this.showDepartmentForm = !this.showDepartmentForm;
-    if (!this.showDepartmentForm) this.newDepartmentName = '';
+    if (!this.showDepartmentForm) {
+      this.newDepartmentName = '';
+      this.newDepartmentColor = '#1E5128';
+    }
   }
 
   toggleCourseForm(departmentId: string) {
@@ -547,8 +593,9 @@ export class AdminPage implements OnInit {
       return;
     }
     try {
-      await this.authService.addDepartment(this.newDepartmentName);
+      await this.authService.addDepartment(this.newDepartmentName, this.newDepartmentColor);
       this.newDepartmentName = '';
+      this.newDepartmentColor = '#1E5128';
       this.showDepartmentForm = false;
       await this.loadDepartments();
     } catch (error) {
@@ -590,16 +637,49 @@ export class AdminPage implements OnInit {
   }
 
   async editDepartment(departmentId: string, currentName: string) {
-    const newName = await this.showPrompt('Rename Department', currentName);
-    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    const dept = this.departments.find(d => d.id === departmentId);
+    this.editingDepartmentId = departmentId;
+    this.editingDepartmentName = currentName;
+    this.editingDepartmentColor = this.getDepartmentColor(dept || { id: departmentId, name: currentName });
+    this.showDepartmentEditModal = true;
+  }
+
+  closeDepartmentEditModal() {
+    this.showDepartmentEditModal = false;
+    this.editingDepartmentId = null;
+    this.editingDepartmentName = '';
+    this.editingDepartmentColor = '#1E5128';
+  }
+
+  async saveDepartmentEdit() {
+    if (!this.editingDepartmentId) return;
+    if (!this.editingDepartmentName.trim()) {
+      await this.showAlert('Required', 'Please enter a department name.');
+      return;
+    }
+
+    const departmentId = this.editingDepartmentId;
+    const dept = this.departments.find(d => d.id === departmentId);
+    const newName = this.editingDepartmentName.trim();
+    const newColor = this.editingDepartmentColor || '#1E5128';
+    const currentColor = this.getDepartmentColor(dept || { id: departmentId, name: newName });
+
+    if (dept && newName === dept.name && newColor === currentColor) {
+      this.closeDepartmentEditModal();
+      return;
+    }
+
     try {
-      await this.authService.updateDepartment(departmentId, newName.trim());
-      const dept = this.departments.find(d => d.id === departmentId);
-      if (dept) dept.name = newName.trim();
-      this.departmentMap[departmentId] = newName.trim();
+      await this.authService.updateDepartment(departmentId, newName, newColor);
+      if (dept) {
+        dept.name = newName;
+        dept.color = newColor;
+      }
+      this.departmentMap[departmentId] = newName;
+      this.closeDepartmentEditModal();
     } catch (error) {
-      console.error('Error renaming department:', error);
-      await this.showAlert('Error', 'Failed to rename department.');
+      console.error('Error updating department:', error);
+      await this.showAlert('Error', 'Failed to update department.');
     }
   }
 
