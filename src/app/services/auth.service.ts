@@ -1764,6 +1764,8 @@ export class AuthService {
     nomineeEmail: string;
     nominatedBy: string;
     nominatedByName: string;
+    nominatedByRole: string;
+    nominatedByDeptId: string;
     inspireCategory: string;
     points: number;
     reason: string;
@@ -1777,44 +1779,90 @@ export class AuthService {
       proofFileName = data.proofFile.name;
     }
     const { proofFile: _proofFile, ...rest } = data;
-    await setDoc(nominationRef, { ...rest, proofFileUrl, proofFileName, createdAt: new Date() });
-    await this.awardInspiredPoints(
-      data.nomineeId,
-      data.inspireCategory as 'interiority' | 'nationalism' | 'service' | 'pioneerism' | 'integrity' | 'reliability' | 'excellence',
-      data.points,
-      `Nominated: ${data.reason}`,
-      `nomination_${nominationRef.id}`
-    );
-    // Also increment totalPoints so nominations count toward the leaderboard
-    const histRef = doc(collection(this.firestore, 'users', data.nomineeId, 'pointsHistory'));
-    await setDoc(histRef, {
-      eventId: nominationRef.id,
-      eventTitle: `INSPIRE Nomination (${data.inspireCategory}): ${data.reason}`,
-      points: data.points,
-      category: 'nomination',
-      type: 'nomination',
-      awardedAt: new Date(),
-    });
-    await updateDoc(doc(this.firestore, 'users', data.nomineeId), { totalPoints: increment(data.points) });
+    await setDoc(nominationRef, { ...rest, proofFileUrl, proofFileName, status: 'pending', createdAt: new Date() });
     await this.createNotification(
       data.nomineeId,
-      'INSPIRE Nomination Received',
-      `You have been nominated by ${data.nominatedByName} and awarded ${data.points} INSPIRE points for ${data.inspireCategory}.`,
+      'You Have Been Nominated!',
+      `${data.nominatedByName} has nominated you for an INSPIRE award (${data.inspireCategory}). Your nomination is pending admin approval.`,
       'points',
       '/profile'
     );
   }
 
-  async getNominations(): Promise<any[]> {
+  async approveNomination(nominationId: string): Promise<void> {
+    const nominationRef = doc(this.firestore, 'nominations', nominationId);
+    const snap = await getDoc(nominationRef);
+    if (!snap.exists()) throw new Error('Nomination not found');
+    const n = snap.data() as any;
+    await this.awardInspiredPoints(
+      n.nomineeId,
+      n.inspireCategory as 'interiority' | 'nationalism' | 'service' | 'pioneerism' | 'integrity' | 'reliability' | 'excellence',
+      n.points,
+      `Nominated: ${n.reason}`,
+      `nomination_${nominationId}`
+    );
+    const histRef = doc(collection(this.firestore, 'users', n.nomineeId, 'pointsHistory'));
+    await setDoc(histRef, {
+      eventId: nominationId,
+      eventTitle: `INSPIRE Nomination (${n.inspireCategory}): ${n.reason}`,
+      points: n.points,
+      category: 'nomination',
+      type: 'nomination',
+      awardedAt: new Date(),
+    });
+    await setDoc(doc(this.firestore, 'users', n.nomineeId), { totalPoints: increment(n.points) }, { merge: true });
+    await this.createNotification(
+      n.nomineeId,
+      'INSPIRE Nomination Approved',
+      `Your nomination by ${n.nominatedByName} has been approved. You have been awarded ${n.points} INSPIRE points for ${n.inspireCategory}.`,
+      'points',
+      '/profile'
+    );
+    await updateDoc(nominationRef, { status: 'approved', approvedAt: new Date() });
+  }
+
+  async rejectNomination(nominationId: string, rejectReason: string): Promise<void> {
+    const nominationRef = doc(this.firestore, 'nominations', nominationId);
+    const snap = await getDoc(nominationRef);
+    if (!snap.exists()) throw new Error('Nomination not found');
+    const n = snap.data() as any;
+    await updateDoc(nominationRef, { status: 'rejected', rejectReason, rejectedAt: new Date() });
+    await this.createNotification(
+      n.nominatedBy,
+      'Nomination Rejected',
+      `Your nomination for ${n.nomineeName} was rejected. Reason: ${rejectReason}`,
+      'warning',
+      '/department'
+    );
+  }
+
+  async getNominations(status?: string): Promise<any[]> {
+    try {
+      const constraints: any[] = status
+        ? [where('status', '==', status), limit(50)]
+        : [orderBy('createdAt', 'desc'), limit(50)];
+      const snap = await getDocs(query(collection(this.firestore, 'nominations'), ...constraints));
+      const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (status) results.sort((a: any, b: any) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      return results;
+    } catch (err) {
+      console.error('Error fetching nominations:', err);
+      return [];
+    }
+  }
+
+  async getHodNominations(hodUid: string): Promise<any[]> {
     try {
       const snap = await getDocs(query(
         collection(this.firestore, 'nominations'),
-        orderBy('createdAt', 'desc'),
+        where('nominatedBy', '==', hodUid),
         limit(50)
       ));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      results.sort((a: any, b: any) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      return results;
     } catch (err) {
-      console.error('Error fetching nominations:', err);
+      console.error('Error fetching HOD nominations:', err);
       return [];
     }
   }
@@ -1889,7 +1937,7 @@ export class AuthService {
       const inspired: Record<string, number> = (snap.data() as any)?.inspiredPoints || {};
       const oldVal = Number(inspired[category] || 0);
       const newVal = oldVal + points;
-      await updateDoc(userRef, { [`inspiredPoints.${category}`]: increment(points) });
+      await setDoc(userRef, { [`inspiredPoints.${category}`]: increment(points) }, { merge: true });
       const oldLevel = this.getInspiredBadgeLevel(oldVal);
       const newLevel = this.getInspiredBadgeLevel(newVal);
       if (newLevel !== oldLevel && newLevel !== 'None') {
@@ -1903,7 +1951,7 @@ export class AuthService {
       const hadMaster = Object.keys(this.INSPIRED_NAMES).every(c => Number(inspired[c] || 0) >= 10);
       const hasMaster  = Object.keys(this.INSPIRED_NAMES).every(c => Number(updatedInspired[c] || 0) >= 10);
       if (hasMaster && !hadMaster) {
-        await updateDoc(userRef, { inspiredMasterBadge: true });
+        await setDoc(userRef, { inspiredMasterBadge: true }, { merge: true });
         await this.createNotification(
           userId, 'Master INSPIRED Badge Earned!',
           'You have embodied all 7 USJ-R core values and earned the master INSPIRED badge!',

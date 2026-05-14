@@ -6527,3 +6527,56 @@ $bg-light: #f3f4f6;
   &:hover { text-decoration: underline; }
   ion-icon { font-size: 14px; }
 }
+
+.nom-approval-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.nom-reject-input {
+  width: 100%;
+  font-size: 13px;
+}
+
+.nom-action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.nom-approve-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: #15803d; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  ion-icon { font-size: 15px; }
+}
+
+.nom-reject-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: #b91c1c; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  ion-icon { font-size: 15px; }
+}
