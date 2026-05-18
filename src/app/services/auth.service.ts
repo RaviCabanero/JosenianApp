@@ -276,6 +276,7 @@ export class AuthService {
           color: data['color'] || '',
           courses: data['courses'] || [],
           members: data['members'] || [],
+          profile: data['profile'] || null,
           createdAt: data['createdAt']
         });
       });
@@ -298,6 +299,7 @@ export class AuthService {
         color,
         courses: [],
         members: [],
+        profile: null,
         createdAt: new Date()
       });
       
@@ -307,6 +309,7 @@ export class AuthService {
         name: departmentName,
         color,
         courses: [],
+        profile: null,
         members: []
       };
     } catch (error) {
@@ -316,9 +319,10 @@ export class AuthService {
   }
 
 
-  async updateDepartment(departmentId: string, newName: string, color?: string): Promise<void> {
+  async updateDepartment(departmentId: string, newName: string, color?: string, profile?: string): Promise<void> {
     const updateData: any = { name: newName };
     if (color) updateData.color = color;
+    if (profile) updateData.profile = profile;
     await updateDoc(doc(this.firestore, 'departments', departmentId), updateData);
   }
 

@@ -15,6 +15,7 @@ import * as QRCode from 'qrcode';
 })
 export class AdminPage implements OnInit {
   @ViewChild('adminSigCanvas') adminSigCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('profileFileInput') profileFileInput!: ElementRef<HTMLInputElement>;
   private adminSignaturePad: any = null;
 
   isLoggedIn: boolean = false;
@@ -130,6 +131,11 @@ export class AdminPage implements OnInit {
   editingDepartmentName: string = '';
   editingDepartmentColor: string = '#1E5128';
   newCourseName: string = '';
+  showCourseActionModal: boolean = false;
+  selectedCourseDepartmentId: string | null = null;
+  selectedCourseIndex: number | null = null;
+  selectedCourseName: string = '';
+  selectedCourseDepartmentName: string = '';
   departmentSearchTerm: string = '';
   selectedDepartmentId: string | null = null;
   showDepartmentForm: boolean = false;
@@ -147,6 +153,10 @@ export class AdminPage implements OnInit {
     '#be123c',
     '#4f46e5'
   ];
+  editingDepartmentProfile: File | null = null;
+  editingDepartmentProfilePreview: string | null = null;
+  editingDepartmentProfileUrl: string | null = null;
+  isUploadingDepartmentProfile: boolean = false;
 
   constructor(
     private router: Router,
@@ -200,14 +210,23 @@ export class AdminPage implements OnInit {
     });
   }
 
-  private async showPrompt(header: string, placeholder: string = ''): Promise<string | null> {
+  private async showPrompt(
+    header: string,
+    placeholder: string = '',
+    confirmText: string = 'Submit',
+    confirmCssClass: string = ''
+  ): Promise<string | null> {
     return new Promise(async resolve => {
       const alert = await this.alertCtrl.create({
         header,
         inputs: [{ name: 'value', type: 'text', placeholder }],
         buttons: [
           { text: 'Cancel', role: 'cancel', handler: () => resolve(null) },
-          { text: 'Submit', handler: data => resolve(data['value'] !== undefined ? data['value'] : '') }
+          {
+            text: confirmText,
+            cssClass: confirmCssClass,
+            handler: data => resolve(data['value'] !== undefined ? data['value'] : '')
+          }
         ]
       });
       await alert.present();
@@ -637,11 +656,48 @@ export class AdminPage implements OnInit {
     }
   }
 
+  openCourseActions(departmentId: string, courseIndex: number, courseName: string) {
+    const department = this.departments.find(d => d.id === departmentId);
+    this.selectedCourseDepartmentId = departmentId;
+    this.selectedCourseIndex = courseIndex;
+    this.selectedCourseName = courseName;
+    this.selectedCourseDepartmentName = department?.name || '';
+    this.showCourseActionModal = true;
+  }
+
+  closeCourseActionModal() {
+    this.showCourseActionModal = false;
+    this.selectedCourseDepartmentId = null;
+    this.selectedCourseIndex = null;
+    this.selectedCourseName = '';
+    this.selectedCourseDepartmentName = '';
+  }
+
+  async editSelectedCourse() {
+    if (!this.selectedCourseDepartmentId || this.selectedCourseIndex === null) return;
+    const departmentId = this.selectedCourseDepartmentId;
+    const courseIndex = this.selectedCourseIndex;
+    const courseName = this.selectedCourseName;
+    this.closeCourseActionModal();
+    await this.editCourse(departmentId, courseIndex, courseName);
+  }
+
+  async deleteSelectedCourse() {
+    if (!this.selectedCourseDepartmentId || this.selectedCourseIndex === null) return;
+    const departmentId = this.selectedCourseDepartmentId;
+    const courseIndex = this.selectedCourseIndex;
+    this.closeCourseActionModal();
+    await this.deleteCourse(departmentId, courseIndex);
+  }
+
   async editDepartment(departmentId: string, currentName: string) {
     const dept = this.departments.find(d => d.id === departmentId);
     this.editingDepartmentId = departmentId;
     this.editingDepartmentName = currentName;
     this.editingDepartmentColor = this.getDepartmentColor(dept || { id: departmentId, name: currentName });
+    this.editingDepartmentProfileUrl = dept?.profile || null;
+    this.editingDepartmentProfile = null;
+    this.editingDepartmentProfilePreview = null;
     this.showDepartmentEditModal = true;
   }
 
@@ -650,10 +706,16 @@ export class AdminPage implements OnInit {
     this.editingDepartmentId = null;
     this.editingDepartmentName = '';
     this.editingDepartmentColor = '#1E5128';
+    this.editingDepartmentProfile = null;
+    this.editingDepartmentProfilePreview = null;
+    this.editingDepartmentProfileUrl = null;
   }
 
   async saveDepartmentEdit() {
-    if (!this.editingDepartmentId) return;
+    if (!this.editingDepartmentId) {
+      console.warn('No editing department ID found');
+      return;
+    }
     if (!this.editingDepartmentName.trim()) {
       await this.showAlert('Required', 'Please enter a department name.');
       return;
@@ -665,23 +727,87 @@ export class AdminPage implements OnInit {
     const newColor = this.editingDepartmentColor || '#1E5128';
     const currentColor = this.getDepartmentColor(dept || { id: departmentId, name: newName });
 
-    if (dept && newName === dept.name && newColor === currentColor) {
+    if (dept && newName === dept.name && newColor === currentColor && !this.editingDepartmentProfile) {
+      console.log('No changes detected, closing modal');
       this.closeDepartmentEditModal();
       return;
     }
 
     try {
-      await this.authService.updateDepartment(departmentId, newName, newColor);
+      this.isUploadingDepartmentProfile = true;
+      let profileUrl: string | undefined = this.editingDepartmentProfileUrl || undefined;
+
+      // Upload profile if a new one was selected
+      if (this.editingDepartmentProfile) {
+        try {
+          console.log('Starting profile upload for file:', this.editingDepartmentProfile.name);
+          const fileName = `departments/${departmentId}/profile`;
+          profileUrl = await this.authService.uploadFile(fileName, this.editingDepartmentProfile);
+          console.log('Profile uploaded successfully:', profileUrl);
+        } catch (uploadError) {
+          console.error('Error uploading profile:', uploadError);
+          this.isUploadingDepartmentProfile = false;
+          await this.showAlert('Upload Error', 'Failed to upload profile image. Please try again.');
+          return;
+        }
+      }
+
+      console.log('Updating department with data:', { departmentId, newName, newColor, profileUrl });
+      await this.authService.updateDepartment(departmentId, newName, newColor, profileUrl);
+      
       if (dept) {
         dept.name = newName;
         dept.color = newColor;
+        if (profileUrl) {
+          dept.profile = profileUrl;
+        }
       }
       this.departmentMap[departmentId] = newName;
       this.closeDepartmentEditModal();
+      this.isUploadingDepartmentProfile = false;
+      await this.showAlert('Success', 'Department updated successfully.');
     } catch (error) {
       console.error('Error updating department:', error);
-      await this.showAlert('Error', 'Failed to update department.');
+      this.isUploadingDepartmentProfile = false;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update department.';
+      await this.showAlert('Error', errorMessage);
     }
+  }
+
+  onDepartmentProfileSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        this.showAlert('Invalid File', 'Please select a valid image file.');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        this.showAlert('File Too Large', 'Image must be smaller than 5MB.');
+        return;
+      }
+
+      this.editingDepartmentProfile = file;
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.editingDepartmentProfilePreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  clickProfileFileInput() {
+    this.profileFileInput.nativeElement.click();
+  }
+
+  removeDepartmentProfile() {
+    this.editingDepartmentProfile = null;
+    this.editingDepartmentProfilePreview = null;
   }
 
   async deleteDepartment(departmentId: string) {
@@ -698,7 +824,7 @@ export class AdminPage implements OnInit {
   }
 
   async editCourse(departmentId: string, courseIndex: number, currentName: string) {
-    const newName = await this.showPrompt('Rename Course', currentName);
+    const newName = await this.showPrompt('Rename Course', currentName, 'Confirm', 'alert-button-success');
     if (!newName || !newName.trim() || newName.trim() === currentName) return;
     try {
       await this.authService.updateCourse(departmentId, courseIndex, newName.trim());

@@ -90,7 +90,16 @@
 
     <main class="main-content">
       <header class="top-bar">
-        <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
+        <h2 class="page-title">
+          <ng-container *ngIf="activeTab === 'dashboard'">Admin Dashboard</ng-container>
+          <ng-container *ngIf="activeTab === 'approval'">Account Approval</ng-container>
+          <ng-container *ngIf="activeTab === 'departments'">Departments & Courses</ng-container>
+          <ng-container *ngIf="activeTab === 'alumni'">Alumni Management</ng-container>
+          <ng-container *ngIf="activeTab === 'events'">Manage Events</ng-container>
+          <ng-container *ngIf="activeTab === 'attendance'">Attendance Dashboard</ng-container>
+          <ng-container *ngIf="activeTab === 'alumni-verification'">Alumni ID Verification</ng-container>
+          <ng-container *ngIf="activeTab === 'nominations'"><span class="inspire-word">INSPIRE</span> Nominations</ng-container>
+        </h2>
         <button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
           <ion-icon name="refresh" [class.spinning]="isRefreshing"></ion-icon>
         </button>
@@ -548,7 +557,15 @@
             >
               <div class="dept-header">
                 <div class="dept-title-wrap">
-                  <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
+                  <div class="dept-avatar">
+                    <img 
+                      *ngIf="dept.profile" 
+                      [src]="dept.profile" 
+                      alt="Department logo"
+                      class="dept-logo-image"
+                    />
+                    <span *ngIf="!dept.profile">{{ dept.name.charAt(0) }}</span>
+                  </div>
                   <div>
                     <h4 class="dept-name">{{ dept.name }}</h4>
                     <p>{{ dept.courses.length }} {{ dept.courses.length === 1 ? 'course' : 'courses' }} listed</p>
@@ -592,25 +609,64 @@
                 </div>
 
                 <div class="courses-list">
-                  <div class="course-item" *ngFor="let course of dept.courses; let i = index">
+                  <button
+                    type="button"
+                    class="course-item"
+                    *ngFor="let course of dept.courses; let i = index"
+                    (click)="openCourseActions(dept.id, i, course)"
+                    [title]="'Manage ' + course"
+                  >
                     <span class="course-name">
                       <ion-icon name="school-outline"></ion-icon>
                       {{ course }}
                     </span>
-                    <div class="course-item-actions">
-                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)" title="Rename course">
-                        <ion-icon name="pencil-outline"></ion-icon>
-                      </button>
-                      <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
-                        <ion-icon name="close"></ion-icon>
-                      </button>
-                    </div>
-                  </div>
+                  </button>
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
                     <ion-icon name="library-outline"></ion-icon>
                     <p>No courses yet</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="course-action-overlay" *ngIf="showCourseActionModal" (click)="closeCourseActionModal()">
+            <div class="course-action-modal" (click)="$event.stopPropagation()">
+              <div class="course-action-header">
+                <div>
+                  <h3>Manage Course</h3>
+                  <p>{{ selectedCourseDepartmentName || 'Department course' }}</p>
+                </div>
+                <button class="course-action-close" (click)="closeCourseActionModal()" title="Close">
+                  <ion-icon name="close"></ion-icon>
+                </button>
+              </div>
+
+              <div class="course-action-body">
+                <div class="course-action-summary">
+                  <div class="course-action-icon">
+                    <ion-icon name="school-outline"></ion-icon>
+                  </div>
+                  <div>
+                    <span>Selected Course</span>
+                    <h4>{{ selectedCourseName }}</h4>
+                  </div>
+                </div>
+
+                <div class="course-action-options">
+                  <button type="button" class="course-action-option" (click)="editSelectedCourse()">
+                    <ion-icon name="pencil-outline"></ion-icon>
+                    <span>Edit course name</span>
+                  </button>
+                  <button type="button" class="course-action-option danger" (click)="deleteSelectedCourse()">
+                    <ion-icon name="trash-outline"></ion-icon>
+                    <span>Delete course</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="course-action-footer">
+                <button class="btn btn-secondary" (click)="closeCourseActionModal()">Cancel</button>
               </div>
             </div>
           </div>
@@ -660,13 +716,56 @@
                     />
                   </div>
                 </div>
+
+                <div class="form-group department-edit-profile-field">
+                  <label>Department Logo/Profile</label>
+                  <p class="form-hint">Upload a logo or profile image for this department</p>
+                  <div class="profile-upload-container">
+                    <div class="profile-preview" *ngIf="editingDepartmentProfilePreview || editingDepartmentProfileUrl">
+                      <img 
+                        [src]="editingDepartmentProfilePreview || editingDepartmentProfileUrl" 
+                        alt="Department profile preview"
+                        class="profile-preview-img"
+                      />
+                      <button 
+                        type="button" 
+                        class="btn-icon btn-remove-profile" 
+                        (click)="removeDepartmentProfile()"
+                        title="Remove profile image"
+                      >
+                        <ion-icon name="close"></ion-icon>
+                      </button>
+                    </div>
+                    <div class="profile-upload-box" *ngIf="!editingDepartmentProfilePreview && !editingDepartmentProfileUrl">
+                      <ion-icon name="image-outline"></ion-icon>
+                      <p>Click to upload or drag and drop</p>
+                      <span class="upload-hint">PNG, JPG up to 5MB</span>
+                      <input 
+                        #profileFileInput
+                        type="file" 
+                        accept="image/*" 
+                        (change)="onDepartmentProfileSelected($event)"
+                        class="profile-file-input"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      class="btn btn-secondary btn-upload-profile"
+                      *ngIf="!editingDepartmentProfilePreview && !editingDepartmentProfileUrl"
+                      (click)="clickProfileFileInput()"
+                    >
+                      <ion-icon name="cloud-upload-outline"></ion-icon>
+                      Choose File
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div class="department-edit-actions">
-                <button class="btn btn-secondary" (click)="closeDepartmentEditModal()">Cancel</button>
-                <button class="btn btn-primary" (click)="saveDepartmentEdit()">
-                  <ion-icon name="checkmark"></ion-icon>
-                  Save
+                <button class="btn btn-secondary" (click)="closeDepartmentEditModal()" [disabled]="isUploadingDepartmentProfile">Cancel</button>
+                <button class="btn btn-primary" (click)="saveDepartmentEdit()" [disabled]="isUploadingDepartmentProfile">
+                  <ion-icon [name]="isUploadingDepartmentProfile ? 'hourglass' : 'checkmark'"></ion-icon>
+                  {{ isUploadingDepartmentProfile ? 'Uploading...' : 'Save' }}
                 </button>
               </div>
             </div>
