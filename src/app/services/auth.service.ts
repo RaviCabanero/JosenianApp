@@ -275,6 +275,7 @@ export class AuthService {
           name: data['name'],
           color: data['color'] || '',
           courses: data['courses'] || [],
+          disabledCourses: data['disabledCourses'] || [],
           members: data['members'] || [],
           createdAt: data['createdAt']
         });
@@ -354,6 +355,17 @@ export class AuthService {
     }
   }
 
+
+  async toggleCourseDisabled(departmentId: string, courseName: string, disable: boolean): Promise<void> {
+    const deptRef = doc(this.firestore, 'departments', departmentId);
+    const deptDoc = await getDoc(deptRef);
+    if (!deptDoc.exists()) return;
+    const disabled: string[] = deptDoc.data()['disabledCourses'] || [];
+    const updated = disable
+      ? [...new Set([...disabled, courseName])]
+      : disabled.filter((c: string) => c !== courseName);
+    await updateDoc(deptRef, { disabledCourses: updated });
+  }
 
   async updateCourse(departmentId: string, courseIndex: number, newName: string): Promise<void> {
     const deptRef = doc(this.firestore, 'departments', departmentId);

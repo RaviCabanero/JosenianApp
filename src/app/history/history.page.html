@@ -25,7 +25,7 @@
       </button>
       <button class="filter-tab" [class.active]="activeFilter === 'global'" (click)="setFilter('global')">
         <ion-icon name="globe-outline"></ion-icon>
-        Global <span class="tab-count">{{ globalCount }}</span>
+        Institutional <span class="tab-count">{{ globalCount }}</span>
       </button>
       <button class="filter-tab" [class.active]="activeFilter === 'department'" (click)="setFilter('department')">
         <ion-icon name="business-outline"></ion-icon>
@@ -55,7 +55,7 @@
           <div class="event-card-top">
             <span class="source-badge" [class.source-global]="event.source === 'global'" [class.source-dept]="event.source === 'department'">
               <ion-icon [name]="event.source === 'global' ? 'globe-outline' : 'business-outline'"></ion-icon>
-              {{ event.source === 'global' ? 'Global' : getDeptName(event.departmentId) }}
+              {{ event.source === 'global' ? 'Institutional' : getDeptName(event.departmentId) }}
             </span>
             <span class="type-tag" *ngIf="event.type">{{ event.type | titlecase }}</span>
           </div>
@@ -96,8 +96,8 @@
 
     <div class="empty-state" *ngIf="!isLoading && filteredEvents.length === 0 && events.length > 0">
       <ion-icon name="filter-outline"></ion-icon>
-      <h2>No {{ activeFilter === 'global' ? 'Global' : 'Department' }} Events</h2>
-      <p>You haven't joined any {{ activeFilter === 'global' ? 'global' : 'department' }} events yet.</p>
+      <h2>No {{ activeFilter === 'global' ? 'Institutional' : 'Department' }} Events</h2>
+      <p>You haven't joined any {{ activeFilter === 'global' ? 'institutional' : 'department' }} events yet.</p>
     </div>
 
     <div class="empty-state" *ngIf="!isLoading && events.length === 0">

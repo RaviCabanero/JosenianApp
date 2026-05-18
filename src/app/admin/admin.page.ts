@@ -22,6 +22,7 @@ export class AdminPage implements OnInit {
 
   pendingUsers: any[] = [];
   selectedUser: any = null;
+  isApprovingAll = false;
 
   totalPendingCount: number = 0;
   totalApprovedCount: number = 0;
@@ -96,7 +97,7 @@ export class AdminPage implements OnInit {
   isSubmittingEvent: boolean = false;
   selectedEvent: any = null;
   newEvent = {
-    title: '', description: '', date: '', time: '',
+    title: '', description: '', date: '', time: '', endDate: '', endTime: '',
     location: '', eventType: 'global', maxParticipants: '',
     coverImageBase64: '',
     coverImageUrl: '',
@@ -318,6 +319,27 @@ export class AdminPage implements OnInit {
     } catch (error) {
       console.error('Error approving user:', error);
       await this.showAlert('Error', 'Failed to approve user. Please try again.');
+    }
+  }
+
+  async approveAllUsers() {
+    if (this.pendingUsers.length === 0) return;
+    const confirmed = await this.showConfirm(
+      'Approve All',
+      `Approve all ${this.pendingUsers.length} pending account${this.pendingUsers.length > 1 ? 's' : ''}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    this.isApprovingAll = true;
+    try {
+      await Promise.all(this.pendingUsers.map(u => this.authService.approveUser(u.id)));
+      this.pendingUsers = [];
+      this.filterAndPaginateUsers();
+      await this.calculateStats();
+      await this.showAlert('Done', 'All pending accounts have been approved.');
+    } catch {
+      await this.showAlert('Error', 'Some approvals may have failed. Please refresh.');
+    } finally {
+      this.isApprovingAll = false;
     }
   }
 
@@ -617,6 +639,30 @@ export class AdminPage implements OnInit {
     }
   }
 
+  get upcomingEventsCount(): number { return this.events.filter(e => !this.isEventPast(e)).length; }
+  get pastEventsCount(): number { return this.events.filter(e => this.isEventPast(e)).length; }
+
+  isCourseDisabled(dept: any, course: string): boolean {
+    return (dept.disabledCourses || []).includes(course);
+  }
+
+  async toggleCourseDisabled(deptId: string, course: string) {
+    const dept = this.departments.find(d => d.id === deptId);
+    if (!dept) return;
+    const disable = !this.isCourseDisabled(dept, course);
+    try {
+      await this.authService.toggleCourseDisabled(deptId, course, disable);
+      if (!dept.disabledCourses) dept.disabledCourses = [];
+      if (disable) {
+        dept.disabledCourses.push(course);
+      } else {
+        dept.disabledCourses = dept.disabledCourses.filter((c: string) => c !== course);
+      }
+    } catch (error) {
+      await this.showAlert('Error', 'Failed to update course status.');
+    }
+  }
+
   async deleteCourse(departmentId: string, courseIndex: number) {
     const department = this.departments.find(d => d.id === departmentId);
     const courseName = department?.courses?.[courseIndex] || 'this course';
@@ -747,7 +793,8 @@ export class AdminPage implements OnInit {
 
   onCreateUserDeptChange() {
     const dept = this.departments.find((d: any) => d.id === this.createUserData.department);
-    this.createUserCourses = dept?.courses || [];
+    const disabled: string[] = dept?.disabledCourses || [];
+    this.createUserCourses = (dept?.courses || []).filter((c: string) => !disabled.includes(c));
     this.createUserData.course = '';
   }
 
@@ -977,7 +1024,7 @@ export class AdminPage implements OnInit {
 
   resetEventForm() {
     this.newEvent = {
-      title: '', description: '', date: '', time: '',
+      title: '', description: '', date: '', time: '', endDate: '', endTime: '',
       location: '', eventType: 'global', maxParticipants: '',
       coverImageBase64: '', coverImageUrl: '', coverImageFileName: '',
       eventCategory: 'regular', pointValue: 10,
@@ -1029,6 +1076,8 @@ export class AdminPage implements OnInit {
         description: this.newEvent.description.trim(),
         date: this.newEvent.date,
         time: this.newEvent.time,
+        endDate: this.newEvent.endDate,
+        endTime: this.newEvent.endTime,
         location: this.newEvent.location.trim(),
         eventType: this.newEvent.eventType,
         maxParticipants: this.newEvent.maxParticipants ? Number(this.newEvent.maxParticipants) : null,
@@ -1065,6 +1114,8 @@ export class AdminPage implements OnInit {
       description: ev.description || '',
       date: ev.date || '',
       time: ev.time || '',
+      endDate: ev.endDate || '',
+      endTime: ev.endTime || '',
       location: ev.location || '',
       eventType: ev.eventType || 'global',
       maxParticipants: ev.maxParticipants || '',
@@ -1132,18 +1183,25 @@ export class AdminPage implements OnInit {
 
   formatEventDate(event: any): string {
     if (!event.date) return 'TBD';
-    const d = new Date(`${event.date}T${event.time || '00:00'}`);
-    return isNaN(d.getTime()) ? event.date : d.toLocaleDateString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-    });
+    const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+    const start = new Date(`${event.date}T${event.time || '00:00'}`);
+    const startStr = isNaN(start.getTime()) ? event.date : start.toLocaleDateString('en-US', opts);
+    if (event.endDate && event.endDate !== event.date) {
+      const end = new Date(`${event.endDate}T00:00`);
+      const endStr = isNaN(end.getTime()) ? event.endDate : end.toLocaleDateString('en-US', opts);
+      return `${startStr} – ${endStr}`;
+    }
+    return startStr;
   }
 
   formatEventTime(event: any): string {
     if (!event.time) return '';
-    const [h, m] = event.time.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+    const fmt = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+    };
+    return event.endTime ? `${fmt(event.time)} – ${fmt(event.endTime)}` : fmt(event.time);
   }
 
   isEventPast(event: any): boolean {

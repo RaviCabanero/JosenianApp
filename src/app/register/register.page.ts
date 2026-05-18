@@ -76,7 +76,8 @@ export class RegisterPage implements OnInit {
     this.course = '';
     const selectedDept = this.departments.find(d => d.id === this.department);
     if (selectedDept) {
-      this.courses = selectedDept.courses || [];
+      const disabled: string[] = selectedDept.disabledCourses || [];
+      this.courses = (selectedDept.courses || []).filter((c: string) => !disabled.includes(c));
     } else {
       this.courses = [];
     }

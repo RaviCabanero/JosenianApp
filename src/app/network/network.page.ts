@@ -11,6 +11,7 @@ interface NetworkUser {
   department: string;
   userType: string;
   course: string;
+  graduationYear: string;
   isPrivate: boolean;
   friendStatus: 'friend' | 'pending' | 'none';
 }
@@ -45,6 +46,8 @@ export class NetworkPage implements OnInit {
   filteredRequests: FriendRequest[] = [];
 
   searchQuery = '';
+  filterBatch = '';
+  availableBatches: string[] = [];
   isLoading = false;
   processingIds = new Set<string>();
 
@@ -101,6 +104,10 @@ export class NetworkPage implements OnInit {
         .filter((u: any) => !this.friendIds.has(u.id))
         .map((u: any) => this.toNetworkUser(u, this.sentRequestIds.has(u.id) ? 'pending' : 'none'));
 
+      this.availableBatches = [...new Set(
+        this.allPeople.map(u => u.graduationYear).filter(y => !!y)
+      )].sort((a, b) => Number(b) - Number(a));
+
       this.filteredFriends = [...this.friends];
       this.filteredPeople = [...this.allPeople];
       this.filteredRequests = [...this.incomingRequests];
@@ -118,13 +125,18 @@ export class NetworkPage implements OnInit {
     const initials = name.split(' ').filter(Boolean).map((w: string) => w[0].toUpperCase()).join('').slice(0, 2) || '?';
     const deptId = u.department || '';
     const department = this.deptMap[deptId] || deptId || '';
-    return { uid: u.id, name, initials, photoUrl: u.photoUrl || '', department, userType: u.userType || 'student', course: u.course || '', isPrivate: u.isPrivate === true, friendStatus };
+    return { uid: u.id, name, initials, photoUrl: u.photoUrl || '', department, userType: u.userType || 'student', course: u.course || '', graduationYear: u.graduationYear || '', isPrivate: u.isPrivate === true, friendStatus };
   }
 
   switchTab(tab: 'friends' | 'people' | 'requests') {
     this.activeTab = tab;
     this.searchQuery = '';
+    this.filterBatch = '';
     this.applySearch('');
+  }
+
+  applyBatchFilter() {
+    this.applySearch(this.searchQuery);
   }
 
   onNetworkSearch(event: any) {
@@ -140,9 +152,10 @@ export class NetworkPage implements OnInit {
       u.userType.toLowerCase().includes(q)
     );
     this.filteredPeople = this.allPeople.filter(u =>
-      u.name.toLowerCase().includes(q) ||
-      u.department.toLowerCase().includes(q) ||
-      u.userType.toLowerCase().includes(q)
+      (u.name.toLowerCase().includes(q) ||
+       u.department.toLowerCase().includes(q) ||
+       u.userType.toLowerCase().includes(q)) &&
+      (!this.filterBatch || u.graduationYear === this.filterBatch)
     );
     this.filteredRequests = this.incomingRequests.filter(r =>
       r.fromName.toLowerCase().includes(q)
@@ -204,7 +217,7 @@ export class NetworkPage implements OnInit {
       const newFriend: NetworkUser = {
         uid: req.fromId, name: req.fromName, initials: req.fromInitials,
         photoUrl: req.fromPhotoUrl || '',
-        department: '', userType: 'student', course: '', isPrivate: false, friendStatus: 'friend'
+        department: '', userType: 'student', course: '', graduationYear: '', isPrivate: false, friendStatus: 'friend'
       };
       this.friends.unshift(newFriend);
       this.incomingRequests = this.incomingRequests.filter(r => r.fromId !== req.fromId);

@@ -776,8 +776,24 @@ export class ProfilePage implements OnInit {
     this.verificationGradFileSize = '';
   }
 
+  isSocialMediaLinkValid(): boolean {
+    const val = this.verificationSocialMedia.trim();
+    if (!val) return true;
+    try {
+      const url = val.startsWith('http://') || val.startsWith('https://') ? val : `https://${val}`;
+      const parsed = new URL(url);
+      return parsed.hostname.includes('.');
+    } catch {
+      return false;
+    }
+  }
+
   async submitVerificationRequest() {
     if (!this.verificationGradFile || !this.verificationTermGraduated || this.isSubmittingVerification) return;
+    if (!this.isSocialMediaLinkValid()) {
+      await this.showSimpleAlert('Invalid Link', 'Please enter a valid URL for the social media link (e.g. facebook.com/yourname).');
+      return;
+    }
     const user = this.authService.getCurrentUser();
     if (!user) return;
     this.isSubmittingVerification = true;

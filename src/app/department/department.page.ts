@@ -8,6 +8,7 @@ interface Department {
   id: string;
   name: string;
   courses?: string[];
+  disabledCourses?: string[];
   createdAt?: any;
   members?: any[];
   description?: string;
@@ -120,6 +121,11 @@ export class DepartmentPage implements OnInit {
     'c-blue', 'c-green', 'c-purple', 'c-orange',
     'c-red', 'c-cyan', 'c-amber', 'c-pink'
   ];
+
+  getActiveCourses(dept: Department): string[] {
+    const disabled: string[] = dept.disabledCourses || [];
+    return (dept.courses || []).filter(c => !disabled.includes(c));
+  }
 
   get isHOD(): boolean {
     if (this.currentUserRole !== 'hod') return false;
