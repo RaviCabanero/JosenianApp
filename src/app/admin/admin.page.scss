@@ -5167,13 +5167,11 @@ $bg-light: #f3f4f6;
 
 .admin-department-card .dept-name {
   max-width: 100%;
-  overflow: hidden;
   color: $text-dark;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
   margin: 0;
 }
 
@@ -5388,7 +5386,7 @@ $bg-light: #f3f4f6;
   }
 
   .admin-department-card .dept-name {
-    max-width: 160px;
+    max-width: 100%;
   }
 
   .dept-actions {
