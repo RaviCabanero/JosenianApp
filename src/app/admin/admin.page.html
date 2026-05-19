@@ -90,8 +90,9 @@
 
     <main class="main-content">
       <header class="top-bar">
-        <h2 class="page-title">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
-        <button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
+<h2 class="page-title" *ngIf="activeTab !== 'nominations'">{{ activeTab === 'dashboard' ? 'Admin Dashboard' : activeTab === 'approval' ? 'Account Approval' : activeTab === 'departments' ? 'Departments & Courses' : activeTab === 'alumni' ? 'Alumni Management' : activeTab === 'events' ? 'Manage Events' : activeTab === 'attendance' ? 'Attendance Dashboard' : 'Alumni ID Verification' }}</h2>
+        <h2 class="page-title" *ngIf="activeTab === 'nominations'"><span class="inspire-word">INSPIRE</span> Nominations</h2>
+<button class="refresh-btn" (click)="refreshData()" [disabled]="isRefreshing" title="Refresh all data">
           <ion-icon name="refresh" [class.spinning]="isRefreshing"></ion-icon>
         </button>
       </header>
@@ -213,7 +214,22 @@
           <div class="approval-layout">
             <div class="requests-panel">
               <div class="panel-header">
-                <h3>Pending Requests</h3>
+                <div class="panel-header-left">
+                  <h3>Pending Requests</h3>
+                  <span class="pending-indicator" *ngIf="pendingUsers.length > 0">
+                    {{ pendingUsers.length }} need{{ pendingUsers.length === 1 ? 's' : '' }} approval
+                  </span>
+                  <span class="pending-indicator none" *ngIf="pendingUsers.length === 0">
+                    All caught up
+                  </span>
+                </div>
+                <button class="btn-approve-all" (click)="approveAllUsers()"
+                  [disabled]="pendingUsers.length === 0 || isApprovingAll"
+                  *ngIf="pendingUsers.length > 0">
+                  <ion-spinner name="crescent" *ngIf="isApprovingAll" style="width:14px;height:14px"></ion-spinner>
+                  <ion-icon name="checkmark-done-outline" *ngIf="!isApprovingAll"></ion-icon>
+                  {{ isApprovingAll ? 'Approving...' : 'Approve All' }}
+                </button>
               </div>
 
               <div class="search-filter-bar">
@@ -546,69 +562,88 @@
               [style.--dept-soft-color]="getDepartmentSoftColor(dept)"
               [style.--dept-border-color]="getDepartmentBorderColor(dept)"
             >
+              <!-- Department Header -->
               <div class="dept-header">
                 <div class="dept-title-wrap">
                   <div class="dept-avatar">{{ dept.name.charAt(0) }}</div>
                   <div>
                     <h4 class="dept-name">{{ dept.name }}</h4>
-                    <p>{{ dept.courses.length }} {{ dept.courses.length === 1 ? 'course' : 'courses' }} listed</p>
+                    <p class="dept-meta">
+                      <ion-icon name="book-outline"></ion-icon>
+                      {{ dept.courses.length }} {{ dept.courses.length === 1 ? 'course' : 'courses' }}
+                    </p>
                   </div>
                 </div>
                 <div class="dept-actions">
                   <button
-                    class="btn-icon btn-add"
+                    class="dept-action-btn add-course-btn"
                     (click)="toggleCourseForm(dept.id)"
-                    title="Add course"
                     [class.active]="selectedDepartmentId === dept.id"
-                  >
-                    <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove' : 'add'"></ion-icon>
+                    title="Add course">
+                    <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove-outline' : 'add-outline'"></ion-icon>
+                    <span>{{ selectedDepartmentId === dept.id ? 'Cancel' : 'Add Course' }}</span>
                   </button>
-                  <button class="btn-icon btn-edit" (click)="editDepartment(dept.id, dept.name)" title="Rename department">
-                    <ion-icon name="pencil"></ion-icon>
-                  </button>
-                  <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
-                    <ion-icon name="trash"></ion-icon>
-                  </button>
+                  <div class="dept-icon-actions">
+                    <button class="btn-icon btn-edit" (click)="editDepartment(dept.id, dept.name)" title="Rename department">
+                      <ion-icon name="pencil"></ion-icon>
+                    </button>
+                    <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
+                      <ion-icon name="trash"></ion-icon>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="courses-section">
-                <div class="courses-header">
-                  <span class="courses-label">Courses</span>
-                  <span class="courses-count">{{ dept.courses.length }}</span>
-                </div>
+              <!-- Add Course Form -->
+              <div class="add-course-form" *ngIf="selectedDepartmentId === dept.id && showCourseForm">
+                <ion-icon name="add-circle-outline" class="add-course-icon"></ion-icon>
+                <input
+                  type="text"
+                  [(ngModel)]="newCourseName"
+                  placeholder="Enter course name..."
+                  class="form-input add-course-input"
+                />
+                <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)">
+                  <ion-icon name="checkmark"></ion-icon>
+                  Save
+                </button>
+              </div>
 
-                <div class="add-course-form" *ngIf="selectedDepartmentId === dept.id && showCourseForm">
-                  <input
-                    type="text"
-                    [(ngModel)]="newCourseName"
-                    placeholder="Enter course name"
-                    class="form-input"
-                  />
-                  <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)">
-                    <ion-icon name="checkmark"></ion-icon>
-                    Add
-                  </button>
+              <!-- Courses Table -->
+              <div class="courses-section">
+                <div class="courses-table-header" *ngIf="dept.courses.length > 0">
+                  <span class="col-no">#</span>
+                  <span class="col-name">Course Name</span>
+                  <span class="col-actions">Actions</span>
                 </div>
 
                 <div class="courses-list">
-                  <div class="course-item" *ngFor="let course of dept.courses; let i = index">
-                    <span class="course-name">
-                      <ion-icon name="school-outline"></ion-icon>
+                  <div class="course-row" [class.course-disabled]="isCourseDisabled(dept, course)"
+                    *ngFor="let course of dept.courses; let i = index">
+                    <span class="course-row-no">{{ i + 1 }}</span>
+                    <span class="course-row-name">
+                      <ion-icon name="chevron-forward-outline"></ion-icon>
                       {{ course }}
+                      <span class="course-disabled-badge" *ngIf="isCourseDisabled(dept, course)">Disabled</span>
                     </span>
-                    <div class="course-item-actions">
-                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)" title="Rename course">
+                    <div class="course-row-actions">
+                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)"
+                        [disabled]="isCourseDisabled(dept, course)" title="Rename course">
                         <ion-icon name="pencil-outline"></ion-icon>
                       </button>
-                      <button class="btn-icon btn-delete-small" (click)="deleteCourse(dept.id, i)" title="Delete course">
-                        <ion-icon name="close"></ion-icon>
+                      <button class="btn-icon btn-toggle-course"
+                        [class.btn-enable]="isCourseDisabled(dept, course)"
+                        (click)="toggleCourseDisabled(dept.id, course)"
+                        [title]="isCourseDisabled(dept, course) ? 'Enable course' : 'Disable course'">
+                        <ion-icon [name]="isCourseDisabled(dept, course) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
                       </button>
                     </div>
                   </div>
+
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
                     <ion-icon name="library-outline"></ion-icon>
-                    <p>No courses yet</p>
+                    <p>No courses added yet</p>
+                    <span>Click "Add Course" to get started.</span>
                   </div>
                 </div>
               </div>
@@ -1068,22 +1103,6 @@
                   </button>
                 </div>
 
-                <div class="points-mgmt-section" *ngIf="selectedAlumni.source === 'registered'">
-                  <h4 class="points-mgmt-title">
-                    <ion-icon name="star-outline"></ion-icon>
-                    Points Adjustment
-                  </h4>
-                  <p class="points-mgmt-current">Current: <strong>{{ selectedAlumni.totalPoints || 0 }} pts</strong></p>
-                  <div class="points-mgmt-form">
-                    <input type="number" [(ngModel)]="adjustPointsAmount" placeholder="Amount (e.g. -5 or +20)" class="form-input pts-input" />
-                    <input type="text" [(ngModel)]="adjustPointsReason" placeholder="Reason for adjustment" class="form-input pts-input" />
-                    <button class="btn btn-primary btn-sm" (click)="adjustUserPoints(selectedAlumni.id)">
-                      <ion-icon name="checkmark"></ion-icon>
-                      Apply
-                    </button>
-                  </div>
-                </div>
-
                 <div class="action-buttons">
                   <button class="btn btn-edit" *ngIf="selectedAlumni.source === 'manual'" (click)="editAlumni(selectedAlumni.id)">
                     <ion-icon name="pencil"></ion-icon>
@@ -1148,12 +1167,22 @@
 
             <div class="form-row-inline">
               <div class="form-group">
-                <label class="form-label">Date <span class="required">*</span></label>
+                <label class="form-label">Start Date <span class="required">*</span></label>
                 <input type="date" [(ngModel)]="newEvent.date" [min]="todayDate" class="form-input" />
               </div>
               <div class="form-group">
-                <label class="form-label">Time</label>
+                <label class="form-label">Start Time</label>
                 <input type="time" [(ngModel)]="newEvent.time" class="form-input" />
+              </div>
+            </div>
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label class="form-label">End Date <span class="optional-label">(optional)</span></label>
+                <input type="date" [(ngModel)]="newEvent.endDate" [min]="newEvent.date || todayDate" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Time <span class="optional-label">(optional)</span></label>
+                <input type="time" [(ngModel)]="newEvent.endTime" class="form-input" />
               </div>
             </div>
 
@@ -1166,7 +1195,7 @@
               <div class="form-group">
                 <label class="form-label">Event Type</label>
                 <select [(ngModel)]="newEvent.eventType" class="form-input">
-                  <option value="global">Global (All Users)</option>
+                  <option value="global">Institutional (All Users)</option>
                   <option value="alumni">Alumni Only</option>
                   <option value="student">Student Only</option>
                   <option value="department">Department</option>
@@ -1180,7 +1209,7 @@
 
             <div class="form-row-inline">
               <div class="form-group">
-                <label class="form-label">Event Category <span class="points-badge-hint">affects points awarded</span></label>
+                <label class="form-label">Event Category </label>
                 <select [(ngModel)]="newEvent.eventCategory" (change)="onEventCategoryChange()" class="form-input">
                   <option value="regular">Regular Event (+10 pts default)</option>
                   <option value="special">Special Event (+20 pts default)</option>
@@ -1190,7 +1219,7 @@
               <div class="form-group">
                 <label class="form-label">
                   Points Value
-                  <span class="points-badge-hint">customizable</span>
+                  
                 </label>
                 <input type="number" [(ngModel)]="newEvent.pointValue" class="form-input" min="0" max="999" />
               </div>
@@ -1237,55 +1266,98 @@
             </button>
           </div>
 
-          <div class="events-summary" *ngIf="events.length > 0">
-            <span class="events-count">{{ events.length }} event{{ events.length !== 1 ? 's' : '' }} total</span>
+          <!-- Events Stats Bar -->
+          <div class="events-stats-bar" *ngIf="events.length > 0">
+            <div class="event-stat-pill">
+              <ion-icon name="calendar"></ion-icon>
+              <span><strong>{{ events.length }}</strong> Total</span>
+            </div>
+            <div class="event-stat-pill upcoming">
+              <ion-icon name="time-outline"></ion-icon>
+              <span><strong>{{ upcomingEventsCount }}</strong> Upcoming</span>
+            </div>
+            <div class="event-stat-pill past">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+              <span><strong>{{ pastEventsCount }}</strong> Past</span>
+            </div>
           </div>
 
-          <div class="events-grid" *ngIf="events.length > 0">
-            <div class="event-admin-card" *ngFor="let ev of events"
-                 [class.active]="selectedEvent?.id === ev.id"
-                 [class.past]="isEventPast(ev)"
+          <!-- Events Cards -->
+          <div class="ev-list" *ngIf="events.length > 0">
+            <div class="ev-card"
+                 *ngFor="let ev of events"
+                 [class.ev-upcoming]="!isEventPast(ev)"
+                 [class.ev-past]="isEventPast(ev)"
+                 [class.ev-selected]="selectedEvent?.id === ev.id"
                  (click)="selectEventDetail(ev)">
 
-              <div class="event-admin-cover">
-                <img [src]="getEventCoverSrc(ev)" *ngIf="hasEventCover(ev)" alt="" class="event-admin-cover-img" />
-                <div class="event-admin-cover-placeholder" *ngIf="!hasEventCover(ev)">
-                  <ion-icon name="calendar"></ion-icon>
-                </div>
-                <span class="event-type-pill">{{ ev.eventType || 'Global' }}</span>
-                <span class="event-points-pill">+{{ ev.pointValue ?? 10 }} pts</span>
-                <span class="event-past-pill" *ngIf="isEventPast(ev)">Past</span>
-              </div>
+              <!-- Card body: image | info | actions -->
+              <div class="ev-card-body">
 
-              <div class="event-admin-info">
-                <h4 class="event-admin-title">{{ ev.title }}</h4>
-                <p class="event-admin-meta">
-                  <ion-icon name="calendar-outline"></ion-icon>
-                  {{ formatEventDate(ev) }}
-                  <span *ngIf="ev.time"> Â· {{ formatEventTime(ev) }}</span>
-                </p>
-                <p class="event-admin-meta" *ngIf="ev.location">
-                  <ion-icon name="location-outline"></ion-icon>
-                  {{ ev.location }}
-                </p>
-                <div class="event-admin-footer">
-                  <span class="attendees-badge">
-                    <ion-icon name="people-outline"></ion-icon>
-                    {{ ev.attendees?.length || 0 }}
-                    <span *ngIf="ev.maxParticipants"> / {{ ev.maxParticipants }}</span>
-                  </span>
-                  <div class="event-card-actions" (click)="$event.stopPropagation()">
-                    <button class="btn-icon btn-edit" (click)="editEvent(ev.id)" title="Edit">
-                      <ion-icon name="pencil"></ion-icon>
-                    </button>
-                    <button class="btn-icon btn-delete" (click)="deleteEvent(ev.id)" title="Delete">
-                      <ion-icon name="trash"></ion-icon>
-                    </button>
+                <!-- Image -->
+                <div class="ev-img-wrap">
+                  <img [src]="getEventCoverSrc(ev)" *ngIf="hasEventCover(ev)" class="ev-img" alt="" />
+                  <div class="ev-img-placeholder" *ngIf="!hasEventCover(ev)">
+                    <ion-icon name="calendar-outline"></ion-icon>
                   </div>
                 </div>
+
+                <!-- Info -->
+                <div class="ev-info">
+                  <div class="ev-title-row">
+                    <h4 class="ev-title">{{ ev.title }}</h4>
+                    <span class="ev-status" [class.ev-status-past]="isEventPast(ev)">
+                      <span class="ev-status-dot"></span>
+                      {{ isEventPast(ev) ? 'Past' : 'Upcoming' }}
+                    </span>
+                  </div>
+
+                  <div class="ev-meta-list">
+                    <span class="ev-meta">
+                      <ion-icon name="calendar-outline"></ion-icon>
+                      {{ formatEventDate(ev) }}<span *ngIf="ev.time"> &nbsp;·&nbsp; {{ formatEventTime(ev) }}</span>
+                    </span>
+                    <span class="ev-meta" *ngIf="ev.location">
+                      <ion-icon name="location-outline"></ion-icon>
+                      {{ ev.location }}
+                    </span>
+                    <span class="ev-meta">
+                      <ion-icon name="people-outline"></ion-icon>
+                      {{ ev.attendees?.length || 0 }} joined
+                      <span *ngIf="ev.maxParticipants"> / {{ ev.maxParticipants }} max</span>
+                    </span>
+                  </div>
+
+                  <div class="ev-tags">
+                    <span class="ev-badge ev-badge-type">
+                      {{ ev.eventType === 'global' ? 'Institutional' : (ev.eventType || 'Institutional') | titlecase }}
+                    </span>
+                    <span class="ev-badge ev-badge-category ev-badge-{{ev.eventCategory || 'regular'}}">
+                      {{ ev.eventCategory || 'Regular' | titlecase }}
+                    </span>
+                    <span class="ev-badge ev-badge-pts">
+                      <ion-icon name="star-outline"></ion-icon>
+                      +{{ ev.pointValue ?? 10 }} pts
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Actions (top-right icon buttons) -->
+                <div class="ev-actions" (click)="$event.stopPropagation()">
+                  <button class="ev-btn ev-btn-edit" (click)="editEvent(ev.id)" title="Edit event">
+                    <ion-icon name="pencil-outline"></ion-icon>
+                  </button>
+                  <button class="ev-btn ev-btn-qr" (click)="showEventQR(ev)" title="Show QR code">
+                    <ion-icon name="qr-code-outline"></ion-icon>
+                  </button>
+                  <button class="ev-btn ev-btn-delete" (click)="deleteEvent(ev.id)" title="Delete event">
+                    <ion-icon name="trash-outline"></ion-icon>
+                  </button>
+                </div>
               </div>
 
-              <div class="event-admin-detail" *ngIf="selectedEvent?.id === ev.id" (click)="$event.stopPropagation()">
+              <!-- Expandable Detail -->
+              <div class="ev-detail" *ngIf="selectedEvent?.id === ev.id" (click)="$event.stopPropagation()">
                 <p class="event-detail-desc">{{ ev.description }}</p>
                 <p class="event-detail-meta" *ngIf="ev.maxParticipants">
                   <strong>Max Participants:</strong> {{ ev.maxParticipants }}
@@ -1313,7 +1385,6 @@
                     <ion-spinner name="crescent"></ion-spinner>
                     <span>Loading...</span>
                   </div>
-
                   <div class="participant-row" *ngFor="let p of eventParticipants">
                     <div class="participant-avatar">
                       {{ (p.firstName?.charAt(0) || p.email?.charAt(0) || 'U').toUpperCase() }}
@@ -1328,7 +1399,6 @@
                       {{ p.userType === 'alumni' ? 'Alumni' : 'Student' }}
                     </span>
                   </div>
-
                   <div class="participants-empty" *ngIf="!loadingParticipants && eventParticipants.length === 0">
                     <ion-icon name="people-outline"></ion-icon>
                     <span>No participants yet.</span>
@@ -1678,7 +1748,7 @@
             </div>
             <select class="att-event-select" [(ngModel)]="activeDashboardEventId" (change)="selectDashboardEvent(activeDashboardEventId)">
               <option value="">-- Choose an event to view attendance --</option>
-              <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} Â· {{ formatEventDate(ev) }}</option>
+              <option *ngFor="let ev of events" [value]="ev.id">{{ ev.title }} · {{ formatEventDate(ev) }}</option>
             </select>
           </div>
 
@@ -1703,7 +1773,7 @@
                   <ion-icon *ngIf="!hasEventCover(dashboardEvent)" name="calendar-outline"></ion-icon>
                 </div>
                 <div class="att-event-details">
-                  <span class="att-event-type-badge">{{ dashboardEvent.eventType === 'global' ? 'Global Event' : 'Department Event' }}</span>
+                  <span class="att-event-type-badge">{{ dashboardEvent.eventType === 'global' ? 'Institutional Event' : 'Department Event' }}</span>
                   <h2 class="att-event-title">{{ dashboardEvent.title }}</h2>
                   <div class="att-event-meta">
                     <span class="att-meta-item">
@@ -1931,7 +2001,7 @@
 
     <p class="qr-validity-note" *ngIf="!isGeneratingQR">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
-      Valid only on the event date Â· Registered users only
+      Valid only on the event date · Registered users only
     </p>
 
     <div class="qr-stats-row">

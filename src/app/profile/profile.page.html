@@ -310,7 +310,7 @@
             <div class="inspired-progress-track">
               <div class="inspired-progress-fill" [style.width.%]="getInspiredProgress(cat.key)" [style.background]="cat.color"></div>
             </div>
-            <span class="inspired-next">{{ getInspiredNextLabel(cat.key) }} Â· {{ inspiredPoints[cat.key] || 0 }} pts</span>
+            <span class="inspired-next">{{ getInspiredNextLabel(cat.key) }} · {{ inspiredPoints[cat.key] || 0 }} pts</span>
           </div>
         </div>
       </div>
@@ -377,12 +377,19 @@
             <ion-select-option value="Summer">Summer</ion-select-option>
           </ion-select>
 
-          <p class="verify-upload-label" style="margin-top:12px">Social Media Account or Link
-            <span class="verify-upload-sub">e.g. Facebook, Instagram URL (optional)</span>
+          <p class="verify-upload-label" style="margin-top:12px">Social Media Link
+            <span class="verify-upload-sub">e.g. facebook.com/yourname (optional)</span>
           </p>
           <ion-input [(ngModel)]="verificationSocialMedia"
             placeholder="e.g. facebook.com/yourname"
-            class="verify-social-input field-input"></ion-input>
+            type="url"
+            inputmode="url"
+            class="verify-social-input field-input"
+            [class.input-error]="verificationSocialMedia && !isSocialMediaLinkValid()"></ion-input>
+          <p class="verify-social-error" *ngIf="verificationSocialMedia && !isSocialMediaLinkValid()">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            Please enter a valid link (e.g. facebook.com/yourname)
+          </p>
 
           <p class="verify-upload-label" style="margin-top:12px">
             Graduation / Formal Photo
@@ -720,7 +727,7 @@
           <div class="photo-action-icon green"><ion-icon name="image-outline"></ion-icon></div>
           <div class="photo-action-text">
             <span class="photo-action-title">{{ userProfile.photoUrl ? 'Change Photo' : 'Upload Photo' }}</span>
-            <span class="photo-action-sub">JPG, PNG, WebP Â· Max 5 MB</span>
+            <span class="photo-action-sub">JPG, PNG, WebP · Max 5 MB</span>
           </div>
           <ion-icon name="chevron-forward" class="photo-action-arrow"></ion-icon>
         </button>

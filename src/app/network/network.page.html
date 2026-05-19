@@ -86,6 +86,13 @@
       </div>
 
       <div *ngIf="activeTab === 'people'">
+        <div class="batch-filter-row" *ngIf="availableBatches.length > 0">
+          <ion-icon name="school-outline" class="batch-filter-icon"></ion-icon>
+          <select class="batch-select" [(ngModel)]="filterBatch" (change)="applyBatchFilter()">
+            <option value="">All Batches</option>
+            <option *ngFor="let year of availableBatches" [value]="year">Batch {{ year }}</option>
+          </select>
+        </div>
         <div class="empty-state" *ngIf="filteredPeople.length === 0">
           <ion-icon name="search-outline"></ion-icon>
           <h3>No results</h3>

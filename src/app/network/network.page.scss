@@ -365,6 +365,34 @@ $bg:       #f3f4f6;
 
 .net-search { margin-bottom: 12px; --padding-start: 0; --padding-end: 0; }
 
+.batch-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.batch-filter-icon {
+  font-size: 18px;
+  color: $text-3;
+  flex-shrink: 0;
+}
+
+.batch-select {
+  flex: 1;
+  appearance: auto;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid $border;
+  background: #fff;
+  color: $text-1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  &:focus { border-color: $green; }
+}
+
 @media (max-width: 480px) {
   .tab-btn { font-size: 11px; padding: 10px 4px; gap: 3px; }
   .user-name { font-size: 14px; }
