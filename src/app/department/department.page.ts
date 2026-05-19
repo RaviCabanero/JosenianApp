@@ -106,6 +106,16 @@ export class DepartmentPage implements OnInit {
 
   readonly tabs = ['overview', 'members', 'events', 'wall'];
 
+  nominationSearch = '';
+  nominationSearchResults: any[] = [];
+  nominationTarget: any = null;
+  nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+  nominationProofFile: File | null = null;
+  nominationProofFileName = '';
+  isSubmittingNomination = false;
+  myNominations: any[] = [];
+  isLoadingMyNominations = false;
+
   private readonly colorClasses = [
     'c-blue', 'c-green', 'c-purple', 'c-orange',
     'c-red', 'c-cyan', 'c-amber', 'c-pink'
@@ -126,7 +136,8 @@ export class DepartmentPage implements OnInit {
   get visibleTabs(): string[] {
     if (!this.selectedDepartment) return ['overview'];
     const deptId = this.selectedDepartment.id;
-    if (this.isHOD || this.isPrimaryDepartment(deptId)) return this.tabs;
+    if (this.isHOD) return [...this.tabs, 'nominations'];
+    if (this.isPrimaryDepartment(deptId)) return this.tabs;
     if (this.isFollowing) return ['overview', 'events', 'wall'];
     return ['overview'];
   }
@@ -234,6 +245,7 @@ export class DepartmentPage implements OnInit {
             ...m,
             middleName: profile.middleName || m.middleName || '',
             birthdate: profile.birthdate || m.birthdate || '',
+            email: profile.email || m.email || '',
           };
         })
       }));
@@ -288,6 +300,7 @@ export class DepartmentPage implements OnInit {
       members: 'people-outline',
       events: 'calendar-outline',
       wall: 'chatbubbles-outline',
+      nominations: 'ribbon-outline',
     };
     return map[tab] || 'ellipse-outline';
   }
@@ -342,6 +355,9 @@ export class DepartmentPage implements OnInit {
     if (tab === 'wall') {
       this.wallInput = '';
       this.loadWallPosts();
+    }
+    if (tab === 'nominations') {
+      this.loadMyNominations();
     }
   }
 
@@ -598,6 +614,110 @@ export class DepartmentPage implements OnInit {
 
   isWallPostOwner(post: DeptWallPost): boolean {
     return post.authorId === this.currentUserId;
+  }
+
+  searchNominationUsers() {
+    if (!this.nominationSearch.trim()) {
+      this.nominationSearchResults = [];
+      return;
+    }
+    const term = this.nominationSearch.toLowerCase();
+    this.nominationSearchResults = (this.selectedDepartment?.members || [])
+      .filter((m: any) => {
+        const name = (m.name || '').toLowerCase();
+        const email = (m.email || '').toLowerCase();
+        return name.includes(term) || email.includes(term);
+      })
+      .slice(0, 8);
+  }
+
+  selectNominationTarget(member: any) {
+    this.nominationTarget = member;
+    this.nominationSearch = member.name || '';
+    this.nominationSearchResults = [];
+  }
+
+  clearNominationTarget() {
+    this.nominationTarget = null;
+    this.nominationSearch = '';
+    this.nominationSearchResults = [];
+  }
+
+  onNominationProofSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    this.nominationProofFile = file;
+    this.nominationProofFileName = file.name;
+  }
+
+  async loadMyNominations() {
+    this.isLoadingMyNominations = true;
+    try {
+      this.myNominations = await this.authService.getHodNominations(this.currentUserId);
+    } catch (err) {
+      console.error('Error loading HOD nominations:', err);
+    } finally {
+      this.isLoadingMyNominations = false;
+    }
+  }
+
+  async submitNomination() {
+    if (!this.nominationTarget) {
+      const alert = await this.alertCtrl.create({ header: 'Missing Info', message: 'Please select a department member to nominate.', buttons: ['OK'] });
+      await alert.present();
+      return;
+    }
+    if (!this.nominationForm.reason.trim()) {
+      const alert = await this.alertCtrl.create({ header: 'Missing Info', message: 'Please provide a reason for the nomination.', buttons: ['OK'] });
+      await alert.present();
+      return;
+    }
+    this.isSubmittingNomination = true;
+    try {
+      await this.authService.createNomination({
+        nomineeId: this.nominationTarget.userId,
+        nomineeName: this.nominationTarget.name || '',
+        nomineeEmail: this.nominationTarget.email || '',
+        nominatedBy: this.currentUserId,
+        nominatedByName: this.currentUserName,
+        nominatedByRole: 'hod',
+        nominatedByDeptId: this.currentUserDepartmentId,
+        inspireCategory: this.nominationForm.inspireCategory,
+        points: this.nominationForm.points,
+        reason: this.nominationForm.reason,
+        proofFile: this.nominationProofFile || undefined,
+      });
+      const alert = await this.alertCtrl.create({ header: 'Nomination Submitted', message: `Your nomination for ${this.nominationTarget.name} has been submitted for admin approval.`, buttons: ['OK'] });
+      await alert.present();
+      this.nominationTarget = null;
+      this.nominationSearch = '';
+      this.nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
+      this.nominationProofFile = null;
+      this.nominationProofFileName = '';
+      await this.loadMyNominations();
+    } catch (err) {
+      console.error('Error submitting nomination:', err);
+      const alert = await this.alertCtrl.create({ header: 'Error', message: 'Failed to submit nomination. Please try again.', buttons: ['OK'] });
+      await alert.present();
+    } finally {
+      this.isSubmittingNomination = false;
+    }
+  }
+
+  getNominationCategoryLabel(key: string): string {
+    const map: Record<string, string> = {
+      interiority: 'I - Interiority', nationalism: 'N - Nationalism',
+      service: 'S - Service', pioneerism: 'P - Pioneerism',
+      integrity: 'I - Integrity', reliability: 'R - Reliability',
+      excellence: 'E - Excellence',
+    };
+    return map[key] || key;
+  }
+
+  formatNominationDate(createdAt: any): string {
+    if (!createdAt) return '';
+    const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   formatWallTime(createdAt: any): string {

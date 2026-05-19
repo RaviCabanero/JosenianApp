@@ -29,7 +29,6 @@
 <ion-content [fullscreen]="true">
   <div class="page-container">
 
-    
     <div class="welcome-banner">
       <div class="banner-bg-deco"></div>
       <div class="banner-body">
@@ -39,56 +38,90 @@
         </span>
         <h1 class="banner-title">Welcome back,<br><span class="banner-name">{{ user.firstName || user.name.split(' ')[0] }}!</span></h1>
         <p class="banner-dept" *ngIf="user.department">{{ user.department }}</p>
+        <button class="scan-pill" (click)="goToScanner()">
+          <ion-icon name="qr-code-outline"></ion-icon>
+          Scan QR
+        </button>
       </div>
       <div class="banner-logo-wrap">
         <img src="assets/logo2.2.png" alt="USJ-R" class="banner-logo" />
       </div>
     </div>
-
-    
-
-    
+<!--
     <div class="section-row">
       <h2 class="section-label">Quick Actions</h2>
     </div>
 
     <div class="quick-grid">
-      <button class="qg-btn" (click)="goToScanner()">
-        <div class="qg-icon qg-green"><ion-icon name="qr-code-outline"></ion-icon></div>
-        <span class="qg-text">Scan QR</span>
+      <button class="qg-btn" (click)="goToCard(1)">
+        <div class="qg-icon qg-green"><ion-icon name="business-outline"></ion-icon></div>
+        <span class="qg-text">My Dept</span>
       </button>
       <button class="qg-btn" (click)="goToCard(4)">
         <div class="qg-icon qg-blue"><ion-icon name="newspaper-outline"></ion-icon></div>
         <span class="qg-text">Feeds</span>
       </button>
       <button class="qg-btn" (click)="goToCard(2)">
-        <div class="qg-icon qg-purple"><ion-icon name="people-outline"></ion-icon></div>
+        <div class="qg-icon qg-purple" style="position:relative">
+          <ion-icon name="people-outline"></ion-icon>
+          <span class="qg-badge" *ngIf="pendingRequests > 0">{{ pendingRequests }}</span>
+        </div>
         <span class="qg-text">Network</span>
       </button>
-      <button class="qg-btn" (click)="goToMessages()">
-        <div class="qg-icon qg-gold"><ion-icon name="chatbubbles-outline"></ion-icon></div>
-        <span class="qg-text">Messages</span>
+      <button class="qg-btn" (click)="goToCard(3)">
+        <div class="qg-icon qg-amber"><ion-icon name="time-outline"></ion-icon></div>
+        <span class="qg-text">History</span>
       </button>
     </div>
-
-    
+  -->
     <div class="section-row">
-      <h2 class="section-label">Overview</h2>
+      <h2 class="section-label">Quick Actions</h2>
     </div>
 
-    <div class="nav-cards">
-      <div class="nav-card" *ngFor="let card of dashboardCards" (click)="goToCard(card.id)">
-        <div class="nav-card-icon" [class]="'nci-' + card.color">
-          <ion-icon [name]="card.icon"></ion-icon>
+    <div class="overview-grid">
+      <div class="ov-card ov-green" (click)="goToCard(1)">
+        <div class="ov-icon-wrap">
+          <ion-icon name="business-outline"></ion-icon>
         </div>
-        <div class="nav-card-body">
-          <span class="nav-card-title">{{ card.title }}</span>
-          <span class="nav-card-desc">{{ card.description }}</span>
+        <div class="ov-body">
+          <span class="ov-title">My Department</span>
+          <span class="ov-sub">Members</span>
         </div>
-        <div class="nav-card-right">
-          <span class="nav-card-value">{{ card.value }}</span>
-          <ion-icon name="chevron-forward" class="nav-card-arrow"></ion-icon>
+        <ion-icon name="chevron-forward-outline" class="ov-arrow"></ion-icon>
+      </div>
+
+      <div class="ov-card ov-gold" (click)="goToCard(2)">
+        <div class="ov-icon-wrap" style="position:relative">
+          <ion-icon name="people-outline"></ion-icon>
+          <span class="ov-req-badge" *ngIf="pendingRequests > 0">{{ pendingRequests }}</span>
         </div>
+        <div class="ov-body">
+          <span class="ov-title">My Network</span>
+          <span class="ov-sub">Connections</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="ov-arrow"></ion-icon>
+      </div>
+
+      <div class="ov-card ov-blue" (click)="goToCard(3)">
+        <div class="ov-icon-wrap">
+          <ion-icon name="time-outline"></ion-icon>
+        </div>
+        <div class="ov-body">
+          <span class="ov-title">History</span>
+          <span class="ov-sub">Events attended</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="ov-arrow"></ion-icon>
+      </div>
+
+      <div class="ov-card ov-purple" (click)="goToCard(4)">
+        <div class="ov-icon-wrap">
+          <ion-icon name="newspaper-outline"></ion-icon>
+        </div>
+        <div class="ov-body">
+          <span class="ov-title">Feeds</span>
+          <span class="ov-sub">Your posts</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="ov-arrow"></ion-icon>
       </div>
     </div>
 

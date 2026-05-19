@@ -85,15 +85,10 @@ export class AdminPage implements OnInit {
   };
 
   allAppUsers: any[] = [];
-  nominationSearch = '';
-  nominationSearchResults: any[] = [];
-  nominationTarget: any = null;
-  nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
-  nominationProofFile: File | null = null;
-  nominationProofFileName = '';
-  isSubmittingNomination = false;
-  nominations: any[] = [];
+  pendingNominations: any[] = [];
   isLoadingNominations = false;
+  rejectReasonMap: { [id: string]: string } = {};
+  isProcessingNomination: { [id: string]: boolean } = {};
 
   events: any[] = [];
   showEventForm: boolean = false;
@@ -1485,49 +1480,15 @@ export class AdminPage implements OnInit {
     if (tab === 'attendance' && this.leaderboard.length === 0) {
       this.loadLeaderboard();
     }
-    if (tab === 'nominations' && this.nominations.length === 0) {
+    if (tab === 'nominations' && this.pendingNominations.length === 0) {
       this.loadNominations();
     }
-  }
-
-  searchNominationUsers() {
-    if (!this.nominationSearch.trim()) {
-      this.nominationSearchResults = [];
-      return;
-    }
-    const term = this.nominationSearch.toLowerCase();
-    this.nominationSearchResults = this.allAppUsers
-      .filter((u: any) => {
-        const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
-        const email = (u.email || '').toLowerCase();
-        return name.includes(term) || email.includes(term);
-      })
-      .slice(0, 8);
-  }
-
-  selectNominationTarget(user: any) {
-    this.nominationTarget = user;
-    this.nominationSearch = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    this.nominationSearchResults = [];
-  }
-
-  clearNominationTarget() {
-    this.nominationTarget = null;
-    this.nominationSearch = '';
-    this.nominationSearchResults = [];
-  }
-
-  onNominationProofSelected(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    this.nominationProofFile = file;
-    this.nominationProofFileName = file.name;
   }
 
   async loadNominations() {
     this.isLoadingNominations = true;
     try {
-      this.nominations = await this.authService.getNominations();
+      this.pendingNominations = await this.authService.getNominations('pending');
     } catch (err) {
       console.error('Error loading nominations:', err);
     } finally {
@@ -1535,40 +1496,37 @@ export class AdminPage implements OnInit {
     }
   }
 
-  async submitNomination() {
-    if (!this.nominationTarget) {
-      await this.showAlert('Missing Info', 'Please select a user to nominate.');
-      return;
-    }
-    if (!this.nominationForm.reason.trim()) {
-      await this.showAlert('Missing Info', 'Please provide a reason for the nomination.');
-      return;
-    }
-    this.isSubmittingNomination = true;
+  async approveNomination(nomination: any) {
+    this.isProcessingNomination[nomination.id] = true;
     try {
-      await this.authService.createNomination({
-        nomineeId: this.nominationTarget.id || this.nominationTarget.uid,
-        nomineeName: `${this.nominationTarget.firstName || ''} ${this.nominationTarget.lastName || ''}`.trim(),
-        nomineeEmail: this.nominationTarget.email || '',
-        nominatedBy: this.authService.getCurrentUser()?.uid || '',
-        nominatedByName: this.currentAdminName,
-        inspireCategory: this.nominationForm.inspireCategory,
-        points: this.nominationForm.points,
-        reason: this.nominationForm.reason,
-        proofFile: this.nominationProofFile || undefined,
-      });
-      await this.showAlert('Nomination Submitted', `${this.nominationSearch} has been awarded ${this.nominationForm.points} INSPIRE points.`);
-      this.nominationTarget = null;
-      this.nominationSearch = '';
-      this.nominationForm = { inspireCategory: 'service', points: 5, reason: '' };
-      this.nominationProofFile = null;
-      this.nominationProofFileName = '';
+      await this.authService.approveNomination(nomination.id);
+      await this.showAlert('Approved', `${nomination.nomineeName}'s nomination has been approved and points have been awarded.`);
       await this.loadNominations();
     } catch (err) {
-      console.error('Error submitting nomination:', err);
-      await this.showAlert('Error', 'Failed to submit nomination. Please try again.');
+      console.error('Error approving nomination:', err);
+      await this.showAlert('Error', 'Failed to approve nomination. Please try again.');
     } finally {
-      this.isSubmittingNomination = false;
+      this.isProcessingNomination[nomination.id] = false;
+    }
+  }
+
+  async rejectNomination(nomination: any) {
+    const reason = (this.rejectReasonMap[nomination.id] || '').trim();
+    if (!reason) {
+      await this.showAlert('Missing Reason', 'Please provide a rejection reason before rejecting.');
+      return;
+    }
+    this.isProcessingNomination[nomination.id] = true;
+    try {
+      await this.authService.rejectNomination(nomination.id, reason);
+      await this.showAlert('Rejected', `${nomination.nomineeName}'s nomination has been rejected and the HOD has been notified.`);
+      this.rejectReasonMap[nomination.id] = '';
+      await this.loadNominations();
+    } catch (err) {
+      console.error('Error rejecting nomination:', err);
+      await this.showAlert('Error', 'Failed to reject nomination. Please try again.');
+    } finally {
+      this.isProcessingNomination[nomination.id] = false;
     }
   }
 

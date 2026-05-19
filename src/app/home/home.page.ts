@@ -24,14 +24,16 @@ export class HomePage implements OnInit, OnDestroy {
 
   notifications = 0;
   unreadChats = 0;
+  pendingRequests = 0;
   private notifUnsubscribe: (() => void) | null = null;
   private chatUnsubscribe: (() => void) | null = null;
+  private requestsUnsubscribe: (() => void) | null = null;
 
   dashboardCards = [
-    { id: 1, title: 'My Department', shortLabel: 'Dept',     icon: 'business-outline',  value: 'â€”', description: 'Department members',  color: 'primary'   },
-    { id: 2, title: 'My Network',    shortLabel: 'Network',  icon: 'people-outline',    value: 'â€”', description: 'Connections',         color: 'secondary' },
-    { id: 3, title: 'History',       shortLabel: 'Events',   icon: 'time-outline',      value: 'â€”', description: 'Events attended',     color: 'tertiary'  },
-    { id: 4, title: 'Feeds',         shortLabel: 'Posts',    icon: 'newspaper-outline', value: 'â€”', description: 'Your posts',          color: 'success'   },
+    { id: 1, title: 'My Department', shortLabel: 'Dept',     icon: 'business-outline',  value: '—', description: 'Department members',  color: 'primary'   },
+    { id: 2, title: 'My Network',    shortLabel: 'Network',  icon: 'people-outline',    value: '—', description: 'Connections',         color: 'secondary' },
+    { id: 3, title: 'History',       shortLabel: 'Events',   icon: 'time-outline',      value: '—', description: 'Events attended',     color: 'tertiary'  },
+    { id: 4, title: 'Feeds',         shortLabel: 'Posts',    icon: 'newspaper-outline', value: '—', description: 'Your posts',          color: 'success'   },
   ];
 
   get greeting(): string {
@@ -65,6 +67,7 @@ export class HomePage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.notifUnsubscribe?.();
     this.chatUnsubscribe?.();
+    this.requestsUnsubscribe?.();
   }
 
   private subscribeToUnreadCounts() {
@@ -82,6 +85,11 @@ export class HomePage implements OnInit, OnDestroy {
       this.chatUnsubscribe = this.chatService.subscribeToUnreadChatCount(
         user.uid,
         count => { this.unreadChats = count; }
+      );
+
+      this.requestsUnsubscribe = onSnapshot(
+        collection(this.firestore, 'users', user.uid, 'friendRequests'),
+        snapshot => { this.pendingRequests = snapshot.size; }
       );
     });
   }
@@ -166,6 +174,10 @@ export class HomePage implements OnInit, OnDestroy {
 
   goToNotifications() {
     this.router.navigate(['/notifications']);
+  }
+
+  getCard(id: number) {
+    return this.dashboardCards.find(c => c.id === id);
   }
 
   goToScanner() {
