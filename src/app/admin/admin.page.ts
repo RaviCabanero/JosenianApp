@@ -133,6 +133,9 @@ export class AdminPage implements OnInit {
   showCourseForm: boolean = false;
   isLoadingDepts: boolean = false;
   isRefreshing: boolean = false;
+  // Department Detail Modal
+  showDepartmentDetailModal: boolean = false;
+  selectedDepartmentDetail: any = null;
   departmentMap: {[id: string]: string} = {};
   departmentColorOptions: string[] = [
     '#1E5128',
@@ -644,6 +647,10 @@ export class AdminPage implements OnInit {
       await this.authService.addCourse(departmentId, this.newCourseName);
       const department = this.departments.find(d => d.id === departmentId);
       if (department) department.courses.push(this.newCourseName);
+      // Update modal detail if it's open
+      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+        this.selectedDepartmentDetail.courses.push(this.newCourseName);
+      }
       this.newCourseName = '';
       this.showCourseForm = false;
       this.selectedDepartmentId = null;
@@ -672,6 +679,15 @@ export class AdminPage implements OnInit {
       } else {
         dept.disabledCourses = dept.disabledCourses.filter((c: string) => c !== course);
       }
+      // Update modal detail if it's open
+      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === deptId) {
+        if (!this.selectedDepartmentDetail.disabledCourses) this.selectedDepartmentDetail.disabledCourses = [];
+        if (disable) {
+          this.selectedDepartmentDetail.disabledCourses.push(course);
+        } else {
+          this.selectedDepartmentDetail.disabledCourses = this.selectedDepartmentDetail.disabledCourses.filter((c: string) => c !== course);
+        }
+      }
     } catch (error) {
       await this.showAlert('Error', 'Failed to update course status.');
     }
@@ -685,6 +701,10 @@ export class AdminPage implements OnInit {
     try {
       await this.authService.deleteCourse(departmentId, courseIndex);
       if (department) department.courses.splice(courseIndex, 1);
+      // Update modal detail if it's open
+      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+        this.selectedDepartmentDetail.courses.splice(courseIndex, 1);
+      }
     } catch (error) {
       console.error('Error deleting course:', error);
       await this.showAlert('Error', 'Failed to delete course.');
@@ -704,6 +724,16 @@ export class AdminPage implements OnInit {
     this.editingDepartmentId = null;
     this.editingDepartmentName = '';
     this.editingDepartmentColor = '#1E5128';
+  }
+
+  openDepartmentDetailModal(dept: any) {
+    this.selectedDepartmentDetail = { ...dept };
+    this.showDepartmentDetailModal = true;
+  }
+
+  closeDepartmentDetailModal() {
+    this.showDepartmentDetailModal = false;
+    this.selectedDepartmentDetail = null;
   }
 
   async saveDepartmentEdit() {
@@ -731,6 +761,11 @@ export class AdminPage implements OnInit {
         dept.color = newColor;
       }
       this.departmentMap[departmentId] = newName;
+      // Update modal detail if it's open
+      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+        this.selectedDepartmentDetail.name = newName;
+        this.selectedDepartmentDetail.color = newColor;
+      }
       this.closeDepartmentEditModal();
     } catch (error) {
       console.error('Error updating department:', error);
@@ -744,6 +779,10 @@ export class AdminPage implements OnInit {
       try {
         await this.authService.deleteDepartment(departmentId);
         this.departments = this.departments.filter(d => d.id !== departmentId);
+        // Close modal if the deleted department is the one being viewed
+        if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+          this.closeDepartmentDetailModal();
+        }
       } catch (error) {
         console.error('Error deleting department:', error);
         await this.showAlert('Error', 'Failed to delete department.');
@@ -758,6 +797,10 @@ export class AdminPage implements OnInit {
       await this.authService.updateCourse(departmentId, courseIndex, newName.trim());
       const dept = this.departments.find(d => d.id === departmentId);
       if (dept) dept.courses[courseIndex] = newName.trim();
+      // Update modal detail if it's open
+      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+        this.selectedDepartmentDetail.courses[courseIndex] = newName.trim();
+      }
     } catch (error) {
       console.error('Error renaming course:', error);
       await this.showAlert('Error', 'Failed to rename course.');

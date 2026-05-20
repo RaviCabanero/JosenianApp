@@ -568,11 +568,14 @@
 
           <div class="departments-grid admin-departments-grid">
             <div
-              class="department-card admin-department-card"
+              class="department-card admin-department-card clickable-dept-card"
               *ngFor="let dept of filteredDepartments"
               [style.--dept-color]="getDepartmentColor(dept)"
               [style.--dept-soft-color]="getDepartmentSoftColor(dept)"
               [style.--dept-border-color]="getDepartmentBorderColor(dept)"
+              (click)="openDepartmentDetailModal(dept)"
+              role="button"
+              tabindex="0"
             >
               <!-- Department Header -->
               <div class="dept-header">
@@ -586,76 +589,26 @@
                     </p>
                   </div>
                 </div>
-                <div class="dept-actions">
-                  <button
-                    class="dept-action-btn add-course-btn"
-                    (click)="toggleCourseForm(dept.id)"
-                    [class.active]="selectedDepartmentId === dept.id"
-                    title="Add course">
-                    <ion-icon [name]="selectedDepartmentId === dept.id ? 'remove-outline' : 'add-outline'"></ion-icon>
-                    <span>{{ selectedDepartmentId === dept.id ? 'Cancel' : 'Add Course' }}</span>
-                  </button>
-                  <div class="dept-icon-actions">
-                    <button class="btn-icon btn-edit" (click)="editDepartment(dept.id, dept.name)" title="Rename department">
-                      <ion-icon name="pencil"></ion-icon>
-                    </button>
-                    <button class="btn-icon btn-delete" (click)="deleteDepartment(dept.id)" title="Delete department">
-                      <ion-icon name="trash"></ion-icon>
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <!-- Add Course Form -->
-              <div class="add-course-form" *ngIf="selectedDepartmentId === dept.id && showCourseForm">
-                <ion-icon name="add-circle-outline" class="add-course-icon"></ion-icon>
-                <input
-                  type="text"
-                  [(ngModel)]="newCourseName"
-                  placeholder="Enter course name..."
-                  class="form-input add-course-input"
-                />
-                <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)">
-                  <ion-icon name="checkmark"></ion-icon>
-                  Save
-                </button>
-              </div>
-
-              <!-- Courses Table -->
+              <!-- Courses Preview -->
               <div class="courses-section">
-                <div class="courses-table-header" *ngIf="dept.courses.length > 0">
-                  <span class="col-no">#</span>
-                  <span class="col-name">Course Name</span>
-                  <span class="col-actions">Actions</span>
-                </div>
-
                 <div class="courses-list">
-                  <div class="course-row" [class.course-disabled]="isCourseDisabled(dept, course)"
-                    *ngFor="let course of dept.courses; let i = index">
-                    <span class="course-row-no">{{ i + 1 }}</span>
+                  <div class="course-row" *ngFor="let course of dept.courses | slice:0:3">
                     <span class="course-row-name">
                       <ion-icon name="chevron-forward-outline"></ion-icon>
                       {{ course }}
-                      <span class="course-disabled-badge" *ngIf="isCourseDisabled(dept, course)">Disabled</span>
                     </span>
-                    <div class="course-row-actions">
-                      <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)"
-                        [disabled]="isCourseDisabled(dept, course)" title="Rename course">
-                        <ion-icon name="pencil-outline"></ion-icon>
-                      </button>
-                      <button class="btn-icon btn-toggle-course"
-                        [class.btn-enable]="isCourseDisabled(dept, course)"
-                        (click)="toggleCourseDisabled(dept.id, course)"
-                        [title]="isCourseDisabled(dept, course) ? 'Enable course' : 'Disable course'">
-                        <ion-icon [name]="isCourseDisabled(dept, course) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
-                      </button>
-                    </div>
                   </div>
-
+                  <div class="course-row view-more" *ngIf="dept.courses.length > 3">
+                    <span class="course-row-name">
+                      <ion-icon name="ellipsis-horizontal-outline"></ion-icon>
+                      +{{ dept.courses.length - 3 }} more
+                    </span>
+                  </div>
                   <div class="no-courses" *ngIf="dept.courses.length === 0">
                     <ion-icon name="library-outline"></ion-icon>
                     <p>No courses added yet</p>
-                    <span>Click "Add Course" to get started.</span>
                   </div>
                 </div>
               </div>
@@ -715,6 +668,113 @@
                   <ion-icon name="checkmark"></ion-icon>
                   Save
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Department Detail Modal -->
+          <div class="department-detail-overlay" *ngIf="showDepartmentDetailModal && selectedDepartmentDetail" (click)="closeDepartmentDetailModal()">
+            <div class="department-detail-modal" (click)="$event.stopPropagation()">
+              <!-- Modal Header -->
+              <div class="department-detail-header">
+                <div class="detail-header-content">
+                  <div class="detail-avatar" [style.background]="getDepartmentColor(selectedDepartmentDetail)">
+                    {{ selectedDepartmentDetail.name.charAt(0) }}
+                  </div>
+                  <div>
+                    <h3>{{ selectedDepartmentDetail.name }}</h3>
+                    <p>{{ selectedDepartmentDetail.courses.length }} {{ selectedDepartmentDetail.courses.length === 1 ? 'course' : 'courses' }}</p>
+                  </div>
+                </div>
+                <button class="detail-close-btn" (click)="closeDepartmentDetailModal()" title="Close">
+                  <ion-icon name="close"></ion-icon>
+                </button>
+              </div>
+
+              <!-- Modal Body -->
+              <div class="department-detail-body">
+                <!-- Department Actions Section -->
+                <div class="detail-section">
+                  <h4 class="section-title">Department Management</h4>
+                  <div class="detail-actions">
+                    <button class="btn btn-outline btn-edit-dept" (click)="editDepartment(selectedDepartmentDetail.id, selectedDepartmentDetail.name)">
+                      <ion-icon name="pencil"></ion-icon>
+                      Edit Department
+                    </button>
+                    <button class="btn btn-outline btn-delete-dept" (click)="deleteDepartment(selectedDepartmentDetail.id); closeDepartmentDetailModal()">
+                      <ion-icon name="trash"></ion-icon>
+                      Delete Department
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Add Course Section -->
+                <div class="detail-section">
+                  <h4 class="section-title">Manage Courses</h4>
+                  
+                  <!-- Add Course Form -->
+                  <div class="add-course-form-detail">
+                    <div class="form-group">
+                      <label>Add New Course</label>
+                      <div class="form-row">
+                        <input
+                          type="text"
+                          [(ngModel)]="newCourseName"
+                          placeholder="Enter course name..."
+                          class="form-input add-course-input-detail"
+                        />
+                        <button class="btn btn-small btn-primary" (click)="addCourse(selectedDepartmentDetail.id)">
+                          <ion-icon name="add"></ion-icon>
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Courses List -->
+                  <div class="courses-list-detail" *ngIf="selectedDepartmentDetail.courses.length > 0">
+                    <div class="courses-table-header-detail">
+                      <span class="col-no">#</span>
+                      <span class="col-name">Course Name</span>
+                      <span class="col-actions">Actions</span>
+                    </div>
+
+                    <div class="course-row-detail" *ngFor="let course of selectedDepartmentDetail.courses; let i = index" 
+                         [class.course-disabled]="isCourseDisabled(selectedDepartmentDetail, course)">
+                      <span class="course-no">{{ i + 1 }}</span>
+                      <span class="course-name">
+                        {{ course }}
+                        <span class="course-disabled-badge" *ngIf="isCourseDisabled(selectedDepartmentDetail, course)">Disabled</span>
+                      </span>
+                      <div class="course-actions-detail">
+                        <button class="btn-icon btn-edit-small" (click)="editCourse(selectedDepartmentDetail.id, i, course)"
+                          [disabled]="isCourseDisabled(selectedDepartmentDetail, course)" title="Rename course">
+                          <ion-icon name="pencil-outline"></ion-icon>
+                        </button>
+                        <button class="btn-icon btn-toggle-course"
+                          [class.btn-enable]="isCourseDisabled(selectedDepartmentDetail, course)"
+                          (click)="toggleCourseDisabled(selectedDepartmentDetail.id, course)"
+                          [title]="isCourseDisabled(selectedDepartmentDetail, course) ? 'Enable course' : 'Disable course'">
+                          <ion-icon [name]="isCourseDisabled(selectedDepartmentDetail, course) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+                        </button>
+                        <button class="btn-icon btn-delete-small" (click)="deleteCourse(selectedDepartmentDetail.id, i)" title="Delete course">
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="no-courses-detail" *ngIf="selectedDepartmentDetail.courses.length === 0">
+                    <ion-icon name="library-outline"></ion-icon>
+                    <p>No courses added yet</p>
+                    <span>Add your first course using the form above.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal Footer -->
+              <div class="department-detail-footer">
+                <button class="btn btn-secondary btn-full" (click)="closeDepartmentDetailModal()">Close</button>
               </div>
             </div>
           </div>
