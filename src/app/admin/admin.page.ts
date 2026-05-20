@@ -1001,7 +1001,12 @@ export class AdminPage implements OnInit {
   }
 
   getUniqueBatches(): string[] {
-    return Array.from(new Set(this.alumni.map(a => a.batch))).sort().reverse() as string[];
+    return Array.from(new Set(
+      this.alumni
+        .map(a => String(a.batch || '').trim())
+        .filter(batch => batch !== '')
+    ))
+      .sort((a, b) => Number(b) - Number(a)) as string[];
   }
 
   getUniqueDepartmentsForAlumni(): string[] {

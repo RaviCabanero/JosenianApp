@@ -104,9 +104,11 @@ export class NetworkPage implements OnInit {
         .filter((u: any) => !this.friendIds.has(u.id))
         .map((u: any) => this.toNetworkUser(u, this.sentRequestIds.has(u.id) ? 'pending' : 'none'));
 
-      this.availableBatches = [...new Set(
-        this.allPeople.map(u => u.graduationYear).filter(y => !!y)
-      )].sort((a, b) => Number(b) - Number(a));
+      this.availableBatches = Array.from(new Set(
+        this.allPeople
+          .map(u => String(u.graduationYear || '').trim())
+          .filter(y => y !== '')
+      )).sort((a, b) => Number(b) - Number(a));
 
       this.filteredFriends = [...this.friends];
       this.filteredPeople = [...this.allPeople];
