@@ -133,7 +133,7 @@
                         [disabled]="joiningEventId === ev.id || (isFull(ev) && !isAttending(ev))">
                   <ion-spinner name="crescent" *ngIf="joiningEventId === ev.id" style="width:14px;height:14px;"></ion-spinner>
                   <span *ngIf="joiningEventId !== ev.id">
-                    {{ isAttending(ev) ? 'âœ“ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
+                    {{ isAttending(ev) ? '✓ Joined' : (isFull(ev) ? 'Full' : 'Join') }}
                   </span>
                 </button>
                 <button class="feed-scan-btn"

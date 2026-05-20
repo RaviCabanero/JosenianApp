@@ -23,6 +23,7 @@ export class AdminPage implements OnInit {
   pendingUsers: any[] = [];
   selectedUser: any = null;
   isApprovingAll = false;
+  isProcessingUser: { [id: string]: boolean } = {};
 
   totalPendingCount: number = 0;
   totalApprovedCount: number = 0;
@@ -96,6 +97,7 @@ export class AdminPage implements OnInit {
   editingEventId: string | null = null;
   isSubmittingEvent: boolean = false;
   selectedEvent: any = null;
+  endTimeError = false;
   newEvent = {
     title: '', description: '', date: '', time: '', endDate: '', endTime: '',
     location: '', eventType: 'global', maxParticipants: '',
@@ -307,6 +309,10 @@ export class AdminPage implements OnInit {
   }
 
   async approveUser(userId: string) {
+    if (this.isProcessingUser[userId]) return;
+    const user = this.pendingUsers.find(u => u.id === userId) || this.selectedUser;
+    if (user?.status === 'approved' || user?.status === 'rejected') return;
+    this.isProcessingUser[userId] = true;
     try {
       await this.authService.approveUser(userId);
       if (this.selectedUser?.id === userId) {
@@ -319,6 +325,8 @@ export class AdminPage implements OnInit {
     } catch (error) {
       console.error('Error approving user:', error);
       await this.showAlert('Error', 'Failed to approve user. Please try again.');
+    } finally {
+      delete this.isProcessingUser[userId];
     }
   }
 
@@ -344,8 +352,12 @@ export class AdminPage implements OnInit {
   }
 
   async rejectUser(userId: string) {
+    if (this.isProcessingUser[userId]) return;
+    const user = this.pendingUsers.find(u => u.id === userId) || this.selectedUser;
+    if (user?.status === 'approved' || user?.status === 'rejected') return;
     const reason = await this.showPrompt('Rejection Reason', 'Enter reason (optional)');
     if (reason !== null) {
+      this.isProcessingUser[userId] = true;
       try {
         await this.authService.rejectUser(userId, reason);
         if (this.selectedUser?.id === userId) {
@@ -358,6 +370,8 @@ export class AdminPage implements OnInit {
       } catch (error) {
         console.error('Error rejecting user:', error);
         await this.showAlert('Error', 'Failed to reject user. Please try again.');
+      } finally {
+        delete this.isProcessingUser[userId];
       }
     }
   }
@@ -1032,6 +1046,40 @@ export class AdminPage implements OnInit {
     };
     this.coverImageFile = null;
     this.editingEventId = null;
+    this.endTimeError = false;
+  }
+
+  get endTimeMin(): string {
+    if (this.newEvent.endDate && this.newEvent.date &&
+        this.newEvent.endDate === this.newEvent.date && this.newEvent.time) {
+      return this.newEvent.time;
+    }
+    return '';
+  }
+
+  onStartDateChange() {
+    if (this.newEvent.endDate && this.newEvent.endDate < this.newEvent.date) {
+      this.newEvent.endDate = this.newEvent.date;
+      this.newEvent.endTime = '';
+    }
+    this.validateEndTime();
+  }
+
+  onStartTimeChange() {
+    this.validateEndTime();
+  }
+
+  onEndTimeChange() {
+    this.validateEndTime();
+  }
+
+  private validateEndTime() {
+    if (!this.newEvent.endTime || !this.newEvent.time ||
+        !this.newEvent.endDate || this.newEvent.endDate !== this.newEvent.date) {
+      this.endTimeError = false;
+      return;
+    }
+    this.endTimeError = this.newEvent.endTime <= this.newEvent.time;
   }
 
   onCoverImageSelected(event: any) {
@@ -1067,6 +1115,10 @@ export class AdminPage implements OnInit {
     const { title, description, date, location } = this.newEvent;
     if (!title.trim() || !description.trim() || !date || !location.trim()) {
       await this.showAlert('Required', 'Please fill in Title, Description, Date, and Location.');
+      return;
+    }
+    if (this.endTimeError) {
+      await this.showAlert('Invalid Time', 'End time must be after start time on the same day.');
       return;
     }
     this.isSubmittingEvent = true;

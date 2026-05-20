@@ -415,14 +415,26 @@
                 </div>
 
                 <div class="action-buttons">
-                  <button class="btn btn-approve" (click)="approveUser(selectedUser.id)">
-                    <ion-icon name="checkmark-circle"></ion-icon>
-                    Approve User
-                  </button>
-                  <button class="btn btn-reject" (click)="rejectUser(selectedUser.id)">
-                    <ion-icon name="close-circle"></ion-icon>
-                    Reject
-                  </button>
+                  <ng-container *ngIf="selectedUser.status === 'pending'; else alreadyProcessed">
+                    <button class="btn btn-approve"
+                      (click)="approveUser(selectedUser.id)"
+                      [disabled]="isProcessingUser[selectedUser.id]">
+                      <ion-icon name="checkmark-circle"></ion-icon>
+                      {{ isProcessingUser[selectedUser.id] ? 'Processing...' : 'Approve User' }}
+                    </button>
+                    <button class="btn btn-reject"
+                      (click)="rejectUser(selectedUser.id)"
+                      [disabled]="isProcessingUser[selectedUser.id]">
+                      <ion-icon name="close-circle"></ion-icon>
+                      Reject
+                    </button>
+                  </ng-container>
+                  <ng-template #alreadyProcessed>
+                    <div class="status-done-msg">
+                      <ion-icon [name]="selectedUser.status === 'approved' ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+                      Account {{ selectedUser.status === 'approved' ? 'Approved' : 'Rejected' }}
+                    </div>
+                  </ng-template>
                   <button class="btn btn-download" (click)="downloadAlumniId(selectedUser)" *ngIf="hasAlumniImage(selectedUser)">
                     <ion-icon name="download"></ion-icon>
                     Download ID
@@ -1144,126 +1156,182 @@
             </button>
           </div>
 
-          <div class="form-card event-form-card" *ngIf="showEventForm">
-            <div class="form-card-header">
-              <div class="form-card-icon">
+          <div class="event-form-card" *ngIf="showEventForm">
+
+            <!-- Header -->
+            <div class="efc-header">
+              <div class="efc-header-icon">
                 <ion-icon name="calendar"></ion-icon>
               </div>
-              <div>
-                <h4>{{ editingEventId ? 'Edit Event' : 'New Event' }}</h4>
-                <p>{{ editingEventId ? 'Update event details.' : 'Published instantly to the Feeds page.' }}</p>
+              <div class="efc-header-text">
+                <h4>{{ editingEventId ? 'Edit Event' : 'Create New Event' }}</h4>
+                <p>{{ editingEventId ? 'Update the details below' : 'Fill in the details to publish a new event' }}</p>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Event Title <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="newEvent.title" placeholder="e.g. Alumni Homecoming 2025" class="form-input" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Description <span class="required">*</span></label>
-              <textarea [(ngModel)]="newEvent.description" placeholder="Describe the event..." class="form-input event-textarea" rows="3"></textarea>
-            </div>
-
-            <div class="form-row-inline">
-              <div class="form-group">
-                <label class="form-label">Start Date <span class="required">*</span></label>
-                <input type="date" [(ngModel)]="newEvent.date" [min]="todayDate" class="form-input" />
+            <!-- Section 1: Basic Info -->
+            <div class="efc-section">
+              <div class="efc-section-title">
+                <span class="efc-section-num">1</span>
+                Basic Information
               </div>
-              <div class="form-group">
-                <label class="form-label">Start Time</label>
-                <input type="time" [(ngModel)]="newEvent.time" class="form-input" />
+              <div class="efc-field">
+                <label>Event Title <span class="efc-req">*</span></label>
+                <div class="efc-input-wrap">
+                  <ion-icon name="text-outline" class="efc-input-icon"></ion-icon>
+                  <input type="text" [(ngModel)]="newEvent.title" placeholder="e.g. Alumni Homecoming 2025" />
+                </div>
               </div>
-            </div>
-            <div class="form-row-inline">
-              <div class="form-group">
-                <label class="form-label">End Date <span class="optional-label">(optional)</span></label>
-                <input type="date" [(ngModel)]="newEvent.endDate" [min]="newEvent.date || todayDate" class="form-input" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">End Time <span class="optional-label">(optional)</span></label>
-                <input type="time" [(ngModel)]="newEvent.endTime" class="form-input" />
+              <div class="efc-field">
+                <label>Description <span class="efc-req">*</span></label>
+                <textarea [(ngModel)]="newEvent.description" placeholder="Describe the event..." rows="3"></textarea>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Location <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="newEvent.location" placeholder="e.g. USJ-R Gymnasium" class="form-input" />
+            <!-- Section 2: Schedule -->
+            <div class="efc-section">
+              <div class="efc-section-title">
+                <span class="efc-section-num">2</span>
+                Schedule
+              </div>
+              <div class="efc-grid-2">
+                <div class="efc-field">
+                  <label>Start Date <span class="efc-req">*</span></label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="calendar-outline" class="efc-input-icon"></ion-icon>
+                    <input type="date" [(ngModel)]="newEvent.date" [min]="todayDate" (change)="onStartDateChange()" />
+                  </div>
+                </div>
+                <div class="efc-field">
+                  <label>Start Time</label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="time-outline" class="efc-input-icon"></ion-icon>
+                    <input type="time" [(ngModel)]="newEvent.time" (change)="onStartTimeChange()" />
+                  </div>
+                </div>
+              </div>
+              <div class="efc-grid-2">
+                <div class="efc-field">
+                  <label>End Date <span class="efc-opt">optional</span></label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="calendar-outline" class="efc-input-icon"></ion-icon>
+                    <input type="date" [(ngModel)]="newEvent.endDate" [min]="newEvent.date || todayDate" (change)="onStartDateChange()" />
+                  </div>
+                </div>
+                <div class="efc-field">
+                  <label>End Time <span class="efc-opt">optional</span></label>
+                  <div class="efc-input-wrap" [class.efc-input-error]="endTimeError">
+                    <ion-icon name="time-outline" class="efc-input-icon"></ion-icon>
+                    <input type="time" [(ngModel)]="newEvent.endTime" [min]="endTimeMin" (change)="onEndTimeChange()" />
+                  </div>
+                  <p class="efc-error-msg" *ngIf="endTimeError">
+                    <ion-icon name="alert-circle-outline"></ion-icon>
+                    End time must be after start time
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div class="form-row-inline">
-              <div class="form-group">
-                <label class="form-label">Event Type</label>
-                <select [(ngModel)]="newEvent.eventType" class="form-input">
-                  <option value="global">Institutional (All Users)</option>
-                  <option value="alumni">Alumni Only</option>
-                  <option value="student">Student Only</option>
-                  <option value="department">Department</option>
-                </select>
+            <!-- Section 3: Details -->
+            <div class="efc-section">
+              <div class="efc-section-title">
+                <span class="efc-section-num">3</span>
+                Event Details
               </div>
-              <div class="form-group">
-                <label class="form-label">Max Participants <span class="optional-label">(optional)</span></label>
-                <input type="number" [(ngModel)]="newEvent.maxParticipants" placeholder="Leave blank for unlimited" class="form-input" min="1" />
+              <div class="efc-field">
+                <label>Location <span class="efc-req">*</span></label>
+                <div class="efc-input-wrap">
+                  <ion-icon name="location-outline" class="efc-input-icon"></ion-icon>
+                  <input type="text" [(ngModel)]="newEvent.location" placeholder="e.g. USJ-R Gymnasium" />
+                </div>
+              </div>
+              <div class="efc-grid-2">
+                <div class="efc-field">
+                  <label>Audience</label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="people-outline" class="efc-input-icon"></ion-icon>
+                    <select [(ngModel)]="newEvent.eventType">
+                      <option value="global">All Users</option>
+                      <option value="alumni">Alumni Only</option>
+                      <option value="student">Student Only</option>
+                      <option value="department">Department</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="efc-field">
+                  <label>Max Participants <span class="efc-opt">optional</span></label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="person-add-outline" class="efc-input-icon"></ion-icon>
+                    <input type="number" [(ngModel)]="newEvent.maxParticipants" placeholder="Unlimited" min="1" />
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="form-row-inline">
-              <div class="form-group">
-                <label class="form-label">Event Category </label>
-                <select [(ngModel)]="newEvent.eventCategory" (change)="onEventCategoryChange()" class="form-input">
-                  <option value="regular">Regular Event (+10 pts default)</option>
-                  <option value="special">Special Event (+20 pts default)</option>
-                  <option value="volunteer">Volunteer / Organizing (+30 pts default)</option>
-                </select>
+            <!-- Section 4: Points & INSPIRE -->
+            <div class="efc-section">
+              <div class="efc-section-title">
+                <span class="efc-section-num">4</span>
+                Points &amp; INSPIRE
               </div>
-              <div class="form-group">
-                <label class="form-label">
-                  Points Value
-                  
-                </label>
-                <input type="number" [(ngModel)]="newEvent.pointValue" class="form-input" min="0" max="999" />
+              <div class="efc-grid-2">
+                <div class="efc-field">
+                  <label>Points Value</label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="star-outline" class="efc-input-icon"></ion-icon>
+                    <input type="number" [(ngModel)]="newEvent.pointValue" min="0" max="999" />
+                  </div>
+                </div>
+                <div class="efc-field">
+                  <label>INSPIRE Category</label>
+                  <div class="efc-input-wrap">
+                    <ion-icon name="ribbon-outline" class="efc-input-icon"></ion-icon>
+                    <select [(ngModel)]="newEvent.inspireCategory">
+                      <option value="interiority">I — Interiority</option>
+                      <option value="nationalism">N — Nationalism</option>
+                      <option value="service">S — Service</option>
+                      <option value="pioneerism">P — Pioneerism</option>
+                      <option value="integrity">I — Integrity</option>
+                      <option value="reliability">R — Reliability</option>
+                      <option value="excellence">E — Excellence</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">INSPIRE Category</label>
-              <p class="form-hint">Points from attending this event count toward this INSPIRE letter.</p>
-              <select [(ngModel)]="newEvent.inspireCategory" class="form-input">
-                <option value="interiority">I -- Interiority</option>
-                <option value="nationalism">N -- Nationalism</option>
-                <option value="service">S -- Service</option>
-                <option value="pioneerism">P -- Pioneerism</option>
-                <option value="integrity">I -- Integrity</option>
-                <option value="reliability">R -- Reliability</option>
-                <option value="excellence">E -- Excellence</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Cover Image <span class="optional-label">(optional, max 2MB)</span></label>
-              <div class="cover-upload-area" *ngIf="!hasNewEventCover()">
+            <!-- Section 5: Cover Image -->
+            <div class="efc-section">
+              <div class="efc-section-title">
+                <span class="efc-section-num">5</span>
+                Cover Image <span class="efc-opt">optional · max 2MB</span>
+              </div>
+              <div class="efc-cover-dropzone" *ngIf="!hasNewEventCover()" (click)="coverInput.click()">
                 <input #coverInput type="file" accept="image/*" (change)="onCoverImageSelected($event)" style="display:none" />
-                <button class="btn btn-secondary cover-upload-btn" (click)="coverInput.click()">
-                  <ion-icon name="image"></ion-icon>
-                  Choose Image
-                </button>
+                <ion-icon name="image-outline"></ion-icon>
+                <p>Click to upload a cover image</p>
+                <span>PNG or JPG</span>
               </div>
-              <div class="cover-preview" *ngIf="hasNewEventCover()">
-                <img [src]="getNewEventCoverPreview()" alt="Cover preview" class="cover-preview-img" />
-                <div class="cover-preview-actions">
-                  <span class="cover-file-name">{{ newEvent.coverImageFileName }}</span>
-                  <button class="btn-icon btn-delete" (click)="removeCoverImage()" title="Remove image">
-                    <ion-icon name="close"></ion-icon>
+              <div class="efc-cover-preview" *ngIf="hasNewEventCover()">
+                <img [src]="getNewEventCoverPreview()" alt="Cover preview" />
+                <div class="efc-cover-overlay">
+                  <button (click)="removeCoverImage()">
+                    <ion-icon name="trash-outline"></ion-icon>
+                    Remove
                   </button>
                 </div>
               </div>
             </div>
 
-            <button class="btn btn-primary btn-create-submit" (click)="saveEvent()" [disabled]="isSubmittingEvent">
-              <ion-spinner name="crescent" *ngIf="isSubmittingEvent"></ion-spinner>
-              <ion-icon name="checkmark-circle" *ngIf="!isSubmittingEvent"></ion-icon>
-              {{ isSubmittingEvent ? 'Saving...' : (editingEventId ? 'Update Event' : 'Publish Event') }}
-            </button>
+            <!-- Footer / Submit -->
+            <div class="efc-footer">
+              <button class="efc-submit-btn" (click)="saveEvent()" [disabled]="isSubmittingEvent || endTimeError">
+                <ion-spinner name="crescent" *ngIf="isSubmittingEvent"></ion-spinner>
+                <ion-icon name="checkmark-circle" *ngIf="!isSubmittingEvent"></ion-icon>
+                {{ isSubmittingEvent ? 'Saving...' : (editingEventId ? 'Update Event' : 'Publish Event') }}
+              </button>
+            </div>
+
           </div>
 
           <!-- Events Stats Bar -->

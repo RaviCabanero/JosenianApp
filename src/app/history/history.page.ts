@@ -1,6 +1,7 @@
 ﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { ViewWillEnter } from '@ionic/angular';
 
 @Component({
   selector: 'app-history',
@@ -8,7 +9,7 @@ import { AuthService } from '../services/auth.service';
   styleUrls: ['./history.page.scss'],
   standalone: false
 })
-export class HistoryPage implements OnInit {
+export class HistoryPage implements OnInit, ViewWillEnter {
 
   events: any[] = [];
   filteredEvents: any[] = [];
@@ -19,6 +20,10 @@ export class HistoryPage implements OnInit {
   constructor(private router: Router, private authService: AuthService) {}
 
   ngOnInit() {
+    this.loadEvents();
+  }
+
+  ionViewWillEnter() {
     this.loadEvents();
   }
 
@@ -36,7 +41,7 @@ export class HistoryPage implements OnInit {
 
       const allGlobal = await this.authService.getEvents();
       const joinedGlobal = allGlobal
-        .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') < today)
+        .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') <= today)
         .map(e => ({ ...e, source: 'global' }));
 
       const profile = await this.authService.getUserProfile(user.uid);
@@ -50,7 +55,7 @@ export class HistoryPage implements OnInit {
         deptIds.map(deptId =>
           this.authService.getDepartmentEvents(deptId).then(evts =>
             evts
-              .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') < today)
+              .filter(e => (e.attendees || []).includes(user.uid) && e.date && new Date(e.date + 'T00:00:00') <= today)
               .map(e => ({ ...e, source: 'department', departmentId: deptId }))
           )
         )

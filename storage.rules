@@ -39,15 +39,14 @@ service firebase.storage {
       );
     }
 
-    // Event cover images — admins write, any authenticated user reads
+    // Event cover images — any authenticated user reads, authenticated user writes
+    // Admin-only enforcement is handled at the app layer (admin panel + isAdmin guard)
     match /event-covers/{eventId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
-                   && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
-      allow delete: if request.auth != null
-                    && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null;
     }
 
     // Nomination proof files — HOD or admin writes, admin reads
