@@ -615,7 +615,7 @@
                   placeholder="Enter course name..."
                   class="form-input add-course-input"
                 />
-                <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)">
+                <button class="btn btn-small btn-primary" (click)="addCourse(dept.id)" [disabled]="isAddingCourse">
                   <ion-icon name="checkmark"></ion-icon>
                   Save
                 </button>
@@ -631,14 +631,23 @@
 
                 <div class="courses-list">
                   <div class="course-row" [class.course-disabled]="isCourseDisabled(dept, course)"
+                    [class.course-editing]="editingCourseKey === dept.id + '_' + i"
                     *ngFor="let course of dept.courses; let i = index">
                     <span class="course-row-no">{{ i + 1 }}</span>
-                    <span class="course-row-name">
+
+                    <span class="course-row-name" *ngIf="editingCourseKey !== dept.id + '_' + i">
                       <ion-icon name="chevron-forward-outline"></ion-icon>
                       {{ course }}
                       <span class="course-disabled-badge" *ngIf="isCourseDisabled(dept, course)">Disabled</span>
                     </span>
-                    <div class="course-row-actions">
+                    <div class="course-edit-inline" *ngIf="editingCourseKey === dept.id + '_' + i">
+                      <input type="text" class="form-input course-edit-input"
+                        [(ngModel)]="editingCourseName"
+                        (keyup.enter)="saveEditCourse(dept.id, i)"
+                        (keyup.escape)="cancelEditCourse()" />
+                    </div>
+
+                    <div class="course-row-actions" *ngIf="editingCourseKey !== dept.id + '_' + i">
                       <button class="btn-icon btn-edit-small" (click)="editCourse(dept.id, i, course)"
                         [disabled]="isCourseDisabled(dept, course)" title="Rename course">
                         <ion-icon name="pencil-outline"></ion-icon>
@@ -648,6 +657,15 @@
                         (click)="toggleCourseDisabled(dept.id, course)"
                         [title]="isCourseDisabled(dept, course) ? 'Enable course' : 'Disable course'">
                         <ion-icon [name]="isCourseDisabled(dept, course) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+                      </button>
+                    </div>
+                    <div class="course-row-actions" *ngIf="editingCourseKey === dept.id + '_' + i">
+                      <button class="btn-icon btn-save-inline" (click)="saveEditCourse(dept.id, i)"
+                        [disabled]="!editingCourseName.trim()" title="Save">
+                        <ion-icon name="checkmark"></ion-icon>
+                      </button>
+                      <button class="btn-icon btn-cancel-inline" (click)="cancelEditCourse()" title="Cancel">
+                        <ion-icon name="close"></ion-icon>
                       </button>
                     </div>
                   </div>

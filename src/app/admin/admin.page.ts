@@ -127,6 +127,9 @@ export class AdminPage implements OnInit {
   editingDepartmentName: string = '';
   editingDepartmentColor: string = '#1E5128';
   newCourseName: string = '';
+  isAddingCourse: boolean = false;
+  editingCourseKey: string | null = null;
+  editingCourseName: string = '';
   departmentSearchTerm: string = '';
   selectedDepartmentId: string | null = null;
   showDepartmentForm: boolean = false;
@@ -636,10 +639,12 @@ export class AdminPage implements OnInit {
   }
 
   async addCourse(departmentId: string) {
+    if (this.isAddingCourse) return;
     if (!this.newCourseName.trim()) {
       await this.showAlert('Required', 'Please enter a course name.');
       return;
     }
+    this.isAddingCourse = true;
     try {
       await this.authService.addCourse(departmentId, this.newCourseName);
       const department = this.departments.find(d => d.id === departmentId);
@@ -650,6 +655,8 @@ export class AdminPage implements OnInit {
     } catch (error) {
       console.error('Error adding course:', error);
       await this.showAlert('Error', 'Failed to add course.');
+    } finally {
+      this.isAddingCourse = false;
     }
   }
 
@@ -751,13 +758,27 @@ export class AdminPage implements OnInit {
     }
   }
 
-  async editCourse(departmentId: string, courseIndex: number, currentName: string) {
-    const newName = await this.showPrompt('Rename Course', currentName);
-    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  editCourse(departmentId: string, courseIndex: number, currentName: string) {
+    this.editingCourseKey = `${departmentId}_${courseIndex}`;
+    this.editingCourseName = currentName;
+  }
+
+  cancelEditCourse() {
+    this.editingCourseKey = null;
+    this.editingCourseName = '';
+  }
+
+  async saveEditCourse(departmentId: string, courseIndex: number) {
+    if (!this.editingCourseName.trim()) return;
+    const dept = this.departments.find(d => d.id === departmentId);
+    if (this.editingCourseName.trim() === dept?.courses?.[courseIndex]) {
+      this.cancelEditCourse();
+      return;
+    }
     try {
-      await this.authService.updateCourse(departmentId, courseIndex, newName.trim());
-      const dept = this.departments.find(d => d.id === departmentId);
-      if (dept) dept.courses[courseIndex] = newName.trim();
+      await this.authService.updateCourse(departmentId, courseIndex, this.editingCourseName.trim());
+      if (dept) dept.courses[courseIndex] = this.editingCourseName.trim();
+      this.cancelEditCourse();
     } catch (error) {
       console.error('Error renaming course:', error);
       await this.showAlert('Error', 'Failed to rename course.');
