@@ -838,13 +838,16 @@ export class AuthService {
 
 
   private handleAuthError(error: AuthError): Error {
+    // Pass through errors we already constructed (e.g. pending/rejected account)
+    if (!error.code) return error as unknown as Error;
+
     console.error('Auth error:', error.code);
-    
+
     switch (error.code) {
       case 'auth/user-not-found':
-        return new Error('Account not registered. Please sign up first.');
       case 'auth/wrong-password':
-        return new Error('Invalid password. Please try again.');
+      case 'auth/invalid-credential':
+        return new Error('Incorrect password or invalid email. Please try again.');
       case 'auth/invalid-email':
         return new Error('Invalid email format.');
       case 'auth/user-disabled':
@@ -1474,20 +1477,18 @@ export class AuthService {
         const [h, m] = (event['time'] as string).split(':').map(Number);
         const start = new Date();
         start.setHours(h, m, 0, 0);
-        const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
         const now = new Date();
         if (now < start) {
           return { success: false, message: `This event hasn't started yet. Check-in opens at ${event['time']}.` };
         }
-        if (now >= end) {
-          await updateDoc(doc(this.firestore, 'events', eventId), { qrToken: null });
-          return { success: false, message: 'This event has ended and the QR code has expired.' };
-        }
       }
 
+      // Auto-join the user if they haven't joined yet — scanning the QR at the venue is proof of attendance
       const attendees: string[] = event['attendees'] || [];
       if (!attendees.includes(userId)) {
-        return { success: false, message: 'You must join this event before scanning the QR code.' };
+        await updateDoc(doc(this.firestore, 'events', eventId), {
+          attendees: [...attendees, userId]
+        });
       }
 
       const attendanceRef = doc(this.firestore, 'events', eventId, 'attendance', userId);
@@ -1578,9 +1579,12 @@ export class AuthService {
         }
       }
 
+      // Auto-join the user if they haven't joined yet — scanning the QR at the venue is proof of attendance
       const attendees: string[] = event['attendees'] || [];
       if (!attendees.includes(userId)) {
-        return { success: false, message: 'You must join this event before scanning the QR code.' };
+        await updateDoc(doc(this.firestore, `departments/${departmentId}/events`, eventId), {
+          attendees: [...attendees, userId]
+        });
       }
 
       const attendanceRef = doc(this.firestore, `departments/${departmentId}/events/${eventId}/attendance`, userId);
@@ -1949,7 +1953,7 @@ export class AuthService {
       const inspired: Record<string, number> = (snap.data() as any)?.inspiredPoints || {};
       const oldVal = Number(inspired[category] || 0);
       const newVal = oldVal + points;
-      await setDoc(userRef, { [`inspiredPoints.${category}`]: increment(points) }, { merge: true });
+      await updateDoc(userRef, { [`inspiredPoints.${category}`]: increment(points) });
       const oldLevel = this.getInspiredBadgeLevel(oldVal);
       const newLevel = this.getInspiredBadgeLevel(newVal);
       if (newLevel !== oldLevel && newLevel !== 'None') {

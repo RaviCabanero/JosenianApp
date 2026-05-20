@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule, IonModal, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { NgZone } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { ViewWillEnter } from '@ionic/angular';
 
 interface WorkExperience {
   id: string;
@@ -22,7 +26,7 @@ interface WorkExperience {
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule]
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage implements OnInit, ViewWillEnter {
   @ViewChild('editModal') editModal!: IonModal;
   @ViewChild('workModal') workModal!: IonModal;
   @ViewChild('photoModal') photoModal!: IonModal;
@@ -46,6 +50,7 @@ export class ProfilePage implements OnInit {
     address: '',
     contactNumber: '',
     photoUrl: '',
+    totalPoints: 0,
   };
 
   workExperiences: WorkExperience[] = [];
@@ -210,6 +215,10 @@ export class ProfilePage implements OnInit {
     await this.loadUserProfile();
   }
 
+  async ionViewWillEnter() {
+    await this.loadUserProfile();
+  }
+
   get displayUserType(): string {
     const role = (this.userProfile.role || '').toLowerCase();
     if (role === 'hod') return 'HOD';
@@ -248,6 +257,7 @@ export class ProfilePage implements OnInit {
             contactNumber: profile.contactNumber || '',
             photoUrl: profile.photoUrl || '',
             initials: ((profile.firstName?.charAt(0) || '') + (profile.lastName?.charAt(0) || '')).toUpperCase() || 'U',
+            totalPoints: profile.totalPoints || 0,
           };
           if (this.userProfile.department) {
             try {
@@ -932,7 +942,24 @@ export class ProfilePage implements OnInit {
 
       const lastName = this.userProfile.lastName || 'Alumni';
       const ref = this.alumniIdReferenceNumber || 'ID';
-      pdf.save(`Alumni-ID-${lastName}-${ref}.pdf`);
+      const fileName = `Alumni-ID-${lastName}-${ref}.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        const base64 = pdf.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Documents,
+        });
+        const alert = await this.alertController.create({
+          header: 'Downloaded',
+          message: `Alumni ID saved to your Documents folder as "${fileName}".`,
+          buttons: ['OK'],
+        });
+        await alert.present();
+      } else {
+        pdf.save(fileName);
+      }
     } catch (e) {
       console.error('PDF generation failed', e);
     } finally {
