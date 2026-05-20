@@ -1183,6 +1183,7 @@ export class AuthService {
     location: string; eventType: string; maxParticipants?: number | null;
     coverImageFile?: File; coverImageUrl?: string; coverImageFileName?: string;
     eventCategory?: string; pointValue?: number;
+    inspireCategory?: string | string[];
   }): Promise<any> {
     try {
       const user = this.auth.currentUser;
@@ -1205,6 +1206,7 @@ export class AuthService {
         coverImageFileName: eventData.coverImageFileName || '',
         eventCategory: eventData.eventCategory || 'regular',
         pointValue: eventData.pointValue ?? 10,
+        inspireCategory: eventData.inspireCategory ?? ['service'],
         attendees: [],
         createdBy: user?.uid || 'admin',
         createdAt: new Date(),
@@ -1514,17 +1516,25 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? this.getDefaultPoints(event['eventCategory'] || 'regular');
       await this.awardEventPoints(userId, eventId, event['title'] || 'Event', pointValue, event['eventCategory'] || 'regular');
-      const inspireCategory = event['inspireCategory'] || 'service';
-      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Event'}`, `${inspireCategory}_ev_${eventId}`);
+      const rawInspireCategories = Array.isArray(event['inspireCategory']) ? event['inspireCategory'] : [event['inspireCategory'] || 'service'];
+      const inspireCategories = (rawInspireCategories || [])
+        .map((c: any) => String(c || 'service').trim().toLowerCase())
+        .filter((c: string) => ['interiority','nationalism','service','pioneerism','integrity','reliability','excellence'].includes(c)) as Array<'interiority'|'nationalism'|'service'|'pioneerism'|'integrity'|'reliability'|'excellence'>;
+      const uniqueCategories = Array.from(new Set(inspireCategories.length ? inspireCategories : ['service'])) as Array<'interiority'|'nationalism'|'service'|'pioneerism'|'integrity'|'reliability'|'excellence'>;
+      for (const category of uniqueCategories) {
+        await this.awardInspiredPoints(userId, category, pointValue, `Attended: ${event['title'] || 'Event'}`, `${category}_ev_${eventId}`);
+      }
+      const inspireLabel = uniqueCategories.map(c => this.INSPIRED_NAMES[c] || c).join(', ');
+      const totalPoints = pointValue * uniqueCategories.length;
       await this.createNotification(
         userId,
         'Attendance Recorded',
-        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points!`,
+        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points in each of ${inspireLabel}.`,
         'success',
         '/history'
       );
 
-      return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
+      return { success: true, message: `Attendance recorded! +${totalPoints} points earned across ${uniqueCategories.length} INSPIRE categories: ${inspireLabel}.` };
     } catch (error) {
       console.error('QR verification error:', error);
       return { success: false, message: 'An error occurred. Please try again.' };
@@ -1609,17 +1619,25 @@ export class AuthService {
 
       const pointValue = event['pointValue'] ?? 10;
       await this.awardEventPoints(userId, `dept_${eventId}`, event['title'] || 'Dept Event', pointValue, 'regular');
-      const inspireCategory = event['inspireCategory'] || 'service';
-      await this.awardInspiredPoints(userId, inspireCategory, pointValue, `Attended: ${event['title'] || 'Dept Event'}`, `${inspireCategory}_dept_${eventId}`);
+      const rawInspireCategories = Array.isArray(event['inspireCategory']) ? event['inspireCategory'] : [event['inspireCategory'] || 'service'];
+      const inspireCategories = (rawInspireCategories || [])
+        .map((c: any) => String(c || 'service').trim().toLowerCase())
+        .filter((c: string) => ['interiority','nationalism','service','pioneerism','integrity','reliability','excellence'].includes(c)) as Array<'interiority'|'nationalism'|'service'|'pioneerism'|'integrity'|'reliability'|'excellence'>;
+      const uniqueCategories = Array.from(new Set(inspireCategories.length ? inspireCategories : ['service'])) as Array<'interiority'|'nationalism'|'service'|'pioneerism'|'integrity'|'reliability'|'excellence'>;
+      for (const category of uniqueCategories) {
+        await this.awardInspiredPoints(userId, category, pointValue, `Attended: ${event['title'] || 'Dept Event'}`, `${category}_dept_${eventId}`);
+      }
+      const inspireLabel = uniqueCategories.map(c => this.INSPIRED_NAMES[c] || c).join(', ');
+      const totalPoints = pointValue * uniqueCategories.length;
       await this.createNotification(
         userId,
         'Attendance Recorded',
-        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points!`,
+        `Your attendance for "${event['title'] || 'the event'}" has been recorded. You earned +${pointValue} points in each of ${inspireLabel}.`,
         'success',
         '/history'
       );
 
-      return { success: true, message: `Attendance recorded! +${pointValue} points earned.` };
+      return { success: true, message: `Attendance recorded! +${totalPoints} points earned across ${uniqueCategories.length} INSPIRE categories: ${inspireLabel}.` };
     } catch (error) {
       console.error('Dept QR verification error:', error);
       return { success: false, message: 'An error occurred. Please try again.' };

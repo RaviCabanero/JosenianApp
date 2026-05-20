@@ -105,8 +105,18 @@ export class AdminPage implements OnInit {
     coverImageUrl: '',
     coverImageFileName: '',
     eventCategory: 'regular', pointValue: 10,
-    inspireCategory: 'service'
+    inspireCategories: ['service']
   };
+
+  inspireCategoryOptions = [
+    { value: 'interiority', label: 'I — Interiority' },
+    { value: 'nationalism', label: 'N — Nationalism' },
+    { value: 'service', label: 'S — Service' },
+    { value: 'pioneerism', label: 'P — Pioneerism' },
+    { value: 'integrity', label: 'I — Integrity' },
+    { value: 'reliability', label: 'R — Reliability' },
+    { value: 'excellence', label: 'E — Excellence' }
+  ];
 
   private coverImageFile: File | null = null;
 
@@ -1090,7 +1100,7 @@ export class AdminPage implements OnInit {
       location: '', eventType: 'global', maxParticipants: '',
       coverImageBase64: '', coverImageUrl: '', coverImageFileName: '',
       eventCategory: 'regular', pointValue: 10,
-      inspireCategory: 'service'
+      inspireCategories: ['service']
     };
     this.coverImageFile = null;
     this.editingEventId = null;
@@ -1183,7 +1193,8 @@ export class AdminPage implements OnInit {
         maxParticipants: this.newEvent.maxParticipants ? Number(this.newEvent.maxParticipants) : null,
         coverImageFileName: this.newEvent.coverImageFileName,
         eventCategory: this.newEvent.eventCategory,
-        pointValue: this.newEvent.pointValue
+        pointValue: this.newEvent.pointValue,
+        inspireCategory: this.newEvent.inspireCategories
       };
       if (this.coverImageFile) {
         payload.coverImageFile = this.coverImageFile;
@@ -1224,7 +1235,7 @@ export class AdminPage implements OnInit {
       coverImageFileName: ev.coverImageFileName || '',
       eventCategory: ev.eventCategory || 'regular',
       pointValue: ev.pointValue ?? 10,
-      inspireCategory: ev.inspireCategory || 'service'
+      inspireCategories: Array.isArray(ev.inspireCategory) ? ev.inspireCategory : [ev.inspireCategory || 'service']
     };
     this.coverImageFile = null;
     this.editingEventId = eventId;
@@ -1403,6 +1414,17 @@ export class AdminPage implements OnInit {
 
   onEventCategoryChange() {
     this.newEvent.pointValue = this.authService.getDefaultPoints(this.newEvent.eventCategory);
+  }
+
+  toggleInspireCategory(category: string, checked: boolean) {
+    const categories = this.newEvent.inspireCategories || [];
+    if (checked) {
+      if (!categories.includes(category)) {
+        this.newEvent.inspireCategories = [...categories, category];
+      }
+    } else {
+      this.newEvent.inspireCategories = categories.filter(c => c !== category);
+    }
   }
 
   async adjustUserPoints(userId: string) {

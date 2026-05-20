@@ -1343,18 +1343,17 @@
                   </div>
                 </div>
                 <div class="efc-field">
-                  <label>INSPIRE Category</label>
-                  <div class="efc-input-wrap">
-                    <ion-icon name="ribbon-outline" class="efc-input-icon"></ion-icon>
-                    <select [(ngModel)]="newEvent.inspireCategory">
-                      <option value="interiority">I — Interiority</option>
-                      <option value="nationalism">N — Nationalism</option>
-                      <option value="service">S — Service</option>
-                      <option value="pioneerism">P — Pioneerism</option>
-                      <option value="integrity">I — Integrity</option>
-                      <option value="reliability">R — Reliability</option>
-                      <option value="excellence">E — Excellence</option>
-                    </select>
+                  <label>INSPIRE Categories</label>
+                  <div class="inspire-checkbox-group">
+                    <div class="inspire-checkbox-item" *ngFor="let option of inspireCategoryOptions">
+                      <label class="inspire-checkbox-label">
+                        <input
+                          type="checkbox"
+                          [checked]="newEvent.inspireCategories.includes(option.value)"
+                          (change)="toggleInspireCategory(option.value, $event.target.checked)" />
+                        {{ option.label }}
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
