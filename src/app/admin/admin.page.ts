@@ -656,10 +656,15 @@ export class AdminPage implements OnInit {
     try {
       await this.authService.addCourse(departmentId, this.newCourseName);
       const department = this.departments.find(d => d.id === departmentId);
-      if (department) department.courses.push(this.newCourseName);
-      // Update modal detail if it's open
-      if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
-        this.selectedDepartmentDetail.courses.push(this.newCourseName);
+      if (department) {
+        // Only add if not already added (avoid duplicates)
+        if (!department.courses.includes(this.newCourseName)) {
+          department.courses.push(this.newCourseName);
+        }
+        // Sync modal detail with the updated department
+        if (this.selectedDepartmentDetail && this.selectedDepartmentDetail.id === departmentId) {
+          this.selectedDepartmentDetail.courses = [...department.courses];
+        }
       }
       this.newCourseName = '';
       this.showCourseForm = false;
