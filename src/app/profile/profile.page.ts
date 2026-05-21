@@ -113,6 +113,7 @@ export class ProfilePage implements OnInit, ViewWillEnter {
   adminSignatureUrl = '';
   qrCodeDataUrl = '';
   isGeneratingPdf = false;
+  alumniIdDesign = { frontBgUrl: '', overlayColor1: '#08122f', overlayColor2: '#0c175a', overlayColor3: '#083012' };
 
   inspiredPoints: Record<string, number> = {};
   inspiredMasterBadge = false;
@@ -836,10 +837,15 @@ export class ProfilePage implements OnInit, ViewWillEnter {
   }
 
 
-  openDigitalId() {
+  async openDigitalId() {
     this.showDigitalId = true;
     this.isFlipped = false;
     this.isLandscape = false;
+    const design = await this.authService.getAlumniIdDesign();
+    if (design.frontBgUrl) this.alumniIdDesign.frontBgUrl = design.frontBgUrl;
+    if (design.overlayColor1) this.alumniIdDesign.overlayColor1 = design.overlayColor1;
+    if (design.overlayColor2) this.alumniIdDesign.overlayColor2 = design.overlayColor2;
+    if (design.overlayColor3) this.alumniIdDesign.overlayColor3 = design.overlayColor3;
   }
 
   closeDigitalId() {
@@ -848,6 +854,34 @@ export class ProfilePage implements OnInit, ViewWillEnter {
 
   get gradPhotoStyle(): string {
     return this.alumniGradPhotoBase64 ? `url(${this.alumniGradPhotoBase64})` : 'none';
+  }
+
+  get idCardStyle(): { [key: string]: string } {
+    const d = this.alumniIdDesign;
+    if (d.frontBgUrl) {
+      return {
+        'background-image': `url(${d.frontBgUrl})`,
+        'background-size': 'cover',
+        'background-position': 'center',
+        'background-repeat': 'no-repeat'
+      };
+    }
+    return {};
+  }
+
+  get overlayGradient(): string {
+    const d = this.alumniIdDesign;
+    const c1 = this.hexToRgba(d.overlayColor1, 0.80);
+    const c2 = this.hexToRgba(d.overlayColor2, 0.74);
+    const c3 = this.hexToRgba(d.overlayColor3, 0.80);
+    return `linear-gradient(160deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
   }
 
   get flipperTransform(): string {
@@ -899,17 +933,20 @@ export class ProfilePage implements OnInit, ViewWillEnter {
     const origGradPhoto  = this.alumniGradPhotoBase64;
     const origUserSig    = this.userSignatureUrl;
     const origAdminSig   = this.adminSignatureUrl;
+    const origBgUrl      = this.alumniIdDesign.frontBgUrl;
 
     // Pre-convert all remote Firebase Storage URLs to base64 so html2canvas
-    // can embed them without running into CORS restrictions
+    // can embed them without running into CORS restrictions on Android
     [
       this.alumniGradPhotoBase64,
       this.userSignatureUrl,
       this.adminSignatureUrl,
+      this.alumniIdDesign.frontBgUrl,
     ] = await Promise.all([
       this.urlToBase64(this.alumniGradPhotoBase64),
       this.urlToBase64(this.userSignatureUrl),
       this.urlToBase64(this.adminSignatureUrl),
+      this.urlToBase64(this.alumniIdDesign.frontBgUrl),
     ]);
 
     await new Promise(r => setTimeout(r, 150)); // let Angular re-render with base64 sources
@@ -964,9 +1001,10 @@ export class ProfilePage implements OnInit, ViewWillEnter {
       console.error('PDF generation failed', e);
     } finally {
       // Restore original URLs so the live card still shows correctly
-      this.alumniGradPhotoBase64 = origGradPhoto;
-      this.userSignatureUrl      = origUserSig;
-      this.adminSignatureUrl     = origAdminSig;
+      this.alumniGradPhotoBase64        = origGradPhoto;
+      this.userSignatureUrl             = origUserSig;
+      this.adminSignatureUrl            = origAdminSig;
+      this.alumniIdDesign.frontBgUrl    = origBgUrl;
       this.isFlipped = wasFlipped;
       this.isGeneratingPdf = false;
     }

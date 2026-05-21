@@ -63,6 +63,13 @@
             </button>
           </div>
 
+          <div class="video-preview" *ngIf="newPostVideo">
+            <video [src]="newPostVideo" controls playsinline></video>
+            <button class="remove-img-btn" (click)="removeVideo()">
+              <ion-icon name="close"></ion-icon>
+            </button>
+          </div>
+
           <div class="form-actions">
             <label class="image-upload-label">
               <ion-icon name="image"></ion-icon>
@@ -70,6 +77,16 @@
                 type="file"
                 accept="image/*"
                 (change)="onImageSelected($event)"
+                style="display: none"
+              />
+            </label>
+
+            <label class="image-upload-label video-upload-label">
+              <ion-icon name="videocam"></ion-icon>
+              <input
+                type="file"
+                accept="video/*"
+                (change)="onVideoSelected($event)"
                 style="display: none"
               />
             </label>

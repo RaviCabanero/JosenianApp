@@ -46,6 +46,11 @@ export class AdminPage implements OnInit {
   isApprovingAlumni = false;
   currentAdminName = '';
 
+  alumniIdDesign = { frontBgUrl: '', overlayColor1: '#08122f', overlayColor2: '#0c175a', overlayColor3: '#083012' };
+  idBgFile: File | null = null;
+  idBgPreviewUrl = '';
+  isSavingIdDesign = false;
+
   departments: any[] = [];
 
   alumni: any[] = [];
@@ -171,6 +176,7 @@ export class AdminPage implements OnInit {
           this.loadDepartments();
           this.loadAlumni();
           this.loadPendingAlumniVerification();
+          this.loadAlumniIdDesign();
           this.loadEvents();
         } else {
           this.router.navigate(['/login']);
@@ -388,6 +394,77 @@ export class AdminPage implements OnInit {
     } catch (error) {
       console.error('Error loading alumni verification:', error);
     }
+  }
+
+  async loadAlumniIdDesign() {
+    const design = await this.authService.getAlumniIdDesign();
+    if (design.frontBgUrl) this.alumniIdDesign.frontBgUrl = design.frontBgUrl;
+    if (design.overlayColor1) this.alumniIdDesign.overlayColor1 = design.overlayColor1;
+    if (design.overlayColor2) this.alumniIdDesign.overlayColor2 = design.overlayColor2;
+    if (design.overlayColor3) this.alumniIdDesign.overlayColor3 = design.overlayColor3;
+    this.idBgPreviewUrl = this.alumniIdDesign.frontBgUrl || '';
+  }
+
+  onIdBgFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.idBgFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.idBgPreviewUrl = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  removeIdBackground() {
+    this.idBgFile = null;
+    this.idBgPreviewUrl = '';
+    this.alumniIdDesign.frontBgUrl = '';
+  }
+
+  async resetIdDesign() {
+    this.isSavingIdDesign = true;
+    try {
+      this.alumniIdDesign = { frontBgUrl: '', overlayColor1: '#08122f', overlayColor2: '#0c175a', overlayColor3: '#083012' };
+      this.idBgFile = null;
+      this.idBgPreviewUrl = '';
+      await this.authService.saveAlumniIdDesign(this.alumniIdDesign);
+      await this.showAlert('Reset', 'Alumni ID design has been reset to the default.');
+    } catch (err) {
+      console.error('Error resetting alumni ID design:', err);
+    } finally {
+      this.isSavingIdDesign = false;
+    }
+  }
+
+  async saveAlumniIdDesign() {
+    this.isSavingIdDesign = true;
+    try {
+      if (this.idBgFile) {
+        this.alumniIdDesign.frontBgUrl = await this.authService.uploadAlumniIdBackground(this.idBgFile);
+        this.idBgFile = null;
+      }
+      await this.authService.saveAlumniIdDesign(this.alumniIdDesign);
+      await this.showAlert('Saved', 'Alumni ID design updated successfully.');
+    } catch (err) {
+      console.error('Error saving alumni ID design:', err);
+    } finally {
+      this.isSavingIdDesign = false;
+    }
+  }
+
+  get idCardPreviewStyle(): { [key: string]: string } {
+    const bg = this.idBgPreviewUrl || this.alumniIdDesign.frontBgUrl;
+    return {
+      'background-image': bg ? `url(${bg})` : 'none',
+      'background-color': bg ? '' : '#1a3a6e',
+    };
+  }
+
+  get adminPreviewOverlay(): string {
+    const c1 = this.hexToRgba(this.alumniIdDesign.overlayColor1, 0.80);
+    const c2 = this.hexToRgba(this.alumniIdDesign.overlayColor2, 0.74);
+    const c3 = this.hexToRgba(this.alumniIdDesign.overlayColor3, 0.80);
+    return `linear-gradient(160deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
   }
 
   getImageSafeUrl(value: string): SafeUrl | string {

@@ -11,6 +11,7 @@ interface Post {
   userId: number;
   content: string;
   image?: string;
+  video?: string;
   timestamp: Timestamp | Date;
   likes: number;
   comments: number;
@@ -56,6 +57,8 @@ export class FeedsPage implements OnInit {
   newPostContent: string = '';
   newPostImage: string | null = null;
   private newPostImageFile: File | null = null;
+  newPostVideo: string | null = null;
+  private newPostVideoFile: File | null = null;
   showPostForm: boolean = false;
 
   feedStats = {
@@ -255,10 +258,22 @@ export class FeedsPage implements OnInit {
           this.newPostImageFile
         );
         postData.image = imageUrl;
-        post.image = imageUrl; // Update in-memory post with the Storage URL
+        post.image = imageUrl;
         this.newPostImageFile = null;
       } else if (post.image) {
         postData.image = post.image;
+      }
+
+      if (this.newPostVideoFile) {
+        const videoUrl = await this.authService.uploadFile(
+          `post-videos/${this.currentUserUid}/${docRef.id}`,
+          this.newPostVideoFile
+        );
+        postData.video = videoUrl;
+        post.video = videoUrl;
+        this.newPostVideoFile = null;
+      } else if (post.video) {
+        postData.video = post.video;
       }
 
       await setDoc(docRef, postData);
@@ -456,7 +471,7 @@ export class FeedsPage implements OnInit {
       this.newPostImageFile = file;
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        this.newPostImage = e.target.result; // Keep for local preview only
+        this.newPostImage = e.target.result;
       };
       reader.readAsDataURL(file);
     }
@@ -467,20 +482,38 @@ export class FeedsPage implements OnInit {
     this.newPostImageFile = null;
   }
 
+  onVideoSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      this.newPostVideoFile = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.newPostVideo = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeVideo() {
+    this.newPostVideo = null;
+    this.newPostVideoFile = null;
+  }
+
   async createPost() {
-    if (!this.newPostContent.trim() && !this.newPostImage) {
+    if (!this.newPostContent.trim() && !this.newPostImage && !this.newPostVideo) {
       return;
     }
-    
+
     if (!this.currentUser) {
       console.log('No current user');
       return;
     }
-    
+
     const newPost: Post = {
       userId: this.currentUser.id,
       content: this.newPostContent,
       image: this.newPostImage || undefined,
+      video: this.newPostVideo || undefined,
       timestamp: new Date(),
       likes: 0,
       comments: 0,
@@ -488,7 +521,7 @@ export class FeedsPage implements OnInit {
       liked: false,
       privacy: this.newPostPrivacy
     };
-    
+
     this.currentUser.posts.unshift(newPost);
     this.refreshPosts();
 
@@ -500,10 +533,12 @@ export class FeedsPage implements OnInit {
       this.refreshPosts();
       return;
     }
-    
+
     this.newPostContent = '';
     this.newPostImage = null;
     this.newPostImageFile = null;
+    this.newPostVideo = null;
+    this.newPostVideoFile = null;
     this.newPostPrivacy = 'public';
     this.showPostForm = false;
   }
@@ -525,6 +560,8 @@ export class FeedsPage implements OnInit {
       this.newPostContent = '';
       this.newPostImage = null;
       this.newPostImageFile = null;
+      this.newPostVideo = null;
+      this.newPostVideoFile = null;
       this.newPostPrivacy = 'public';
     }
   }

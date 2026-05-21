@@ -70,5 +70,11 @@ service cloud.firestore {
         allow read, write;
       }
     }
+
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
   }
 }

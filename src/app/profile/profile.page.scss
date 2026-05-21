@@ -580,30 +580,30 @@ $bg-field:     #f9fafb;
 
 .did-card-back {
   transform: rotateY(180deg);
-  background: linear-gradient(160deg, #0f1f3d 0%, #1a3a6e 60%, #10521f 100%);
-}
-
-// Front card
-.digital-id-card {
-  background: url('../../assets/alumniID.jpg') center/cover no-repeat;
+  background-size: cover;
+  background-position: center;
   position: relative;
 
-  // Dark gradient overlay — keeps branding colours and ensures all text is readable
-  &::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(
-      160deg,
-      rgba(8, 18, 50, 0.80) 0%,
-      rgba(12, 35, 90, 0.74) 50%,
-      rgba(8, 48, 18, 0.80) 100%
-    );
-    pointer-events: none;
-    z-index: 0;
-  }
+  > *:not(.did-overlay) { position: relative; z-index: 1; }
+}
 
-  // Lift all direct children above the overlay
-  > * { position: relative; z-index: 1; }
+// Front card — background-image applied via [ngStyle]; overlay via .did-overlay div
+.digital-id-card {
+  background: url('../../assets/alumniID.jpg') center/cover no-repeat;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+
+  // Lift content children above the overlay — exclude .did-overlay itself
+  > *:not(.did-overlay) { position: relative; z-index: 1; }
+}
+
+.did-overlay {
+  position: absolute !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .did-header {

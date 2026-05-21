@@ -507,7 +507,8 @@
       <div class="did-flipper" [style.transform]="flipperTransform">
 
         <!-- FRONT -->
-        <div class="did-card-front digital-id-card">
+        <div class="did-card-front digital-id-card" [ngStyle]="idCardStyle">
+          <div class="did-overlay" [style.background]="overlayGradient"></div>
           <div class="did-header">
             <img [src]="logoSrc" alt="USJ-R Logo" class="did-logo">
             <div class="did-header-text">
@@ -547,7 +548,8 @@
           </div>
         </div>
 
-        <div class="did-card-back">
+        <div class="did-card-back" [ngStyle]="idCardStyle">
+          <div class="did-overlay" [style.background]="overlayGradient"></div>
           <div class="did-back-content">
             <img [src]="logoSrc" alt="USJ-R Logo" class="did-back-logo">
             <p class="did-back-title">USJ-R Alumni Association, Inc.</p>

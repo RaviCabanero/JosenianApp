@@ -1503,8 +1503,96 @@
         </section>
 
         <section class="tab-content" *ngIf="activeTab === 'alumni-verification'">
-          <div class="section-header">
-      
+
+          <!-- Alumni ID Design Editor -->
+          <div class="id-design-card">
+            <div class="id-design-header">
+              <div class="id-design-title">
+                <ion-icon name="color-palette-outline"></ion-icon>
+                Alumni ID Card Design
+              </div>
+              <p class="id-design-subtitle">Customize the background and overlay colors for the digital alumni ID card.</p>
+            </div>
+
+            <div class="id-design-body">
+              <div class="id-design-left">
+                <div class="id-design-field">
+                  <label class="id-design-label">Background Image</label>
+                  <div class="id-bg-upload-row">
+                    <div class="id-bg-thumb" [style.backgroundImage]="idBgPreviewUrl ? 'url(' + idBgPreviewUrl + ')' : 'none'">
+                      <ion-icon name="image-outline" *ngIf="!idBgPreviewUrl"></ion-icon>
+                    </div>
+                    <div class="id-bg-upload-info">
+                      <label class="id-bg-upload-btn">
+                        <ion-icon name="cloud-upload-outline"></ion-icon>
+                        {{ idBgPreviewUrl ? 'Change Image' : 'Upload Image' }}
+                        <input type="file" accept="image/*" (change)="onIdBgFileSelected($event)" style="display:none" />
+                      </label>
+                      <button class="id-bg-remove-btn" *ngIf="idBgPreviewUrl" (click)="removeIdBackground()">
+                        <ion-icon name="trash-outline"></ion-icon>
+                        Remove Image
+                      </button>
+                      <p class="id-bg-hint">Recommended: 1280×800px JPG or PNG</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="id-design-field">
+                  <label class="id-design-label">Overlay Colors</label>
+                  <div class="id-color-row">
+                    <div class="id-color-item">
+                      <input type="color" [(ngModel)]="alumniIdDesign.overlayColor1" class="id-color-input" />
+                      <span class="id-color-label">Top</span>
+                    </div>
+                    <div class="id-color-item">
+                      <input type="color" [(ngModel)]="alumniIdDesign.overlayColor2" class="id-color-input" />
+                      <span class="id-color-label">Middle</span>
+                    </div>
+                    <div class="id-color-item">
+                      <input type="color" [(ngModel)]="alumniIdDesign.overlayColor3" class="id-color-input" />
+                      <span class="id-color-label">Bottom</span>
+                    </div>
+                  </div>
+                  <p class="id-bg-hint">These semi-transparent colors overlay the background image for readability.</p>
+                </div>
+              </div>
+
+              <div class="id-design-right">
+                <p class="id-design-label">Preview</p>
+                <div class="id-card-preview" [ngStyle]="idCardPreviewStyle">
+                  <div class="id-card-preview-overlay" [style.background]="adminPreviewOverlay"></div>
+                  <div class="id-preview-inner">
+                    <div class="id-prev-header">
+                      <img src="assets/transparent_Logo.png" class="id-prev-logo" alt="USJ-R" />
+                      <div>
+                        <p class="id-prev-assoc">USJ-R Alumni Association, Inc.</p>
+                        <p class="id-prev-univ">University of San Jose-Recoletos</p>
+                      </div>
+                    </div>
+                    <div class="id-prev-body">
+                      <div class="id-prev-photo"></div>
+                      <div class="id-prev-details">
+                        <p class="id-prev-name">Alumni Name</p>
+                        <p class="id-prev-course">Course · Department</p>
+                        <p class="id-prev-year">Class of 2024</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="id-design-footer">
+              <button class="btn-reset-design" (click)="resetIdDesign()" [disabled]="isSavingIdDesign">
+                <ion-icon name="refresh-outline"></ion-icon>
+                Reset to Default
+              </button>
+              <button class="btn-save-design" (click)="saveAlumniIdDesign()" [disabled]="isSavingIdDesign">
+                <ion-spinner name="crescent" *ngIf="isSavingIdDesign" style="width:16px;height:16px;"></ion-spinner>
+                <ion-icon name="save-outline" *ngIf="!isSavingIdDesign"></ion-icon>
+                {{ isSavingIdDesign ? 'Saving...' : 'Save Design' }}
+              </button>
+            </div>
           </div>
 
           <div class="summary-cards verification-summary">

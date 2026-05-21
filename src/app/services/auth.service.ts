@@ -872,6 +872,23 @@ export class AuthService {
 
 
 
+  async getAlumniIdDesign(): Promise<any> {
+    try {
+      const snap = await getDoc(doc(this.firestore, 'settings', 'alumniIdDesign'));
+      return snap.exists() ? snap.data() : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async saveAlumniIdDesign(design: { frontBgUrl?: string; overlayColor1?: string; overlayColor2?: string; overlayColor3?: string }): Promise<void> {
+    await setDoc(doc(this.firestore, 'settings', 'alumniIdDesign'), design, { merge: true });
+  }
+
+  async uploadAlumniIdBackground(file: File): Promise<string> {
+    return this.uploadFile('settings/alumni-id-bg', file);
+  }
+
   async getPendingAlumniVerification() {
     try {
       const usersRef = collection(this.firestore, 'users');
