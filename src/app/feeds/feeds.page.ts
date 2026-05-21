@@ -482,19 +482,32 @@ export class FeedsPage implements OnInit {
     this.newPostImageFile = null;
   }
 
-  onVideoSelected(event: any) {
-    const file = event.target.files?.[0];
-    if (file) {
-      this.newPostVideoFile = file;
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.newPostVideo = e.target.result;
-      };
-      reader.readAsDataURL(file);
+  async onVideoSelected(event: any) {
+    const file: File | undefined = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) {
+      const alert = await this.alertCtrl.create({
+        header: 'File Too Large',
+        message: 'Please choose a video under 100 MB.',
+        buttons: ['OK']
+      });
+      await alert.present();
+      event.target.value = '';
+      return;
     }
+
+    if (this.newPostVideo) {
+      URL.revokeObjectURL(this.newPostVideo);
+    }
+    this.newPostVideoFile = file;
+    this.newPostVideo = URL.createObjectURL(file);
   }
 
   removeVideo() {
+    if (this.newPostVideo) {
+      URL.revokeObjectURL(this.newPostVideo);
+    }
     this.newPostVideo = null;
     this.newPostVideoFile = null;
   }
@@ -537,7 +550,10 @@ export class FeedsPage implements OnInit {
     this.newPostContent = '';
     this.newPostImage = null;
     this.newPostImageFile = null;
-    this.newPostVideo = null;
+    if (this.newPostVideo) {
+      URL.revokeObjectURL(this.newPostVideo);
+      this.newPostVideo = null;
+    }
     this.newPostVideoFile = null;
     this.newPostPrivacy = 'public';
     this.showPostForm = false;
@@ -560,7 +576,10 @@ export class FeedsPage implements OnInit {
       this.newPostContent = '';
       this.newPostImage = null;
       this.newPostImageFile = null;
-      this.newPostVideo = null;
+      if (this.newPostVideo) {
+        URL.revokeObjectURL(this.newPostVideo);
+        this.newPostVideo = null;
+      }
       this.newPostVideoFile = null;
       this.newPostPrivacy = 'public';
     }
