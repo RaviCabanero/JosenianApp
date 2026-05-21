@@ -99,7 +99,7 @@
 
             <div class="button-group">
               <button class="btn-cancel" (click)="togglePostForm()">Cancel</button>
-              <button class="btn-post" (click)="createPost()" [disabled]="!newPostContent.trim() && !newPostImage">
+              <button class="btn-post" (click)="createPost()" [disabled]="!newPostContent.trim() && !newPostImage && !newPostVideo">
                 <ion-icon name="checkmark" slot="start"></ion-icon>
                 Post
               </button>
@@ -233,6 +233,10 @@
 
           <div class="post-image" *ngIf="item.post.image">
             <img [src]="item.post.image" alt="post image" />
+          </div>
+
+          <div class="post-video" *ngIf="item.post.video">
+            <video [src]="item.post.video" controls playsinline (click)="$event.stopPropagation()"></video>
           </div>
 
           <div class="post-content" *ngIf="editingPostId !== item.post.id">
